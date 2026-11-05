@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 enum UserRole {
@@ -108,3 +108,4 @@ model ViolationLog {
 
   @@index([attemptId, createdAt])
 }
+
