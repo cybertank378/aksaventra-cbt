@@ -12,6 +12,7 @@
   - `src/modules/auth/application/usecases/LoginUseCase.ts`
   - `src/modules/auth/application/usecases/LogoutUseCase.ts`
   - `src/modules/auth/application/usecases/VerifyExamTokenUseCase.ts`
+  - `src/modules/auth/application/usecases/ExchangeMoodleLaunchTokenUseCase.ts`
   - `src/modules/auth/application/AuthService.ts`
   - `src/modules/auth/infrastructure/AuthRepository.ts`
   - `src/modules/auth/infrastructure/JwtProvider.ts`
@@ -22,6 +23,7 @@
   - `src/app/api/auth/login/route.ts`
   - `src/app/api/auth/logout/route.ts`
   - `src/app/api/auth/verify-token/route.ts`
+  - `src/app/api/auth/moodle-launch/route.ts`
   - `src/modules/users/*` (Entity, Interface, UseCase, Service, Controller, Repository)
 
 ## 1. Deskripsi Tugas

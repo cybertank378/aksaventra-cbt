@@ -24,9 +24,9 @@
   - `src/app/api/moodle-proxy/[...wsfunction]/route.ts`
 
 ## 1. Deskripsi Tugas
-1. Membangun validator defensif di `exam.validator.ts` (`z.coerce.number()`) untuk menangani payload JSON dari PHP Moodle.
+1. Membangun validator defensif di `exam.validator.ts` (`z.coerce.number()`) untuk menangani payload JSON dari web service Moodle `mod_cbt_get_exam_manifest`.
 2. Memastikan `GetExamSnapshotUseCase.ts` **hanya** mengembalikan `questionsJson` yang sudah bersih dari kunci jawaban (`answerKeysJson` tidak pernah keluar dari lapisan server).
-3. Menyediakan *In-Memory LRU/TTL Cache* pada `/api/exams/[id]/snapshot/route.ts` sehingga ketika 500 siswa mengambil naskah soal secara bersamaan di detik pertama ujian, database PostgreSQL hanya diakses 1 kali.
+3. Menyediakan *In-Memory LRU/TTL Cache* pada `/api/exams/[id]/snapshot/route.ts` sehingga ketika 500 siswa mengambil naskah soal secara bersamaan di detik pertama ujian, database (MariaDB/PostgreSQL) hanya diakses 1 kali.
 
 ## 2. Kriteria Selesai (Definition of Done & TDD)
 - [ ] `tests/unit/modules/exams/GetExamSnapshotUseCase.test.ts` memastikan properti kunci jawaban tidak pernah bocor ke DTO klien.
