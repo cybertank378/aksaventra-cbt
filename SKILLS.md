@@ -1,9 +1,9 @@
-# 🛠️ Technical Skills & Toolchain Matrix: `aksaventra-cbt`
+# 🛠️ Technical Skills & Stack Blueprint: `aksaventra-cbt-ui`
 
-## 1. Spesifikasi Stack (`package.json`)
-- **Framework & Runtime:** Next.js `16.4.3`, React `19.3.0`, Node.js `>=22.23.4`
-- **Database & Adapter:** Prisma `^7.10.1`, `@prisma/client@^7.10.1`, `@prisma/adapter-pg@^7.10.1`, `pg@^8.23.1`
-- **Client Offline Vault & State:** `dexie`, `zustand`
-- **Security & Auth:** `jose@^6.2.13` (JWT Edge/Proxy), `argon2@^0.45.1` (Password Hasher)
-- **Styling & Animation:** Tailwind CSS `^4`, `@tailwindcss/turbopack`, `framer-motion`, `lucide-react`
-- **Code Quality & TDD:** `@biomejs/biome@2.4.2`, `vitest@^5.0.5`
+## 1. Paket & Library Produksi (`package.json`)
+- **Core:** `next@16.4.3`, `react@19.3.0`, `typescript@^5`, `tailwindcss@^4`
+- **Database & ORM:** `prisma@^7.10.1`, `@prisma/client@^7.10.1`, `@prisma/adapter-pg@^7.10.1`
+- **State & Local Persistence:** `zustand`, `dexie`, `dexie-react-hooks`
+- **Math & Sanitasi HTML:** `katex`, `dompurify`
+- **Validation & Security:** `zod`, `jose`, `argon2`
+- **Linter, Formatter & Testing (TDD):** `@biomejs/biome`, `vitest`, `@testing-library/react`, `fake-indexeddb`

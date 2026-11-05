@@ -1,36 +1,28 @@
-# 🎨 Core Pattern, DTO & State Design: `aksaventra-cbt`
+# 🎨 UI/UX, State & TypeScript Data Design: `aksaventra-cbt-ui`
 
-## 1. Pola Dependency Injection API (`src/app/api/attempts/_factory.ts`)
+## 1. Definisi Tipe Data Inti (`src/core/domain/entities/ExamTypes.ts`)
 ```typescript
-import { prisma } from '@/libs/prisma';
-import { AttemptRepository } from '@/modules/attempts/infrastructure/AttemptRepository';
-import { SyncAnswerQueueUseCase } from '@/modules/attempts/application/usecases/SyncAnswerQueueUseCase';
-import { RecordViolationUseCase } from '@/modules/attempts/application/usecases/RecordViolationUseCase';
-import { SubmitAttemptUseCase } from '@/modules/attempts/application/usecases/SubmitAttemptUseCase';
-import { AttemptService } from '@/modules/attempts/application/AttemptService';
-import { AttemptController } from '@/modules/attempts/infrastructure/AttemptController';
+export type QuestionType = 'multichoice_single' | 'multichoice_multi' | 'shortanswer' | 'matching';
+export type AttemptStatus = 'inprogress' | 'locked' | 'submitted' | 'abandoned';
 
-export function makeAttemptController(): AttemptController {
-  const repo = new AttemptRepository(prisma);
-  const syncUseCase = new SyncAnswerQueueUseCase(repo);
-  const violationUseCase = new RecordViolationUseCase(repo);
-  const submitUseCase = new SubmitAttemptUseCase(repo);
-  const service = new AttemptService(syncUseCase, violationUseCase, submitUseCase);
-  return new AttemptController(service);
-}
-```
-
-## 2. Pola Atomic Section di Next.js Page (`src/app/(protected)/student/exam/[attemptId]/page.tsx`)
-File `page.tsx` di dalam `src/app/` dijaga tetap tipis (< 25 baris) dan hanya memanggil `Section` dari `src/sections/`:
-```tsx
-import { ExamWorkspaceSection } from '@/sections/exam-workspace/pages/ExamWorkspaceSection';
-
-interface PageProps {
-  params: Promise<{ attemptId: string }>;
+export interface QuestionOption {
+  key: string;
+  html: string;
 }
 
-export default async function StudentExamPage({ params }: PageProps) {
-  const { attemptId } = await params;
-  return <ExamWorkspaceSection attemptId={attemptId} />;
+export interface ExamQuestionItem {
+  slot: number;
+  questionId: number;
+  type: QuestionType;
+  stemHtml: string;
+  options: QuestionOption[];
+}
+
+export interface LocalAnswerEntry {
+  questionId: number;
+  answer: string | string[];
+  flagged: boolean;
+  updatedAt: number;
+  synced: boolean;
 }
 ```

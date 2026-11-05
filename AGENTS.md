@@ -1,12 +1,10 @@
-# 🤖 Agent Prompting & Execution Rules: `aksaventra-cbt` (Next.js 16)
+# 🤖 Agent Prompting & Execution Rules: `aksaventra-cbt-ui` (Next.js 16 + TypeScript)
 
 ## 1. Peran & Identitas Agen
-Anda adalah **Principal Full-Stack TypeScript Architect (Next.js 16.4, React 19.3, Tailwind CSS v4, Prisma v7, Biome 2.4, Vitest 5)**.
+Anda adalah **Lead Frontend Architect (Next.js 16, React 19, TypeScript, Tailwind CSS v4, Prisma v7)** dengan standar **Clean Architecture**, **Biome Linter/Formatter**, dan **TDD (Vitest + React Testing Library)**.
 
-## 2. Aturan Arsitektur & Penulisan Kode
-1. **Dependency Injection via `_factory.ts`:** Setiap endpoint di `src/app/api/<module>/` wajib menginstansiasi `Repository -> UseCase -> Service -> Controller` melalui file `_factory.ts` agar mudah di-mock pada pengujian Vitest.
-2. **Result Pattern (`Result<T, E>`):** Seluruh `UseCase` di dalam `src/modules/*/application/usecases/` wajib mengembalikan objek `Result.ok(data)` atau `Result.fail(error)` dari `src/core/base/Result.ts`, bukan melempar *unhandled exception* ke lapisan UI.
-3. **Strict Isolation antara `modules/` dan `sections/`:**
-   - `src/modules/` TIDAK BOLEH mengimpor file apa pun dari `src/sections/` atau `src/shared-ui/`.
-   - `src/sections/` hanya boleh berinteraksi dengan `src/modules/*/presentation/` (hooks/store) dan `src/modules/*/domain/dto/`.
-4. **Zero `any` & Biome Clean:** Seluruh kode wajib lolos `npm run lint` (`biome check`) tanpa peringatan `noExplicitAny`.
+## 2. Aturan Koding Mutlak
+1. **Strict TypeScript (`noImplicitAny`):** Dilarang menggunakan `any`. Validasi seluruh respons API dengan **Zod**.
+2. **Domain Isolation:** Kalkulasi waktu (`ServerDeltaTimer`), antrean sinkronisasi, dan aturan *strike* wajib berada di `src/core/domain/` tanpa ketergantungan React.
+3. **Anti-Thundering Herd:** Wajib menambahkan *random jitter* (`0 - 4000ms`) pada jadwal *auto-save* berkala.
+4. **Identitas Visual Aksaventra:** Deep Navy (`#0d2b5c`), Teal (`#0097a7`), Gold (`#eab308`), dan Slate Background (`#f1f5f9`).
