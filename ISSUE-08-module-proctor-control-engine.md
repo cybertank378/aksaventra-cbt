@@ -26,10 +26,10 @@
   - `src/app/api/proctor/[examId]/action/route.ts`
 
 ## 1. Deskripsi Tugas
-Membangun pusat kendali Pengawas Ujian:
+Membangun pusat kendali Pengawas Ujian yang selaras dengan Moodle `mod_cbt`:
 1. **`GetRoomParticipantsUseCase.ts`:** Mengambil matriks peserta beserta jumlah soal terjawab, sisa waktu, jumlah pelanggaran (`strikeCount`), dan mendeteksi status `OFFLINE` secara otomatis jika `now - lastHeartbeatAt > 60 detik`.
-2. **`RotateRoomTokenUseCase.ts`:** Menghasilkan token 6-karakter alfanumerik baru (tanpa karakter ambigu `0/O/1/I`) dengan masa berlaku 15 menit.
-3. **Empat Aksi Proktor (`Unlock`, `ResetDevice`, `ExtendTime`, `ForceSubmit`):** Setiap aksi wajib mencatat jejak audit ke tabel `ViolationLog` dengan ID pengawas dan alasan tindakan.
+2. **`RotateRoomTokenUseCase.ts`:** Selaras dengan `token_generator.php`. Menghasilkan token 6-karakter Base32 (`23456789ABCDEFGHJKLMNPQRSTUVWXYZ`) dengan masa berlaku 15 menit (900s window) menggunakan HMAC-SHA256 atau manual override.
+3. **Aksi Proktor (`Unlock`, `ResetDevice`, `ExtendTime`, `ForceSubmit`):** Selaras dengan external service `mod_cbt_proctor_control` (`unlock`, `extend_time`, `force_submit`). Setiap aksi wajib mencatat jejak audit ke tabel `ViolationLog` / `cbt_violation_logs`.
 
 ## 2. Kriteria Selesai (Definition of Done & TDD)
 - [ ] `tests/unit/modules/proctor/ProctorActionsUseCase.test.ts` memverifikasi bahwa `UnlockParticipantStrikeUseCase` mengubah status `LOCKED -> IN_PROGRESS`, mereset `strikeCount = 0`, dan membuat baris `ViolationLog`.

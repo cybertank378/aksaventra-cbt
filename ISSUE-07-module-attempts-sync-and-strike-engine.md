@@ -31,11 +31,11 @@
   - `src/app/api/attempts/[id]/submit/route.ts`
 
 ## 1. Deskripsi Tugas
-Mengimplementasikan jantung pengerjaan ujian CBT:
-1. **`StrikeEvaluationRule.ts`:** Membedakan *Hard Strike* (`document.hidden === true` -> 0ms langsung strike) dan *Soft Blur* (`window.onblur` -> *Grace Period* 2.500ms). Jika `nextStrikeCount >= maxStrikes`, ubah status attempt menjadi `LOCKED`.
-2. **`AnswerRehydrationRule.ts` & `SyncAnswerQueueUseCase.ts`:** Menggabungkan jawaban per `questionId` berdasarkan timestamp terbaru (`updatedAt` / `ts`) sehingga paket jaringan yang datang terlambat tidak pernah menimpa jawaban yang lebih baru (*Last-Write-Wins per Question*).
+Mengimplementasikan jantung pengerjaan ujian CBT selaras dengan Moodle `mod_cbt`:
+1. **`StrikeEvaluationRule.ts`:** Selaras dengan `strike_policy.php`. Membedakan *Hard Strike* (`TAB_BLUR` / `FULLSCREEN_EXIT` -> 0ms langsung strike), *DevTools Trap* (`DEVTOOLS_OPEN` -> immediate lockdown), dan *Soft Blur* (`window.onblur` -> *Grace Period* 2.500ms). Jika `nextStrikeCount >= maxStrikes`, ubah status attempt menjadi `LOCKED`.
+2. **`AnswerRehydrationRule.ts` & `SyncAnswerQueueUseCase.ts`:** Menggabungkan jawaban per `questionId` (`{ ans, flag, ts }` selaras dengan `sync_batch_answers.php`) berdasarkan timestamp terbaru (`updatedAt` / `ts`) sehingga paket jaringan yang datang terlambat tidak pernah menimpa jawaban yang lebih baru (*Last-Write-Wins per Question*).
 3. **`useExamWorkspaceStore.ts`:** Store Zustand untuk navigasi soal `< 16ms` yang **tidak** menyimpan state `remainingSeconds` (agar tidak memicu *re-render cascade* setiap detik).
-4. **`SubmitAttemptUseCase.ts`:** Menunggu antrean sinkronisasi selesai via `AsyncSyncMutex`, menghitung nilai akhir dari `exam.answerKeysJson`, dan menutup sesi ujian.
+4. **`SubmitAttemptUseCase.ts`:** Menunggu antrean sinkronisasi selesai via `AsyncSyncMutex`, menghitung nilai akhir dari `exam.answerKeysJson` (selaras dengan `score_calculator.php`), dan menutup sesi ujian via `mod_cbt_submit_exam`.
 
 ## 2. Kriteria Selesai (Definition of Done & TDD)
 - [ ] `tests/unit/modules/attempts/StrikeEvaluationRule.test.ts` lulus 100%.
