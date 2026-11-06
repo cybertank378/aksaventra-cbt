@@ -6,13 +6,22 @@ Issue ini mengatur implementasi antarmuka frontend **Next.js (`aksaventra-cbt`)*
 
 ### 1. 📅 Fase Persiapan Ujian (Guru / Admin di Next.js)
 Guru atau Admin memasukkan seluruh data pelaksanaan ujian secara mandiri dari antarmuka Next.js:
+
+- **Manajemen Akun Siswa & Kelas/Kelompok (`/dashboard/classes` & `/dashboard/students`):**
+  - Membuat akun siswa baru (NIS/Username, Nama Lengkap, Password, Email) langsung dari Next.js.
+  - Membuat kelompok kelas (Rombel / Cohort / Group, misal: `X RPL 1`, `XII MIPA 2`).
+  - Mengelompokkan siswa ke dalam kelas/kelompok terkait.
+  - Tersinkronisasi ke Moodle `{user}`, `{cohort}`, dan `{cohort_members}` via Web Service `mod_cbt_manage_groups`.
 - **Jadwal Ujian (`/dashboard/exams/new` & `/dashboard/exams/[id]/edit`):**
   - Input nama ujian, mata pelajaran, tanggal & jam mulai/selesai, durasi pengerjaan, batas strike pelanggaran, dan token ruangan.
   - Tersinkronisasi dua arah ke Moodle `mdl_cbt` melalui Web Service `mod_cbt_manage_schedule`.
-- **Peserta Ujian & Nomor Meja Ujian (`/dashboard/exams/[id]/participants`):**
-  - Mendaftarkan peserta ujian (NIS/Username, Nama Lengkap, Kelas).
-  - Mengalokasikan **Ruang Ujian** (misal: `LAB-01`) dan **Nomor Meja Ujian** (misal: `M-01`, `M-02`, dst.) per siswa.
-  - Tersimpan ke tabel Moodle `cbt_roster` melalui Web Service `mod_cbt_manage_roster`.
+- **Penugasan Siswa By Group / Kelas ke Ujian (`/dashboard/exams/[id]/assign-groups`):**
+  - Guru/Admin dapat menugaskan satu atau beberapa rombel/kelas sekaligus ke dalam ujian yang akan dilaksanakan.
+  - Sistem secara otomatis meng-enrol seluruh siswa di kelas tersebut ke course dan memasukkannya ke tabel peserta ujian `cbt_roster`.
+  - Sistem secara otomatis menghasilkan **Alokasi Ruang Ujian & Nomor Meja Berurutan** (misal: Ruangan `LAB-01`, Nomor Meja `M-01`, `M-02`, dst.) berdasarkan urutan absen siswa di kelas.
+  - Tersinkronisasi melalui Web Service `mod_cbt_assign_group_to_exam`.
+- **Peserta Ujian & Nomor Meja Manual / Custom (`/dashboard/exams/[id]/participants`):**
+  - Opsi kustomisasi nomor meja individual atau pemindahan ruang ujian per siswa via Web Service `mod_cbt_manage_roster`.
 - **Bank Soal & Butir Soal (`/dashboard/exams/[id]/questions`):**
   - Mengelola butir soal mencakup 8 jenis pertanyaan: Pilihan Ganda Biasa, Pilihan Ganda Kompleks (MCMA), Benar/Salah, Isian Singkat, Numerik (dengan batas toleransi), Menjodohkan, Teks Rumpang, dan Esai.
   - Snapshot naskah beku otomatis ter-cache di Moodle Universal Cache (MUC).
@@ -47,9 +56,10 @@ Guru atau Admin memasukkan seluruh data pelaksanaan ujian secara mandiri dari an
 ---
 
 ### 📁 Modul & Komponen Terkait di `aksaventra-cbt`
-- `src/modules/exams/`: Services & UseCases untuk `ManageScheduleUseCase`, `ManageRosterUseCase`.
+- `src/modules/classes/`: Entity, Service & UseCases untuk `ManageClassesUseCase`, `CreateStudentUseCase`.
+- `src/modules/exams/`: Services & UseCases untuk `ManageScheduleUseCase`, `ManageRosterUseCase`, `AssignGroupByExamUseCase`.
 - `src/modules/proctor/`: Service & UseCases untuk `ProctorMonitorStreamUseCase` & `ExecuteProctorActionUseCase` (`lock`, `unlock`, `extend_time`, `force_submit`).
 - `src/modules/recapitulation/`: UseCase untuk `GetExamRecapitulationUseCase`.
+- `src/sections/classes/`: Manajemen rombel / kelas dan daftar siswa.
 - `src/sections/proctor-room/`: Komponen `<LiveParticipantGrid />`, `<LiveAlertBanner />`, dan modal intervensi aksi proktor.
 - `src/sections/recapitulation/`: Komponen tabel rekap nilai, kartu statistik, dan toolbar ekspor dokumen.
-
