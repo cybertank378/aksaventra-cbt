@@ -26,3 +26,4 @@ export interface LocalVaultInterface {
 
   getAllAnswers(attemptId: string | number): Promise<VaultRecord[]>;
 }
+

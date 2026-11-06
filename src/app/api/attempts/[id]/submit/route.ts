@@ -8,3 +8,4 @@ export async function POST(
   const { id } = await context.params;
   return await attemptController.submitAttempt(request, id);
 }
+

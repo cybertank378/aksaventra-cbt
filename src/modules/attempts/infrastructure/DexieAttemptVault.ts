@@ -56,3 +56,4 @@ export class DexieAttemptVault implements LocalVaultInterface {
     }));
   }
 }
+

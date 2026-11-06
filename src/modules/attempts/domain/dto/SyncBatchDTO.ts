@@ -79,3 +79,4 @@ export interface SubmitAttemptResponseDTO {
   finalScore: number;
   syncedToMoodle: boolean;
 }
+
