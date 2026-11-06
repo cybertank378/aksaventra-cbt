@@ -14,7 +14,7 @@
   - `src/modules/proctor/application/usecases/ResetDeviceBindingUseCase.ts`
   - `src/modules/proctor/application/usecases/ExtendParticipantTimeUseCase.ts`
   - `src/modules/proctor/application/usecases/ForceSubmitAttemptUseCase.ts`
-  - `src/modules/proctor/application/ProctorService.ts`
+  - `src/modules/proctor/application/service/ProctorService.ts`
   - `src/modules/proctor/infrastructure/ProctorRepository.ts`
   - `src/modules/proctor/infrastructure/proctor.validator.ts`
   - `src/modules/proctor/infrastructure/ProctorController.ts`
