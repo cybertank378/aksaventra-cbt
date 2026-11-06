@@ -61,7 +61,9 @@ export class UsersRepository implements UsersRepositoryInterface {
       where: { role },
       orderBy: { fullName: "asc" },
     });
-    return users.map((u) => this.mapToEntity(u));
+    return users.map((u: Parameters<typeof this.mapToEntity>[0]) =>
+      this.mapToEntity(u),
+    );
   }
 
   public async listUsers(
@@ -99,7 +101,9 @@ export class UsersRepository implements UsersRepositoryInterface {
     ]);
 
     return {
-      users: users.map((u) => this.mapToEntity(u)),
+      users: users.map((u: Parameters<typeof this.mapToEntity>[0]) =>
+        this.mapToEntity(u),
+      ),
       total,
     };
   }

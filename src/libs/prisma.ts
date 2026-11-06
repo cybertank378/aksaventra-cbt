@@ -28,6 +28,7 @@ export function createPrismaClient(): PrismaClient {
   return new PrismaClient({ adapter });
 }
 
+export type { PrismaClient } from "@prisma/client";
 export const prisma: PrismaClient =
   globalForPrisma.prisma ?? createPrismaClient();
 

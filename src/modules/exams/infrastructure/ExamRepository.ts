@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma as defaultPrisma, type PrismaClient } from "@/libs/prisma";
 import type { QuestionItemDTO } from "../domain/dto/ExamSnapshotDTO";
 import { ExamEntity } from "../domain/entities/ExamEntity";
@@ -77,7 +78,9 @@ export class ExamRepository implements ExamRepositoryInterface {
     const exams = await this.db.exam.findMany({
       orderBy: { timeOpen: "desc" },
     });
-    return exams.map((e) => this.mapToEntity(e));
+    return exams.map((e: Parameters<typeof this.mapToEntity>[0]) =>
+      this.mapToEntity(e),
+    );
   }
 
   public async getAnswerKeys(
@@ -147,6 +150,8 @@ export class ExamRepository implements ExamRepositoryInterface {
     answerKeysJson: Record<string, string> = {},
   ): Promise<ExamEntity> {
     const questionsJson = entity.questions.map((q) => q.toDTO());
+    const prismaQuestions = questionsJson as unknown as Prisma.InputJsonValue;
+    const prismaAnswerKeys = answerKeysJson as unknown as Prisma.InputJsonValue;
 
     const saved = await this.db.exam.upsert({
       where: { id: entity.id },
@@ -162,8 +167,8 @@ export class ExamRepository implements ExamRepositoryInterface {
         activeToken: entity.activeToken,
         tokenExpiresAt: entity.tokenExpiresAt,
         snapshotHash: entity.snapshotHash,
-        questionsJson,
-        answerKeysJson,
+        questionsJson: prismaQuestions,
+        answerKeysJson: prismaAnswerKeys,
         timeOpen: entity.timeOpen,
         timeClose: entity.timeClose,
       },
@@ -177,8 +182,8 @@ export class ExamRepository implements ExamRepositoryInterface {
         activeToken: entity.activeToken,
         tokenExpiresAt: entity.tokenExpiresAt,
         snapshotHash: entity.snapshotHash,
-        questionsJson,
-        answerKeysJson,
+        questionsJson: prismaQuestions,
+        answerKeysJson: prismaAnswerKeys,
         timeOpen: entity.timeOpen,
         timeClose: entity.timeClose,
       },
