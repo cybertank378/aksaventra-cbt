@@ -19,3 +19,6 @@ Seluruh *issue* diurutkan secara sekuensial mulai dari **Fase 1 (Database & Core
 10. [`ISSUE-10-section-auth-and-student-lobby.md`](./ISSUE-10-section-auth-and-student-lobby.md) — Implementasi Atomic Section `src/sections/auth/` & `src/sections/student-lobby/` (Pre-Flight Check, Synchronous Fullscreen Trigger, Token Input) beserta halaman App Router.
 11. [`ISSUE-11-section-exam-workspace-zero-latency.md`](./ISSUE-11-section-exam-workspace-zero-latency.md) — Implementasi Atomic Section `src/sections/exam-workspace/` (`ServerTimerBadge`, `QuestionCanvas`, `QuestionNavGrid`, `BlurGraceWarningBanner`, `LockdownShieldModal`, `OfflineReceiptModal`).
 12. [`ISSUE-12-section-proctor-room-and-dashboards.md`](./ISSUE-12-section-proctor-room-and-dashboards.md) — Implementasi Atomic Section `src/sections/proctor-room/` (`LiveParticipantGrid`, `TokenProjectorCard`, `ParticipantActionModal`) & `/dashboard/*`.
+
+## Fase 4: Integrasi End-to-End Backend Moodle (`mod_cbt`) & Rekapitulasi
+13. [`ISSUE-13-full-workflow-integration.md`](./ISSUE-13-full-workflow-integration.md) — Integrasi End-to-End Manajemen Jadwal, Peserta & Nomor Meja, Live Proctoring (Auto-Lock & Unlock False Alarm), dan Rekapitulasi Nilai dengan Backend Moodle `mod_cbt`.
