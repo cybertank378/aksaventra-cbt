@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/base/Result";
 import { handleZodError } from "@/core/errors/handleZodError";
-import type { AuthService } from "../application/AuthService";
+import type { AuthService } from "../application/service/AuthService";
 import {
   loginSchema,
   moodleLaunchSchema,

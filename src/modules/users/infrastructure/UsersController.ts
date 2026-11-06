@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import type { UserRole } from "@/security/rbacConfig";
-import type { UsersService } from "../application/UsersService";
+import type { UsersService } from "../application/service/UsersService";
 
 export class UsersController extends BaseController {
   constructor(private readonly usersService: UsersService) {
