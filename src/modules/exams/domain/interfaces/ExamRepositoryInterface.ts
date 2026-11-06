@@ -3,6 +3,10 @@ import type { ExamEntity } from "../entities/ExamEntity";
 
 export interface ExamRepositoryInterface
   extends BaseRepository<ExamEntity, string> {
+  save(
+    exam: ExamEntity,
+    answerKeysJson?: Record<string, string>,
+  ): Promise<ExamEntity>;
   findByMoodleCbtId(moodleCbtId: number): Promise<ExamEntity | null>;
   getAnswerKeys(examId: string): Promise<Record<string, string> | null>;
   updateRoomToken(

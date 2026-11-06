@@ -125,7 +125,7 @@ export function renderAndSanitizeContent(content: string): string {
   // Step 2: Sanitize HTML output to prevent XSS
   const sanitized = DOMPurify.sanitize(
     withRenderedMath,
-    DOMPURIFY_CONFIG,
+    DOMPURIFY_CONFIG as Parameters<typeof DOMPurify.sanitize>[1],
   ) as string;
 
   // Manage cache size (LRU-like eviction: delete oldest if exceeded limit)
