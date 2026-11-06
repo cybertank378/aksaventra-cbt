@@ -1,4 +1,4 @@
-import { UsersService } from "@/modules/users/application/services/UsersService";
+import { UsersService } from "@/modules/users/application/service/UsersService";
 import { UsersController } from "@/modules/users/infrastructure/UsersController";
 import { UsersRepository } from "@/modules/users/infrastructure/UsersRepository";
 

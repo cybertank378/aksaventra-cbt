@@ -1,4 +1,4 @@
-import { AuthService } from "@/modules/auth/application/services/AuthService";
+import { AuthService } from "@/modules/auth/application/service/AuthService";
 import { AuthController } from "@/modules/auth/infrastructure/AuthController";
 import { AuthRepository } from "@/modules/auth/infrastructure/AuthRepository";
 import { jwtProvider } from "@/modules/auth/infrastructure/JwtProvider";

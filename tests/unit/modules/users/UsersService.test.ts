@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { UsersService } from "@/modules/users/application/services/UsersService";
+import { UsersService } from "@/modules/users/application/service/UsersService";
 import { UserEntity } from "@/modules/users/domain/entities/UserEntity";
 import type { UsersRepositoryInterface } from "@/modules/users/domain/interfaces/UsersRepositoryInterface";
 

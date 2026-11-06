@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/base/Result";
 import { handleZodError } from "@/core/errors/handleZodError";
-import type { ExamService } from "../application/ExamService";
+import type { ExamService } from "../application/service/ExamService";
 import { createExamSchema, updateExamSchema } from "./exam.validator";
 
 export class ExamController extends BaseController {

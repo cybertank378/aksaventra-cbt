@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ExamService } from "@/modules/exams/application/services/ExamService";
+import { ExamService } from "@/modules/exams/application/service/ExamService";
 import { ExamEntity } from "@/modules/exams/domain/entities/ExamEntity";
 import type { ExamRepositoryInterface } from "@/modules/exams/domain/interfaces/ExamRepositoryInterface";
 

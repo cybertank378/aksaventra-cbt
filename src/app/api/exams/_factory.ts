@@ -1,4 +1,4 @@
-import { ExamService } from "@/modules/exams/application/services/ExamService";
+import { ExamService } from "@/modules/exams/application/service/ExamService";
 import { ExamController } from "@/modules/exams/infrastructure/ExamController";
 import { ExamRepository } from "@/modules/exams/infrastructure/ExamRepository";
 
