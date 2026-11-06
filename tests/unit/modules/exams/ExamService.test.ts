@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ExamService } from "@/modules/exams/application/ExamService";
-import { CreateExamUseCase } from "@/modules/exams/application/usecases/CreateExamUseCase";
-import { GetExamSnapshotUseCase } from "@/modules/exams/application/usecases/GetExamSnapshotUseCase";
-import { UpdateExamUseCase } from "@/modules/exams/application/usecases/UpdateExamUseCase";
+import { ExamService } from "@/modules/exams/application/services/ExamService";
 import { ExamEntity } from "@/modules/exams/domain/entities/ExamEntity";
 import type { ExamRepositoryInterface } from "@/modules/exams/domain/interfaces/ExamRepositoryInterface";
 
@@ -31,16 +28,7 @@ describe("ExamService (In-Memory Thundering Herd Cache)", () => {
       updateExamMetadata: vi.fn(),
     };
 
-    const getSnapshotUseCase = new GetExamSnapshotUseCase(mockRepo);
-    const createUseCase = new CreateExamUseCase(mockRepo);
-    const updateUseCase = new UpdateExamUseCase(mockRepo);
-
-    const service = new ExamService(
-      mockRepo,
-      getSnapshotUseCase,
-      createUseCase,
-      updateUseCase,
-    );
+    const service = new ExamService(mockRepo);
 
     // Simulate 5 students requesting the snapshot at the exact same second
     const requests = Array.from({ length: 5 }, () =>
@@ -85,12 +73,7 @@ describe("ExamService (In-Memory Thundering Herd Cache)", () => {
       updateExamMetadata: updateExamMetadataSpy,
     };
 
-    const service = new ExamService(
-      mockRepo,
-      new GetExamSnapshotUseCase(mockRepo),
-      new CreateExamUseCase(mockRepo),
-      new UpdateExamUseCase(mockRepo),
-    );
+    const service = new ExamService(mockRepo);
 
     // 1. Initial snapshot fetch -> DB called 1 time
     await service.getSnapshot({ examId: "exam-cbt-100" });
@@ -106,5 +89,27 @@ describe("ExamService (In-Memory Thundering Herd Cache)", () => {
     // 3. Next snapshot fetch should re-query DB -> DB called 3 times total
     await service.getSnapshot({ examId: "exam-cbt-100" });
     expect(findByIdSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("delegates listExams and getExamById cleanly via use cases", async () => {
+    const mockRepo: ExamRepositoryInterface = {
+      findById: vi.fn().mockResolvedValue(mockExam),
+      findByMoodleCbtId: vi.fn(),
+      findAll: vi.fn().mockResolvedValue([mockExam]),
+      save: vi.fn(),
+      getAnswerKeys: vi.fn(),
+      updateRoomToken: vi.fn(),
+      updateExamMetadata: vi.fn(),
+    };
+
+    const service = new ExamService(mockRepo);
+
+    const listResult = await service.listExams();
+    expect(listResult.isSuccess).toBe(true);
+    expect(listResult.value).toHaveLength(1);
+
+    const detailResult = await service.getExamById("exam-cbt-100");
+    expect(detailResult.isSuccess).toBe(true);
+    expect(detailResult.value.id).toBe("exam-cbt-100");
   });
 });

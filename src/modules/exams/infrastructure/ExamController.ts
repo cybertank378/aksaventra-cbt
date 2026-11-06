@@ -29,31 +29,26 @@ export class ExamController extends BaseController {
   }
 
   public async getById(examId: string): Promise<NextResponse> {
-    const exam = await this.examService.getExamById(examId);
-    if (!exam) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "EXAM_NOT_FOUND",
-            message: `Ujian dengan ID '${examId}' tidak ditemukan`,
-          },
-        },
-        { status: 404 },
-      );
+    const result = await this.examService.getExamById(examId);
+    if (result.isFailure) {
+      return this.handleResult(result);
     }
 
     return NextResponse.json({
       success: true,
-      data: exam.toClientSnapshotDTO(),
+      data: result.value.toClientSnapshotDTO(),
     });
   }
 
   public async listExams(): Promise<NextResponse> {
-    const exams = await this.examService.listExams();
+    const result = await this.examService.listExams();
+    if (result.isFailure) {
+      return this.handleResult(result);
+    }
+
     return NextResponse.json({
       success: true,
-      data: exams.map((e) => e.toClientSnapshotDTO()),
+      data: result.value.map((e) => e.toClientSnapshotDTO()),
     });
   }
 

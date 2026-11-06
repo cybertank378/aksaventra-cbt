@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { UsersService } from "@/modules/users/application/UsersService";
-import { GetUserProfileUseCase } from "@/modules/users/application/usecases/GetUserProfileUseCase";
-import { ListUsersUseCase } from "@/modules/users/application/usecases/ListUsersUseCase";
+import { UsersService } from "@/modules/users/application/services/UsersService";
 import { UserEntity } from "@/modules/users/domain/entities/UserEntity";
 import type { UsersRepositoryInterface } from "@/modules/users/domain/interfaces/UsersRepositoryInterface";
 
@@ -31,10 +29,7 @@ describe("UsersService & UseCases", () => {
 
   it("fetches user profile successfully", async () => {
     const repo = createMockRepo();
-    const service = new UsersService(
-      new GetUserProfileUseCase(repo),
-      new ListUsersUseCase(repo),
-    );
+    const service = new UsersService(repo);
 
     const result = await service.getProfile("user-t-1");
     expect(result.isSuccess).toBe(true);
@@ -46,10 +41,7 @@ describe("UsersService & UseCases", () => {
     const repo = createMockRepo({
       findById: vi.fn().mockResolvedValue(null),
     });
-    const service = new UsersService(
-      new GetUserProfileUseCase(repo),
-      new ListUsersUseCase(repo),
-    );
+    const service = new UsersService(repo);
 
     const result = await service.getProfile("missing-user-id");
     expect(result.isFailure).toBe(true);
@@ -58,10 +50,7 @@ describe("UsersService & UseCases", () => {
 
   it("lists users with pagination metadata", async () => {
     const repo = createMockRepo();
-    const service = new UsersService(
-      new GetUserProfileUseCase(repo),
-      new ListUsersUseCase(repo),
-    );
+    const service = new UsersService(repo);
 
     const result = await service.listUsers({
       page: 1,

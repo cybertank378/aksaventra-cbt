@@ -52,3 +52,4 @@ Guru atau Admin memasukkan seluruh data pelaksanaan ujian secara mandiri dari an
 - `src/modules/recapitulation/`: UseCase untuk `GetExamRecapitulationUseCase`.
 - `src/sections/proctor-room/`: Komponen `<LiveParticipantGrid />`, `<LiveAlertBanner />`, dan modal intervensi aksi proktor.
 - `src/sections/recapitulation/`: Komponen tabel rekap nilai, kartu statistik, dan toolbar ekspor dokumen.
+
