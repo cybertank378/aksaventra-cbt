@@ -1,5 +1,5 @@
-import { BaseService } from "@/core/base/BaseService";
-import { Result } from "@/core/base/Result";
+import { BaseService } from "@/core/application/BaseService";
+import { Result } from "@/core/domain/Result";
 import type { AppError } from "@/core/errors/AppError";
 import type {
   CreateExamInput,
