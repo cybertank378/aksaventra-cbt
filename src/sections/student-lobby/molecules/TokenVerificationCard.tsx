@@ -1,30 +1,27 @@
 "use client";
 
 import { KeyRound, Maximize2, ShieldAlert } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { type FC, useState } from "react";
-import { useAttemptApi } from "@/modules/attempts/presentation/useAttemptApi";
 import TokenPinInput from "@/sections/auth/atoms/TokenPinInput";
 import { enterExamFullscreenSafe } from "@/security/quizFocusGuard";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
 
 export interface TokenVerificationCardProps {
-  examId: string;
   isDeviceReady?: boolean;
-  onSuccess?: (attemptId: string) => void;
+  onSubmitToken: (token: string) => Promise<void>;
+  loading?: boolean;
+  error?: string | null;
   className?: string;
 }
 
 export const TokenVerificationCard: FC<TokenVerificationCardProps> = ({
-  examId,
   isDeviceReady = true,
-  onSuccess,
+  onSubmitToken,
+  loading = false,
+  error: externalError,
   className,
 }) => {
-  const router = useRouter();
-  const { startAttempt, isLoading, error: apiError } = useAttemptApi();
-
   const [token, setToken] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -49,22 +46,7 @@ export const TokenVerificationCard: FC<TokenVerificationCardProps> = ({
     try {
       // Await fullscreen request outcome without blocking verification flow
       await fullscreenPromise;
-
-      // Call start attempt API via useAttemptApi
-      const result = await startAttempt({
-        examId,
-        roomToken: token.trim().toUpperCase(),
-      });
-
-      const attemptId = result.attemptId;
-
-      if (onSuccess && attemptId) {
-        onSuccess(String(attemptId));
-      } else if (attemptId) {
-        router.push(`/student/exam/${attemptId}`);
-      } else {
-        router.push(`/student/exam/${examId}`);
-      }
+      await onSubmitToken(token.trim().toUpperCase());
     } catch (err) {
       const message =
         err instanceof Error
@@ -74,8 +56,8 @@ export const TokenVerificationCard: FC<TokenVerificationCardProps> = ({
     }
   };
 
-  const isButtonDisabled = isLoading || !isDeviceReady || token.length < 6;
-  const displayedError = localError || apiError;
+  const isButtonDisabled = loading || !isDeviceReady || token.length < 6;
+  const displayedError = localError || externalError;
 
   return (
     <Card
@@ -115,7 +97,7 @@ export const TokenVerificationCard: FC<TokenVerificationCardProps> = ({
               setToken(val);
             }}
             hasError={Boolean(displayedError)}
-            disabled={isLoading || !isDeviceReady}
+            disabled={loading || !isDeviceReady}
           />
 
           <p className="text-center text-[11px] text-slate-400">
@@ -131,12 +113,12 @@ export const TokenVerificationCard: FC<TokenVerificationCardProps> = ({
             size="lg"
             fullWidth
             disabled={isButtonDisabled}
-            loading={isLoading}
+            loading={loading}
             onClick={handleStartExam}
             leftIcon={Maximize2}
             className="shadow-md text-base font-bold"
           >
-            {isLoading
+            {loading
               ? "Memvalidasi Sesi & Masuk Layar Penuh..."
               : "Masuk Layar Penuh & Mulai Ujian"}
           </Button>
