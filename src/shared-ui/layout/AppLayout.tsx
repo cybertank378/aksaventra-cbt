@@ -5,15 +5,29 @@ import type { UserRole } from "@/libs/enums";
 import AppSidebar, {
   type SidebarUserSummary,
 } from "@/shared-ui/layout/AppSidebar";
-import AppTopbar from "@/shared-ui/layout/AppTopbar";
+import AppTopbar, { type TopbarMenuItem } from "@/shared-ui/layout/AppTopbar";
 
-interface Props {
+interface AppLayoutProps {
   children: ReactNode;
   role?: UserRole;
   user?: SidebarUserSummary | null;
+  onLogout?: () => void | Promise<void>;
+  isLoggingOut?: boolean;
+  topbarMenuItems?: TopbarMenuItem[];
+  title?: string;
+  subtitle?: string;
 }
 
-export default function AppLayout({ children, role = "ADMIN", user }: Props) {
+export default function AppLayout({
+  children,
+  role = "ADMIN",
+  user,
+  onLogout,
+  isLoggingOut = false,
+  topbarMenuItems,
+  title,
+  subtitle,
+}: AppLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleOpenMobileSidebar = () => {
@@ -40,8 +54,14 @@ export default function AppLayout({ children, role = "ADMIN", user }: Props) {
         <AppTopbar
           role={role}
           username={user?.name ?? undefined}
+          userEmail={user?.email ?? undefined}
           userImage={user?.image}
           onMenuClick={handleOpenMobileSidebar}
+          onLogout={onLogout}
+          isLoggingOut={isLoggingOut}
+          menuItems={topbarMenuItems}
+          title={title}
+          subtitle={subtitle}
         />
 
         {/* SCROLLABLE CONTENT */}

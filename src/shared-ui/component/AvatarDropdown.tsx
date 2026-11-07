@@ -1,151 +1,71 @@
-// src/shared-ui/component/AvatarDropdown.tsx
-
 "use client";
 
+import type { LucideIcon } from "lucide-react";
 import { LogOut } from "lucide-react";
-
 import { useRouter } from "next/navigation";
-
-import { useState } from "react";
-
-import type { UserRole } from "@/libs/enums";
-
-import { useAuthApi } from "@/modules/auth/presentation/hooks/useAuthApi";
-import {
-  type AvatarMenuItem,
-  getAvatarMenuByRole,
-} from "@/security/AvatarMenu";
 import Button from "@/shared-ui/component/Button";
 import { DropdownItem } from "@/shared-ui/component/DropdownItem";
 
-//////////////////////////////////////////////////////////////
-// PROPS
-//////////////////////////////////////////////////////////////
-
-interface Props {
-  role?: UserRole;
+export interface AvatarDropdownItem {
+  label: string;
+  icon?: LucideIcon;
+  path?: string;
+  onClick?: () => void;
 }
 
-//////////////////////////////////////////////////////////////
-// AVATAR DROPDOWN
-//////////////////////////////////////////////////////////////
+export interface AvatarDropdownProps {
+  items?: AvatarDropdownItem[];
+  onLogout?: () => void | Promise<void>;
+  loading?: boolean;
+}
 
-export default function AvatarDropdown({ role = "ADMIN" }: Props) {
-  //////////////////////////////////////////////////////////////
-  // ROUTER
-  //////////////////////////////////////////////////////////////
-
+export default function AvatarDropdown({
+  items = [],
+  onLogout,
+  loading = false,
+}: AvatarDropdownProps) {
   const router = useRouter();
 
-  //////////////////////////////////////////////////////////////
-  // AUTH API
-  //////////////////////////////////////////////////////////////
-
-  const {
-    logout,
-
-    loading,
-  } = useAuthApi();
-
-  //////////////////////////////////////////////////////////////
-  // MENU
-  //////////////////////////////////////////////////////////////
-
-  const menu = getAvatarMenuByRole(role);
-
-  //////////////////////////////////////////////////////////////
-  // LOCAL LOADING
-  //////////////////////////////////////////////////////////////
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  //////////////////////////////////////////////////////////////
-  // LOGOUT
-  //////////////////////////////////////////////////////////////
-
-  const handleLogout = async () => {
-    try {
-      //////////////////////////////////////////////////////////
-      // LOADING
-      //////////////////////////////////////////////////////////
-
-      setIsSubmitting(true);
-
-      //////////////////////////////////////////////////////////
-      // API LOGOUT
-      //////////////////////////////////////////////////////////
-
-      await logout();
-
-      //////////////////////////////////////////////////////////
-      // REDIRECT
-      //////////////////////////////////////////////////////////
-
-      router.push("/login");
-
-      router.refresh();
-    } catch (error) {
-      console.error("[LOGOUT_ERROR]", error);
-    } finally {
-      //////////////////////////////////////////////////////////
-      // RESET LOADING
-      //////////////////////////////////////////////////////////
-
-      setIsSubmitting(false);
-    }
-  };
-
-  //////////////////////////////////////////////////////////////
-  // RENDER
-  //////////////////////////////////////////////////////////////
-
   return (
-    <>
-      {/* MENU */}
-      <div className="py-2">
-        {menu.map((item: AvatarMenuItem) => {
-          //////////////////////////////////////////////////////
-          // ACTION
-          //////////////////////////////////////////////////////
-
-          if ("action" in item) {
-            return null;
-          }
-
-          //////////////////////////////////////////////////////
-          // LINK
-          //////////////////////////////////////////////////////
-
-          return (
+    <div className="w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+      {items.length > 0 && (
+        <div className="py-1">
+          {items.map((item) => (
             <DropdownItem
               key={item.label}
               label={item.label}
               icon={item.icon}
               onClick={() => {
-                router.push(item.path);
+                if (item.onClick) {
+                  item.onClick();
+                } else if (item.path) {
+                  router.push(item.path);
+                }
               }}
             />
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* DIVIDER */}
-      <div className="border-t border-border-default" />
-
-      {/* LOGOUT */}
-      <div className="p-4">
-        <Button
-          type="button"
-          variant="filled"
-          color="error"
-          className="w-full"
-          leftIcon={LogOut}
-          loading={loading || isSubmitting}
-          onClick={handleLogout}
-        >
-          {loading || isSubmitting ? "Logging out..." : "Logout"}
-        </Button>
-      </div>
-    </>
+      {onLogout && (
+        <>
+          {items.length > 0 && <div className="border-t border-slate-100" />}
+          <div className="p-2">
+            <Button
+              type="button"
+              variant="filled"
+              color="danger"
+              size="sm"
+              fullWidth
+              leftIcon={LogOut}
+              loading={loading}
+              onClick={onLogout}
+            >
+              {loading ? "Logging out..." : "Logout"}
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

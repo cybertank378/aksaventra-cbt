@@ -200,3 +200,15 @@ export async function proxyMiddleware(
     },
   });
 }
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|images|assets|fonts).*)",
+  ],
+};
+
+export async function proxy(request: NextRequest): Promise<NextResponse> {
+  return await proxyMiddleware(request);
+}
+
+export default proxy;

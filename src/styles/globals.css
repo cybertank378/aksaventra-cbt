@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f1f5f9;
+  --foreground: #0d2b5c;
+
+  /* Aksaventra Visual Identity Tokens */
+  --color-aksaventra-navy: #0d2b5c;
+  --color-aksaventra-navy-dark: #081d3f;
+  --color-aksaventra-navy-light: #163b78;
+  --color-aksaventra-teal: #0097a7;
+  --color-aksaventra-teal-dark: #007987;
+  --color-aksaventra-teal-light: #26c6da;
+  --color-aksaventra-gold: #eab308;
+  --color-aksaventra-gold-dark: #ca8a04;
+  --color-aksaventra-gold-light: #fde047;
+  --color-aksaventra-slate: #f1f5f9;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-navy: var(--color-aksaventra-navy);
+  --color-teal: var(--color-aksaventra-teal);
+  --color-gold: var(--color-aksaventra-gold);
+  --color-slate-canvas: var(--color-aksaventra-slate);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
