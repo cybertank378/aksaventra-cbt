@@ -146,3 +146,8 @@ export function renderAndSanitizeContent(content: string): string {
 export function clearRenderCache(): void {
   renderCache.clear();
 }
+
+/**
+ * Alias for renderAndSanitizeContent adhering to the naming in issue specs.
+ */
+export const renderMathFirstAndSanitize = renderAndSanitizeContent;
