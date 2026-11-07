@@ -7,7 +7,7 @@ export const startAttemptSchema = z.object({
 
 export const answerItemSchema = z.object({
   questionId: z.coerce.number().int().positive(),
-  ans: z.unknown(),
+  ans: z.custom<import("../domain/dto/SyncBatchDTO").AnswerValue>(),
   flag: z.boolean().default(false),
   ts: z.coerce.number().int().positive(),
 });

@@ -1,19 +1,11 @@
-// Files: src/shared-ui/component/Table.tsx
-
 "use client";
 
 import clsx from "clsx";
 import type React from "react";
 
-//////////////////////////////////////////////////////////////
-// TABLE CONTAINER
-//////////////////////////////////////////////////////////////
-
-type TableProps = {
+export type TableProps = {
   children: React.ReactNode;
-
   className?: string;
-
   wrapperClassName?: string;
 };
 
@@ -24,13 +16,13 @@ export const Table = ({
 }: TableProps) => (
   <div
     className={clsx(
-      "overflow-x-auto rounded-lg border border-gray-200 bg-white",
+      "overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs",
       wrapperClassName,
     )}
   >
     <table
       className={clsx(
-        "w-full border-collapse text-sm text-gray-700",
+        "w-full border-collapse text-sm text-slate-700",
         className,
       )}
     >
@@ -39,21 +31,16 @@ export const Table = ({
   </div>
 );
 
-//////////////////////////////////////////////////////////////
-// TABLE HEAD
-//////////////////////////////////////////////////////////////
-
 export const TableHead = ({
   children,
   className,
 }: {
   children: React.ReactNode;
-
   className?: string;
 }) => (
   <thead
     className={clsx(
-      "h-16 border-b border-gray-200 bg-gray-100 text-sm font-semibold text-gray-700",
+      "border-b border-slate-200 bg-slate-50 text-xs font-bold text-[#0d2b5c] uppercase tracking-wider",
       className,
     )}
   >
@@ -61,26 +48,17 @@ export const TableHead = ({
   </thead>
 );
 
-//////////////////////////////////////////////////////////////
-// TABLE BODY
-//////////////////////////////////////////////////////////////
-
 export const TableBody = ({
   children,
   className,
 }: {
   children: React.ReactNode;
-
   className?: string;
 }) => (
-  <tbody className={clsx("divide-y divide-gray-200", className)}>
+  <tbody className={clsx("divide-y divide-slate-100", className)}>
     {children}
   </tbody>
 );
-
-//////////////////////////////////////////////////////////////
-// TABLE HEADER CELL
-//////////////////////////////////////////////////////////////
 
 export const TableHeaderCell = ({
   children,
@@ -91,7 +69,7 @@ export const TableHeaderCell = ({
 }) => (
   <th
     className={clsx(
-      "whitespace-nowrap px-4 py-3 text-left font-medium tracking-wide",
+      "whitespace-nowrap px-4 py-3.5 text-left font-semibold",
       className,
     )}
     {...props}
@@ -99,10 +77,6 @@ export const TableHeaderCell = ({
     {children}
   </th>
 );
-
-//////////////////////////////////////////////////////////////
-// TABLE ROW
-//////////////////////////////////////////////////////////////
 
 export const TableRow = ({
   children,
@@ -113,9 +87,7 @@ export const TableRow = ({
 }) => (
   <tr
     className={clsx(
-      "border-b border-gray-200 last:border-b-0",
-      "even:bg-gray-50",
-      "transition-colors duration-200 hover:bg-indigo-50/60",
+      "border-b border-slate-100 last:border-b-0 transition-colors duration-150 hover:bg-[#0097a7]/5",
       className,
     )}
     {...props}
@@ -123,10 +95,6 @@ export const TableRow = ({
     {children}
   </tr>
 );
-
-//////////////////////////////////////////////////////////////
-// TABLE CELL
-//////////////////////////////////////////////////////////////
 
 export const TableCell = ({
   children,
@@ -137,7 +105,7 @@ export const TableCell = ({
 }) => (
   <td
     className={clsx(
-      "align-middle whitespace-nowrap px-4 py-3 text-sm text-gray-700",
+      "align-middle whitespace-nowrap px-4 py-3.5 text-sm text-slate-700",
       className,
     )}
     {...props}
@@ -145,3 +113,5 @@ export const TableCell = ({
     {children}
   </td>
 );
+
+export default Table;

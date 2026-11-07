@@ -4,7 +4,7 @@ export interface VaultAnswerRecord {
   id?: string; // composite key: `${attemptId}:${questionId}`
   attemptId: string | number;
   questionId: number;
-  answer: string | string[] | Record<string, string> | boolean | null;
+  answer: string | string[] | Record<string, string> | boolean | number | null;
   flagged: boolean;
   updatedAt: number;
   synced: boolean;
@@ -47,7 +47,7 @@ export class DexieAttemptVault extends Dexie {
   public async saveAnswer(
     attemptId: string | number,
     questionId: number,
-    answer: string | string[] | Record<string, string> | boolean | null,
+    answer: string | string[] | Record<string, string> | boolean | number | null,
     flagged = false,
   ): Promise<void> {
     const id = this.getCompositeId(attemptId, questionId);

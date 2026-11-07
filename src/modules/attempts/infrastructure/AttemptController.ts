@@ -3,6 +3,10 @@ import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/domain/Result";
 import { handleZodError } from "@/core/errors/handleZodError";
 import type { AttemptService } from "../application/service/AttemptService";
+import type {
+  SubmitAttemptInputDTO,
+  SyncBatchRequestDTO,
+} from "../domain/dto/SyncBatchDTO";
 import {
   recordViolationSchema,
   startAttemptSchema,
@@ -68,7 +72,9 @@ export class AttemptController extends BaseController {
         );
       }
 
-      const result = await this.attemptService.syncBatchAnswers(parsed.data);
+      const result = await this.attemptService.syncBatchAnswers(
+        parsed.data as unknown as SyncBatchRequestDTO,
+      );
       return this.handleResult(result, 200);
     } catch (error) {
       return this.handleUnexpectedError(error);
@@ -112,7 +118,9 @@ export class AttemptController extends BaseController {
         );
       }
 
-      const result = await this.attemptService.submitAttempt(parsed.data);
+      const result = await this.attemptService.submitAttempt(
+        parsed.data as unknown as SubmitAttemptInputDTO,
+      );
       return this.handleResult(result, 200);
     } catch (error) {
       return this.handleUnexpectedError(error);

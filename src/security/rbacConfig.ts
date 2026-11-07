@@ -7,6 +7,33 @@ export const USER_ROLES: Record<UserRole, UserRole> = {
   STUDENT: "STUDENT",
 };
 
+export const roleConfig: Record<
+  UserRole,
+  { label: string; color: string; description: string }
+> = {
+  ADMIN: {
+    label: "Administrator",
+    color: "primary",
+    description: "Akses penuh manajemen CBT dan sistem",
+  },
+  TEACHER: {
+    label: "Guru / Pembuat Soal",
+    color: "info",
+    description: "Manajemen soal, jadwal, dan nilai",
+  },
+  PROCTOR: {
+    label: "Pengawas Ruangan",
+    color: "warning",
+    description: "Pengawasan langsung dan intervensi ujian",
+  },
+  STUDENT: {
+    label: "Siswa",
+    color: "secondary",
+    description: "Peserta pengerjaan ujian",
+  },
+};
+
+
 /**
  * Prefix routes allowed without authentication.
  */

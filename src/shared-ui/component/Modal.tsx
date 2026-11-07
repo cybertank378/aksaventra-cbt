@@ -4,10 +4,10 @@
 import clsx from "clsx";
 import type { FC, MouseEvent, ReactNode } from "react";
 import { useEffect } from "react";
-import Button from "@/shared-ui/component/Button";
+import Button, { type ButtonColor } from "@/shared-ui/component/Button";
 
 interface ModalProps {
-  title?: string; // ✅ FIX: sekarang optional
+  title?: string;
   subtitle?: string;
   open: boolean;
   onClose: () => void;
@@ -23,20 +23,8 @@ interface ModalProps {
 
   size?: "sm" | "md" | "lg" | "xl";
 
-  submitColor?:
-    | "primary"
-    | "secondary"
-    | "error"
-    | "warning"
-    | "info"
-    | "success";
-  cancelColor?:
-    | "primary"
-    | "secondary"
-    | "error"
-    | "warning"
-    | "info"
-    | "success";
+  submitColor?: ButtonColor;
+  cancelColor?: ButtonColor;
 
   submitDisabled?: boolean;
   submitLoading?: boolean;
@@ -89,8 +77,14 @@ export const Modal: FC<ModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
       onClick={handleOverlayClick}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
     >
       <div
         className={clsx(
