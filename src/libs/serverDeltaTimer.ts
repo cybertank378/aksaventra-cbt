@@ -5,6 +5,20 @@ export interface ServerDeltaTimerConfig {
   extraTimeSeconds?: number; // Optional proctor extension in seconds
 }
 
+export function calculateTrueRemainingSeconds(
+  timeStartSec: number,
+  durationSeconds: number,
+  extraTimeSeconds = 0,
+  serverTimestampSec: number = Date.now(),
+): number {
+  const normalizedServerSec =
+    serverTimestampSec > 1_000_000_000_000
+      ? Math.floor(serverTimestampSec / 1000)
+      : serverTimestampSec;
+  const totalAllowed = timeStartSec + durationSeconds + (extraTimeSeconds || 0);
+  return Math.max(0, totalAllowed - normalizedServerSec);
+}
+
 export class ServerDeltaTimer {
   private readonly durationSeconds: number;
   private readonly timeStartSec: number;
