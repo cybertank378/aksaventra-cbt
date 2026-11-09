@@ -89,6 +89,14 @@ export class ProctorController extends BaseController {
         req.headers.get("x-user-id") || parsed.data.proctorId || "proctor";
 
       switch (parsed.data.action) {
+        case "lock": {
+          const res = await this.proctorService.lockParticipant({
+            attemptId: parsed.data.attemptId,
+            proctorId,
+            reason: parsed.data.reason,
+          });
+          return this.handleResult(res, 200);
+        }
         case "unlock": {
           const res = await this.proctorService.unlockParticipant({
             attemptId: parsed.data.attemptId,

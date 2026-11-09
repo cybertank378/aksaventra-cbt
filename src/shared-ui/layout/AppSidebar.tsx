@@ -5,6 +5,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   FileText,
+  GraduationCap,
   HelpCircle,
   LayoutDashboard,
   LogOut,
@@ -56,6 +57,13 @@ export const DEFAULT_NAVIGATION_ITEMS: NavigationMenuItem[] = [
     title: "Manajemen Ujian",
     path: "/dashboard/exams",
     icon: FileText,
+    allowedRoles: ["ADMIN", "TEACHER"],
+  },
+  {
+    id: "classes",
+    title: "Kelas & Rombel",
+    path: "/dashboard/classes",
+    icon: GraduationCap,
     allowedRoles: ["ADMIN", "TEACHER"],
   },
   {

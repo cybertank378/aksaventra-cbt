@@ -2,12 +2,19 @@ import { BaseService } from "@/core/application/BaseService";
 import { Result } from "@/core/domain/Result";
 import type { AppError } from "@/core/errors/AppError";
 import type {
+  AssignGroupInputDTO,
+  ExamParticipantDTO,
+  ExamScheduleInputDTO,
+  UpdateSeatNumberInputDTO,
+} from "../../domain/dto/ExamRosterDTO";
+import type {
   CreateExamInput,
   ExamSnapshotDTO,
   UpdateExamInput,
 } from "../../domain/dto/ExamSnapshotDTO";
 import type { ExamEntity } from "../../domain/entities/ExamEntity";
 import type { ExamRepositoryInterface } from "../../domain/interfaces/ExamRepositoryInterface";
+import { AssignGroupByExamUseCase } from "../usecases/AssignGroupByExamUseCase";
 import { CreateExamUseCase } from "../usecases/CreateExamUseCase";
 import { GetExamByIdUseCase } from "../usecases/GetExamByIdUseCase";
 import {
@@ -15,6 +22,8 @@ import {
   GetExamSnapshotUseCase,
 } from "../usecases/GetExamSnapshotUseCase";
 import { ListExamsUseCase } from "../usecases/ListExamsUseCase";
+import { ManageRosterUseCase } from "../usecases/ManageRosterUseCase";
+import { ManageScheduleUseCase } from "../usecases/ManageScheduleUseCase";
 import { UpdateExamUseCase } from "../usecases/UpdateExamUseCase";
 
 interface CacheEntry {
@@ -37,6 +46,9 @@ export class ExamService extends BaseService {
   private readonly updateExamUseCase: UpdateExamUseCase;
   private readonly listExamsUseCase: ListExamsUseCase;
   private readonly getExamByIdUseCase: GetExamByIdUseCase;
+  private readonly assignGroupByExamUseCase: AssignGroupByExamUseCase;
+  private readonly manageRosterUseCase: ManageRosterUseCase;
+  private readonly manageScheduleUseCase: ManageScheduleUseCase;
 
   /**
    * In-Memory TTL Cache and Single-Flight Deduplication.
@@ -57,6 +69,9 @@ export class ExamService extends BaseService {
       updateExamUseCase?: UpdateExamUseCase;
       listExamsUseCase?: ListExamsUseCase;
       getExamByIdUseCase?: GetExamByIdUseCase;
+      assignGroupByExamUseCase?: AssignGroupByExamUseCase;
+      manageRosterUseCase?: ManageRosterUseCase;
+      manageScheduleUseCase?: ManageScheduleUseCase;
     },
   ) {
     super("ExamService");
@@ -72,6 +87,12 @@ export class ExamService extends BaseService {
       useCases?.listExamsUseCase ?? new ListExamsUseCase(repository);
     this.getExamByIdUseCase =
       useCases?.getExamByIdUseCase ?? new GetExamByIdUseCase(repository);
+    this.assignGroupByExamUseCase =
+      useCases?.assignGroupByExamUseCase ?? new AssignGroupByExamUseCase();
+    this.manageRosterUseCase =
+      useCases?.manageRosterUseCase ?? new ManageRosterUseCase();
+    this.manageScheduleUseCase =
+      useCases?.manageScheduleUseCase ?? new ManageScheduleUseCase();
   }
 
   public async getSnapshot(
@@ -138,6 +159,47 @@ export class ExamService extends BaseService {
 
   public async getExamById(id: string): Promise<Result<ExamEntity, AppError>> {
     return this.execute(() => this.getExamByIdUseCase.execute({ id }));
+  }
+
+  public async assignGroupsToExam(
+    input: AssignGroupInputDTO,
+  ): Promise<Result<ExamParticipantDTO[], AppError>> {
+    return this.execute(async () =>
+      Result.ok(await this.assignGroupByExamUseCase.execute(input)),
+    );
+  }
+
+  public async getRoster(
+    examId: string,
+  ): Promise<Result<ExamParticipantDTO[], AppError>> {
+    return this.execute(async () =>
+      Result.ok(await this.manageRosterUseCase.getExamParticipants(examId)),
+    );
+  }
+
+  public async updateSeat(
+    input: UpdateSeatNumberInputDTO,
+  ): Promise<Result<boolean, AppError>> {
+    return this.execute(async () =>
+      Result.ok(await this.manageRosterUseCase.updateSeatNumber(input)),
+    );
+  }
+
+  public async createSchedule(
+    input: ExamScheduleInputDTO,
+  ): Promise<Result<ExamSnapshotDTO, AppError>> {
+    return this.execute(async () =>
+      Result.ok(await this.manageScheduleUseCase.createSchedule(input)),
+    );
+  }
+
+  public async updateSchedule(
+    id: string,
+    input: Partial<ExamScheduleInputDTO>,
+  ): Promise<Result<boolean, AppError>> {
+    return this.execute(async () =>
+      Result.ok(await this.manageScheduleUseCase.updateSchedule(id, input)),
+    );
   }
 
   /**
