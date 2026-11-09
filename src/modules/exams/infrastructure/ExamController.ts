@@ -112,4 +112,59 @@ export class ExamController extends BaseController {
       );
     }
   }
+
+  public async assignGroups(
+    examId: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const result = await this.examService.assignGroupsToExam({
+        examId,
+        classGroupIds: body.classGroupIds || [],
+        roomCode: body.roomCode,
+        seatPrefix: body.seatPrefix,
+      });
+      return this.handleResult(result, 200);
+    } catch (err) {
+      return this.handleUnexpectedError(err);
+    }
+  }
+
+  public async getRoster(examId: string): Promise<NextResponse> {
+    try {
+      const result = await this.examService.getRoster(examId);
+      return this.handleResult(result, 200);
+    } catch (err) {
+      return this.handleUnexpectedError(err);
+    }
+  }
+
+  public async updateSeat(request: NextRequest): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const result = await this.examService.updateSeat({
+        examId: body.examId,
+        studentId: body.studentId,
+        roomCode: body.roomCode,
+        seatNumber: body.seatNumber,
+      });
+      return this.handleResult(result, 200);
+    } catch (err) {
+      return this.handleUnexpectedError(err);
+    }
+  }
+
+  public async updateSchedule(
+    id: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const result = await this.examService.updateSchedule(id, body);
+      return this.handleResult(result, 200);
+    } catch (err) {
+      return this.handleUnexpectedError(err);
+    }
+  }
 }

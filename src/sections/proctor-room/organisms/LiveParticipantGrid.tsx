@@ -8,6 +8,7 @@ import type { ParticipantMonitorDTO } from "@/modules/proctor/domain/dto/Proctor
 import { useProctorApi } from "@/modules/proctor/presentation/useProctorApi";
 import Button from "@/shared-ui/component/Button";
 import ParticipantStatusBadge from "../atoms/ParticipantStatusBadge";
+import { LiveAlertBanner } from "../molecules/LiveAlertBanner";
 import ParticipantActionModal from "../molecules/ParticipantActionModal";
 
 export interface LiveParticipantGridProps {
@@ -91,6 +92,12 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
     return `${mins}m ${secs < 10 ? "0" : ""}${secs}s`;
   };
 
+  const lockedParticipants = useMemo(() => {
+    return participants.filter(
+      (p) => p.status === "LOCKED" || p.strikeCount >= (p.maxStrikes || 3),
+    );
+  }, [participants]);
+
   return (
     <div
       className={clsx(
@@ -98,6 +105,13 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
         className,
       )}
     >
+      {/* Real-time Violation Alert Banner */}
+      {lockedParticipants.length > 0 && (
+        <LiveAlertBanner
+          lockedParticipants={lockedParticipants}
+          onUnlockQuickly={(attemptId) => executeAction(attemptId, "unlock")}
+        />
+      )}
       {/* Control Header: Search, Polling Toggle, Manual Refresh */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
         <div className="relative flex-1 max-w-md">
@@ -152,6 +166,7 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
         <table className="w-full text-left text-xs text-slate-700">
           <thead className="bg-slate-50/90 text-slate-500 font-semibold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
             <tr>
+              <th className="px-4 py-3">No. Meja</th>
               <th className="px-4 py-3">Peserta</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Progres Jawaban</th>
@@ -164,7 +179,7 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
             {filteredParticipants.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-8 text-center text-slate-400"
                 >
                   Tidak ada peserta ujian yang cocok dengan kriteria filter saat
@@ -183,6 +198,13 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
                       isWarning && "bg-rose-50/20",
                     )}
                   >
+                    {/* Seat Number */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 font-mono font-bold text-xs text-[#0d2b5c] border border-slate-200">
+                        {p.seatNumber || "-"}
+                      </span>
+                    </td>
+
                     {/* Student Info */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
@@ -193,9 +215,17 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
                           <p className="font-bold text-slate-900 truncate max-w-[180px]">
                             {p.fullName}
                           </p>
-                          <p className="text-[11px] text-slate-400">
-                            {p.username}
-                          </p>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                            <span>{p.username}</span>
+                            {p.className && (
+                              <>
+                                <span>•</span>
+                                <span className="font-medium text-slate-600">
+                                  {p.className}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>

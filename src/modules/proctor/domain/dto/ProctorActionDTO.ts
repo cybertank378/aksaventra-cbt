@@ -1,6 +1,7 @@
 import type { AttemptStatus, ViolationEventType } from "@prisma/client";
 
 export type ProctorActionType =
+  | "lock"
   | "unlock"
   | "reset_device"
   | "extend_time"
@@ -13,6 +14,7 @@ export interface ParticipantMonitorDTO {
   fullName: string;
   className?: string | null;
   roomCode?: string | null;
+  seatNumber?: string | null;
   status: AttemptStatus;
   isOnline: boolean;
   deviceHash: string;

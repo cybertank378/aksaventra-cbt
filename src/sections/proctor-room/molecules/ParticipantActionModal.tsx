@@ -185,6 +185,21 @@ export const ParticipantActionModal: FC<ParticipantActionModalProps> = ({
           <Button
             type="button"
             variant="outline"
+            color="danger"
+            loading={isLoading && selectedAction === "lock"}
+            disabled={
+              isLoading ||
+              participant.status === "LOCKED" ||
+              participant.status === "SUBMITTED"
+            }
+            onClick={() => handleAction("lock")}
+          >
+            Kunci Ujian (Lock Attempt)
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
             color="primary"
             loading={isLoading && selectedAction === "extend_time"}
             disabled={isLoading || participant.status === "SUBMITTED"}

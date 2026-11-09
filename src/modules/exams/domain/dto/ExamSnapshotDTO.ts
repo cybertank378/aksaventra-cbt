@@ -21,6 +21,7 @@ export interface ExamSnapshotDTO {
   sebRequired: boolean;
   sebConfigKey?: string | null;
   serverTimestamp: number;
+  activeToken?: string | null;
   questions: QuestionItemDTO[];
   snapshotHash?: string | null;
 }

@@ -19,6 +19,10 @@ import {
 } from "../usecases/ForceSubmitAttemptUseCase";
 import { GetRoomParticipantsUseCase } from "../usecases/GetRoomParticipantsUseCase";
 import {
+  type LockParticipantInput,
+  LockParticipantUseCase,
+} from "../usecases/LockParticipantUseCase";
+import {
   ResetDeviceBindingUseCase,
   type ResetDeviceInput,
 } from "../usecases/ResetDeviceBindingUseCase";
@@ -42,6 +46,7 @@ export class ProctorService extends BaseService {
   private readonly getRoomParticipantsUseCase: GetRoomParticipantsUseCase;
   private readonly rotateRoomTokenUseCase: RotateRoomTokenUseCase;
   private readonly unlockParticipantStrikeUseCase: UnlockParticipantStrikeUseCase;
+  private readonly lockParticipantUseCase: LockParticipantUseCase;
   private readonly resetDeviceBindingUseCase: ResetDeviceBindingUseCase;
   private readonly extendParticipantTimeUseCase: ExtendParticipantTimeUseCase;
   private readonly forceSubmitAttemptUseCase: ForceSubmitAttemptUseCase;
@@ -52,6 +57,7 @@ export class ProctorService extends BaseService {
       getRoomParticipantsUseCase?: GetRoomParticipantsUseCase;
       rotateRoomTokenUseCase?: RotateRoomTokenUseCase;
       unlockParticipantStrikeUseCase?: UnlockParticipantStrikeUseCase;
+      lockParticipantUseCase?: LockParticipantUseCase;
       resetDeviceBindingUseCase?: ResetDeviceBindingUseCase;
       extendParticipantTimeUseCase?: ExtendParticipantTimeUseCase;
       forceSubmitAttemptUseCase?: ForceSubmitAttemptUseCase;
@@ -70,6 +76,9 @@ export class ProctorService extends BaseService {
     this.unlockParticipantStrikeUseCase =
       useCases?.unlockParticipantStrikeUseCase ??
       new UnlockParticipantStrikeUseCase(proctorRepo);
+
+    this.lockParticipantUseCase =
+      useCases?.lockParticipantUseCase ?? new LockParticipantUseCase();
 
     this.resetDeviceBindingUseCase =
       useCases?.resetDeviceBindingUseCase ??
@@ -102,6 +111,12 @@ export class ProctorService extends BaseService {
     return this.execute(() =>
       this.unlockParticipantStrikeUseCase.execute(input),
     );
+  }
+
+  public lockParticipant(
+    input: LockParticipantInput,
+  ): Promise<Result<ProctorActionResponseDTO, AppError>> {
+    return this.execute(() => this.lockParticipantUseCase.execute(input));
   }
 
   public resetDeviceBinding(

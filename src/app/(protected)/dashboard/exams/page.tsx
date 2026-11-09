@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowRight, BarChart3, Calendar, Clock, Search } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  Calendar,
+  Clock,
+  Search,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import Button from "@/shared-ui/component/Button";
@@ -179,20 +187,43 @@ export default function ExamsManagementPage() {
                       )}
                     </td>
                     <td className="px-5 py-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2">
-                        {exam.status === "COMPLETED" && (
-                          <Link href={`/dashboard/results/${exam.id}`}>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              color="secondary"
-                              size="sm"
-                              leftIcon={BarChart3}
-                            >
-                              Nilai
-                            </Button>
-                          </Link>
-                        )}
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        <Link href={`/dashboard/exams/${exam.id}/questions`}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            color="secondary"
+                            size="sm"
+                            leftIcon={BookOpen}
+                            title="Bank Soal"
+                          >
+                            Soal
+                          </Button>
+                        </Link>
+                        <Link href={`/dashboard/exams/${exam.id}/assign-groups`}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            color="secondary"
+                            size="sm"
+                            leftIcon={Users}
+                            title="Alokasi Rombel & Meja"
+                          >
+                            Meja
+                          </Button>
+                        </Link>
+                        <Link href={`/dashboard/exams/${exam.id}/recapitulation`}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            color="secondary"
+                            size="sm"
+                            leftIcon={BarChart3}
+                            title="Rekapitulasi Nilai & KKM"
+                          >
+                            Rekap
+                          </Button>
+                        </Link>
                         <Link href={`/dashboard/proctor/${exam.id}`}>
                           <Button
                             type="button"
@@ -201,7 +232,7 @@ export default function ExamsManagementPage() {
                             size="sm"
                             rightIcon={ArrowRight}
                           >
-                            Pengawas
+                            Proktor
                           </Button>
                         </Link>
                       </div>
