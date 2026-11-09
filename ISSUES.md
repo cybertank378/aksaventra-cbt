@@ -22,3 +22,5 @@ Seluruh *issue* diurutkan secara sekuensial mulai dari **Fase 1 (Database & Core
 
 ## Fase 4: Integrasi End-to-End Backend Moodle (`mod_cbt`) & Rekapitulasi
 13. [`ISSUE-13-full-workflow-integration.md`](./ISSUE-13-full-workflow-integration.md) — Integrasi End-to-End Manajemen Jadwal, Peserta & Nomor Meja, Live Proctoring (Auto-Lock & Unlock False Alarm), dan Rekapitulasi Nilai dengan Backend Moodle `mod_cbt`.
+
+14. [`ISSUE-14-import-export-and-auto-configuration.md`](./ISSUE-14-import-export-and-auto-configuration.md) — Implementasi Antarmuka Import/Export Siswa, Bank Soal (8 Jenis Soal), dan Rekapitulasi Nilai Berbasis Excel/CSV Terintegrasi Headless Moodle `mod_cbt`.
