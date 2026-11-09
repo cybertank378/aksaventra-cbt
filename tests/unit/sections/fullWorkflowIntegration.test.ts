@@ -23,9 +23,7 @@ describe("Full Workflow Integration Logic (ISSUE-13 / #11)", () => {
     const passingGrade = 75;
 
     const total = scores.length;
-    const average = Number(
-      (scores.reduce((a, b) => a + b, 0) / total).toFixed(2),
-    );
+    const average = Number((scores.reduce((a, b) => a + b, 0) / total).toFixed(2));
     const highest = Math.max(...scores);
     const lowest = Math.min(...scores);
     const passed = scores.filter((s) => s >= passingGrade).length;
@@ -62,10 +60,7 @@ describe("Full Workflow Integration Logic (ISSUE-13 / #11)", () => {
   });
 
   it("evaluates manual lock action setting attempt to LOCKED and strikes to max", () => {
-    const simulateManualLock = (
-      currentStatus: string,
-      _currentStrikes: number,
-    ) => {
+    const simulateManualLock = (currentStatus: string, currentStrikes: number) => {
       return {
         status: "LOCKED",
         strikeCount: 3,
