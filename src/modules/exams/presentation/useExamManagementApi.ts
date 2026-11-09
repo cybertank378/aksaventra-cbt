@@ -11,8 +11,27 @@ import type { ExamSnapshotDTO } from "../domain/dto/ExamSnapshotDTO";
 export function useExamManagementApi(examId?: string) {
   const [participants, setParticipants] = useState<ExamParticipantDTO[]>([]);
   const [exam, setExam] = useState<ExamSnapshotDTO | null>(null);
+  const [examsList, setExamsList] = useState<ExamSnapshotDTO[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchExamsList = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/exams");
+      const json = await res.json();
+      if (json.success && json.data) {
+        setExamsList(json.data);
+      } else {
+        setError(json.error?.message || "Gagal memuat daftar ujian");
+      }
+    } catch {
+      setError("Gangguan jaringan saat memuat daftar ujian");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const fetchExam = useCallback(
     async (id?: string) => {
@@ -175,10 +194,12 @@ export function useExamManagementApi(examId?: string) {
 
   return {
     exam,
+    examsList,
     participants,
     isLoading,
     error,
     fetchExam,
+    fetchExamsList,
     fetchParticipants,
     assignGroups,
     updateSeat,

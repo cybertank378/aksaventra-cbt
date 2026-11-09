@@ -1,0 +1,353 @@
+"use client";
+
+import { ArrowLeft, Check, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { type FC, useState } from "react";
+import type {
+  CBTQuestionType,
+  QuestionOptionDTO,
+} from "@/modules/questions/domain/dto/QuestionDTO";
+import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
+import Button from "@/shared-ui/component/Button";
+
+export const CreateQuestionForm: FC = () => {
+  const router = useRouter();
+  const { createQuestion, isLoading, error } = useQuestionsApi();
+
+  const [subject, setSubject] = useState("Matematika");
+  const [gradeLevel, setGradeLevel] = useState("XII");
+  const [type, setType] = useState<CBTQuestionType>("multichoice");
+  const [stem, setStem] = useState("");
+  const [points, setPoints] = useState(2.5);
+  const [tolerance, setTolerance] = useState<number | undefined>(undefined);
+  const [explanation, setExplanation] = useState("");
+
+  const [options, setOptions] = useState<QuestionOptionDTO[]>([
+    { id: "opt-1", label: "A", text: "", isCorrect: true },
+    { id: "opt-2", label: "B", text: "", isCorrect: false },
+    { id: "opt-3", label: "C", text: "", isCorrect: false },
+    { id: "opt-4", label: "D", text: "", isCorrect: false },
+  ]);
+
+  const handleAddOption = () => {
+    const nextIndex = options.length + 1;
+    const labels = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    const label = labels[options.length] || `${nextIndex}`;
+    setOptions((prev) => [
+      ...prev,
+      { id: `opt-${Date.now()}`, label, text: "", isCorrect: false },
+    ]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    if (options.length <= 2) return;
+    setOptions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleOptionTextChange = (index: number, text: string) => {
+    setOptions((prev) =>
+      prev.map((opt, i) => (i === index ? { ...opt, text } : opt)),
+    );
+  };
+
+  const handleToggleCorrect = (index: number) => {
+    if (type === "multichoice" || type === "truefalse") {
+      setOptions((prev) =>
+        prev.map((opt, i) => ({ ...opt, isCorrect: i === index })),
+      );
+    } else {
+      setOptions((prev) =>
+        prev.map((opt, i) =>
+          i === index ? { ...opt, isCorrect: !opt.isCorrect } : opt,
+        ),
+      );
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stem.trim()) return;
+
+    const result = await createQuestion({
+      subject,
+      gradeLevel,
+      type,
+      stem,
+      points,
+      tolerance: type === "numerical" ? tolerance : undefined,
+      options: type === "essay" ? [] : options,
+      explanation: explanation.trim() || undefined,
+    });
+
+    if (result) {
+      router.push("/dashboard/questions");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/questions">
+            <Button
+              type="button"
+              variant="outline"
+              color="secondary"
+              size="sm"
+              leftIcon={ArrowLeft}
+            >
+              Kembali
+            </Button>
+          </Link>
+          <div>
+            <h2 className="text-base font-extrabold text-[#0d2b5c]">
+              Buat Butir Soal Baru
+            </h2>
+            <p className="text-xs text-slate-500">
+              Formulir pembuatan butir soal CBT standar Moodle mod_cbt
+            </p>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          variant="filled"
+          color="primary"
+          loading={isLoading}
+        >
+          Simpan ke Bank Soal
+        </Button>
+      </div>
+
+      {error && (
+        <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-700">
+          {error}
+        </div>
+      )}
+
+      {/* Main Metadata Card */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-3xl bg-white border border-slate-200/90 p-5 shadow-xs">
+        <div>
+          <label
+            htmlFor="subject-select"
+            className="block text-xs font-bold text-slate-700 mb-1.5"
+          >
+            Mata Pelajaran:
+          </label>
+          <select
+            id="subject-select"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+          >
+            <option value="Matematika">Matematika</option>
+            <option value="Fisika">Fisika</option>
+            <option value="Kimia">Kimia</option>
+            <option value="Biologi">Biologi</option>
+            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+            <option value="Geografi">Geografi</option>
+            <option value="Sosiologi">Sosiologi</option>
+          </select>
+        </div>
+
+        <div>
+          <label
+            htmlFor="grade-select"
+            className="block text-xs font-bold text-slate-700 mb-1.5"
+          >
+            Tingkat Kelas:
+          </label>
+          <select
+            id="grade-select"
+            value={gradeLevel}
+            onChange={(e) => setGradeLevel(e.target.value)}
+            className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+          >
+            <option value="X">Kelas X</option>
+            <option value="XI">Kelas XI</option>
+            <option value="XII">Kelas XII</option>
+          </select>
+        </div>
+
+        <div>
+          <label
+            htmlFor="type-select"
+            className="block text-xs font-bold text-slate-700 mb-1.5"
+          >
+            Tipe Pertanyaan CBT:
+          </label>
+          <select
+            id="type-select"
+            value={type}
+            onChange={(e) => setType(e.target.value as CBTQuestionType)}
+            className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 font-bold text-[#0d2b5c] bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+          >
+            <option value="multichoice">Pilihan Ganda Biasa</option>
+            <option value="mcma">Pilihan Ganda Kompleks (MCMA)</option>
+            <option value="truefalse">Benar / Salah</option>
+            <option value="shortanswer">Isian Singkat</option>
+            <option value="numerical">Numerik & Toleransi</option>
+            <option value="matching">Menjodohkan</option>
+            <option value="cloze">Teks Rumpang (Cloze)</option>
+            <option value="essay">Uraian / Esai Bebas</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Stem & Points Card */}
+      <div className="flex flex-col gap-4 rounded-3xl bg-white border border-slate-200/90 p-5 shadow-xs">
+        <div>
+          <label
+            htmlFor="stem-textarea"
+            className="block text-xs font-bold text-slate-700 mb-1.5"
+          >
+            Teks Pertanyaan / Soal (Mendukung KaTeX LaTeX $...$):
+          </label>
+          <textarea
+            id="stem-textarea"
+            rows={4}
+            value={stem}
+            onChange={(e) => setStem(e.target.value)}
+            placeholder="Tuliskan pertanyaan soal di sini. Contoh: Nilai dari $\lim_{x \to 0} \frac{\sin x}{x}$ adalah..."
+            className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="points-input"
+              className="block text-xs font-bold text-slate-700 mb-1.5"
+            >
+              Bobot Skor Poin:
+            </label>
+            <input
+              id="points-input"
+              type="number"
+              step="0.5"
+              min="0.5"
+              value={points}
+              onChange={(e) => setPoints(Number(e.target.value))}
+              className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            />
+          </div>
+
+          {type === "numerical" && (
+            <div>
+              <label
+                htmlFor="tolerance-input"
+                className="block text-xs font-bold text-slate-700 mb-1.5"
+              >
+                Batas Toleransi Nilai (±):
+              </label>
+              <input
+                id="tolerance-input"
+                type="number"
+                step="0.01"
+                min="0"
+                value={tolerance || 0}
+                onChange={(e) => setTolerance(Number(e.target.value))}
+                className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Options Matrix (if not essay) */}
+      {type !== "essay" && (
+        <div className="flex flex-col gap-4 rounded-3xl bg-white border border-slate-200/90 p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-bold text-[#0d2b5c]">
+                Pilihan Jawaban & Kunci
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Centang opsi yang merupakan kunci jawaban benar
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              color="primary"
+              size="sm"
+              leftIcon={Plus}
+              onClick={handleAddOption}
+            >
+              Tambah Opsi
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {options.map((opt, idx) => (
+              <div
+                key={opt.id}
+                className="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50/50"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleToggleCorrect(idx)}
+                  className={`h-7 w-7 rounded-xl flex items-center justify-center font-bold text-xs transition-colors shrink-0 ${
+                    opt.isCorrect
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "bg-white text-slate-400 border border-slate-200 hover:border-slate-300"
+                  }`}
+                  title={
+                    opt.isCorrect
+                      ? "Kunci Benar"
+                      : "Klik untuk jadikan kunci benar"
+                  }
+                >
+                  {opt.isCorrect ? <Check className="w-4 h-4" /> : opt.label}
+                </button>
+
+                <input
+                  type="text"
+                  value={opt.text}
+                  onChange={(e) => handleOptionTextChange(idx, e.target.value)}
+                  placeholder={`Isi teks pilihan jawaban ${opt.label}...`}
+                  className="flex-1 text-xs rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+                  required
+                />
+
+                {options.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveOption(idx)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Explanation Card */}
+      <div className="flex flex-col gap-2 rounded-3xl bg-white border border-slate-200/90 p-5 shadow-xs">
+        <label
+          htmlFor="explanation-textarea"
+          className="block text-xs font-bold text-slate-700"
+        >
+          Pembahasan / Penjelasan Soal (Opsional):
+        </label>
+        <textarea
+          id="explanation-textarea"
+          rows={3}
+          value={explanation}
+          onChange={(e) => setExplanation(e.target.value)}
+          placeholder="Catatan pembahasan atau rubrik penilaian untuk guru..."
+          className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+        />
+      </div>
+    </form>
+  );
+};
+
+export default CreateQuestionForm;
