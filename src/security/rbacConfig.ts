@@ -39,6 +39,7 @@ export const roleConfig: Record<
 export const PUBLIC_ROUTE_PREFIXES = [
   "/login",
   "/exam",
+  "/templates",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/moodle-launch",
@@ -77,6 +78,14 @@ export function isRouteAuthorized(
 
   const normalizedRole = role.toUpperCase() as UserRole;
 
+  // Authenticated user common endpoints
+  if (
+    pathname === "/api/users/me" ||
+    pathname.startsWith("/api/announcements")
+  ) {
+    return true;
+  }
+
   // Student specific zone
   if (pathname.startsWith("/student") || pathname.startsWith("/api/attempts")) {
     return normalizedRole === "STUDENT" || normalizedRole === "ADMIN";
@@ -94,15 +103,44 @@ export function isRouteAuthorized(
     );
   }
 
+  // Moodle web service proxy (for administrative & proctor tasks)
+  if (pathname.startsWith("/api/moodle-proxy")) {
+    return (
+      normalizedRole === "ADMIN" ||
+      normalizedRole === "TEACHER" ||
+      normalizedRole === "PROCTOR"
+    );
+  }
+
+  // Management API routes (exams, classes, students, questions, exam-cards)
+  if (
+    pathname.startsWith("/api/exams") ||
+    pathname.startsWith("/api/classes") ||
+    pathname.startsWith("/api/students") ||
+    pathname.startsWith("/api/questions") ||
+    pathname.startsWith("/api/exam-cards")
+  ) {
+    return normalizedRole === "ADMIN" || normalizedRole === "TEACHER";
+  }
+
+  // Admin exclusive APIs
+  if (pathname.startsWith("/api/admin") || pathname.startsWith("/api/users")) {
+    return normalizedRole === "ADMIN";
+  }
+
   // Dashboard general / admin zone
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/api/admin")) {
+  if (pathname.startsWith("/dashboard")) {
     if (normalizedRole === "ADMIN") return true;
     if (normalizedRole === "TEACHER") {
       // Teachers can access courses, exams, results, proctor
       return !pathname.startsWith("/dashboard/admin/settings");
     }
     if (normalizedRole === "PROCTOR") {
-      return pathname.startsWith("/dashboard/proctor");
+      return (
+        pathname === "/dashboard" ||
+        pathname.startsWith("/dashboard/proctor") ||
+        pathname.startsWith("/dashboard/results")
+      );
     }
     return false;
   }

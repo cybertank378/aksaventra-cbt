@@ -41,12 +41,7 @@ export const ProctorRoomView: FC<ProctorRoomViewProps> = ({
   };
 
   return (
-    <div
-      className={clsx(
-        "flex flex-col gap-6 w-full max-w-7xl mx-auto",
-        className,
-      )}
-    >
+    <div className={clsx("flex flex-col gap-6 w-full", className)}>
       {/* Top Section: Token Projector Card */}
       <TokenProjectorCard
         examTitle={examTitle}

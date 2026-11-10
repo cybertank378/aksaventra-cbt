@@ -73,7 +73,7 @@ function ExamParticipantsContent({ params }: ExamParticipantsPageProps) {
       title="Daftar Peserta & Penempatan Meja"
       subtitle="Pengaturan nomor meja dan penempatan ruang ujian siswa secara manual"
     >
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 w-full">
         {/* Navigation & Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/dashboard/exams">

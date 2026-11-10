@@ -1,6 +1,12 @@
 "use client";
 
-import { AlertCircle, ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -123,7 +129,8 @@ function ExamLaunchContent() {
                 Memverifikasi Sesi Moodle...
               </h2>
               <p className="mt-2 text-xs sm:text-sm text-slate-500 leading-relaxed">
-                Menyinkronkan kredensial ujian dan mengikat perangkat Anda ke lembar kerja ujian secara aman.
+                Menyinkronkan kredensial ujian dan mengikat perangkat Anda ke
+                lembar kerja ujian secara aman.
               </p>
               <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3.5 py-1.5 text-[11px] font-medium text-slate-600">
                 <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
@@ -141,7 +148,9 @@ function ExamLaunchContent() {
                 Autentikasi Berhasil!
               </h2>
               <p className="mt-1 text-sm font-semibold text-teal-700">
-                {studentName ? `Selamat datang, ${studentName}` : "Sesi Anda telah terhubung"}
+                {studentName
+                  ? `Selamat datang, ${studentName}`
+                  : "Sesi Anda telah terhubung"}
               </p>
               <p className="mt-2 text-xs text-slate-500">
                 Mengarahkan Anda langsung ke lobi ujian...
@@ -193,7 +202,9 @@ function ExamLaunchContent() {
           <ShieldCheck size={14} className="text-emerald-600" />
           <span>Terproteksi Protokol Zero-Latency Moodle mod_cbt</span>
         </div>
-        <p className="text-[11px]">&copy; {new Date().getFullYear()} Aksaventra CBT</p>
+        <p className="text-[11px]">
+          &copy; {new Date().getFullYear()} Aksaventra CBT
+        </p>
       </footer>
     </div>
   );
@@ -212,4 +223,3 @@ export default function ExamLaunchPage() {
     </Suspense>
   );
 }
-

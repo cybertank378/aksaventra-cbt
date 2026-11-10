@@ -91,12 +91,22 @@ export const StudentListTable: FC = () => {
 
         <div className="flex flex-wrap items-center gap-2">
           <a
-            href="/templates/sample_import_siswa.csv"
-            download="sample_import_siswa.csv"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
+            href="/templates/sample_import_siswa.xlsx"
+            download="sample_import_siswa.xlsx"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 transition-colors shadow-2xs"
+            title="Unduh Template Format Excel (.xlsx)"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            Unduh Template
+            <Download className="w-3.5 h-3.5 text-emerald-600" />
+            Template Excel (.xlsx)
+          </a>
+          <a
+            href="/templates/sample_import_siswa.xls"
+            download="sample_import_siswa.xls"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-teal-700 bg-white hover:bg-teal-50 border border-teal-200 transition-colors shadow-2xs"
+            title="Unduh Template Format Excel (.xls)"
+          >
+            <Download className="w-3.5 h-3.5 text-teal-600" />
+            .xls
           </a>
 
           <Button

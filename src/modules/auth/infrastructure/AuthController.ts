@@ -143,9 +143,7 @@ export class AuthController extends BaseController {
 
     const parseResult = moodleLaunchSchema.safeParse(body);
     if (!parseResult.success) {
-      return this.handleResult(
-        Result.fail(handleZodError(parseResult.error)),
-      );
+      return this.handleResult(Result.fail(handleZodError(parseResult.error)));
     }
 
     try {

@@ -1,5 +1,7 @@
+import * as XLSX from "xlsx";
+
 /**
- * Utility functions for Excel-compatible CSV parsing and export.
+ * Utility functions for Excel (.xlsx, .xls) and CSV parsing and export.
  * Supports UTF-8 BOM (\uFEFF) and semicolon (;) delimiter for Microsoft Excel compatibility.
  */
 
@@ -154,6 +156,106 @@ export function downloadCsvBlob(csvContent: string, filename: string): void {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Universal tabular file parser supporting .xlsx, .xls, and .csv.
+ */
+export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
+  const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+  if (!isExcel) {
+    return parseCsvFile(file);
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) {
+    return { headers: [], rows: [], rawRows: [], totalRows: 0 };
+  }
+
+  const worksheet = workbook.Sheets[sheetName];
+  const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, {
+    header: 1,
+    defval: "",
+  });
+
+  if (jsonData.length === 0) {
+    return { headers: [], rows: [], rawRows: [], totalRows: 0 };
+  }
+
+  const rawHeaderRow = (jsonData[0] || []).map((h) => String(h || "").trim());
+  const cleanHeaders = rawHeaderRow.map((h) =>
+    h
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/gi, "_")
+      .replace(/^_+|_+$/g, ""),
+  );
+
+  const rows: Record<string, string>[] = [];
+  const rawRows: string[][] = [];
+
+  for (let i = 1; i < jsonData.length; i++) {
+    const rawLine = jsonData[i] || [];
+    const values = cleanHeaders.map((_, idx) =>
+      String(rawLine[idx] ?? "").trim(),
+    );
+
+    // Skip empty row
+    if (values.every((v) => v === "")) {
+      continue;
+    }
+
+    const rowObj: Record<string, string> = {};
+    for (let j = 0; j < cleanHeaders.length; j++) {
+      const headerKey = cleanHeaders[j] || `col_${j}`;
+      rowObj[headerKey] = values[j] || "";
+    }
+    rows.push(rowObj);
+    rawRows.push(values);
+  }
+
+  return {
+    headers: cleanHeaders,
+    rows,
+    rawRows,
+    totalRows: rows.length,
+  };
+}
+
+/**
+ * Triggers a browser download of an Excel (.xlsx or .xls) file.
+ */
+export function downloadExcelBlob(
+  headers: string[],
+  rows: (string | number | boolean | null | undefined)[][],
+  filename: string,
+  sheetName = "Sheet1",
+  format: "xlsx" | "xls" = "xlsx",
+): void {
+  const aoa = [headers, ...rows];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  const bookType = format === "xls" ? "biff8" : "xlsx";
+  const excelBuffer = XLSX.write(wb, { bookType, type: "array" });
+
+  const mimeType =
+    format === "xls"
+      ? "application/vnd.ms-excel"
+      : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  const blob = new Blob([excelBuffer], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const ext = `.${format}`;
+  a.download = filename.endsWith(ext) ? filename : `${filename}${ext}`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

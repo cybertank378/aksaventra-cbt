@@ -98,10 +98,11 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
                 key={s}
                 type="button"
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === s
-                  ? "bg-[#0d2b5c] text-white shadow-xs"
-                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
-                  }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  statusFilter === s
+                    ? "bg-[#0d2b5c] text-white shadow-xs"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
+                }`}
               >
                 {s === "ALL" ? "Semua" : s === "PASSED" ? "Tuntas" : "Remedial"}
               </button>
@@ -109,12 +110,22 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
           </div>
 
           <a
-            href="/templates/sample_rekap_nilai.csv"
-            download="sample_rekap_nilai.csv"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors shadow-2xs"
+            href="/templates/sample_rekap_nilai.xlsx"
+            download="sample_rekap_nilai.xlsx"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 transition-colors shadow-2xs"
+            title="Unduh Template Format Excel (.xlsx)"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            Unduh Template
+            <Download className="w-3.5 h-3.5 text-emerald-600" />
+            Template Excel (.xlsx)
+          </a>
+          <a
+            href="/templates/sample_rekap_nilai.xls"
+            download="sample_rekap_nilai.xls"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-teal-700 bg-white hover:bg-teal-50 border border-teal-200 transition-colors shadow-2xs"
+            title="Unduh Template Format Excel (.xls)"
+          >
+            <Download className="w-3.5 h-3.5 text-teal-600" />
+            .xls
           </a>
 
           <Button

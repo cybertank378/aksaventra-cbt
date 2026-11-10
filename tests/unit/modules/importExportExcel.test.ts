@@ -80,4 +80,28 @@ describe("Excel & CSV Utilities for Moodle Import/Export", () => {
     const csvOutput = generateExcelCsv(headers, rows, ";");
     expect(csvOutput).toContain('"Ahmad; Dahlan";"Ujian ""Sangat Baik"""');
   });
+
+  it("should parse tabular data from an Excel workbook (.xlsx)", async () => {
+    const XLSX = await import("xlsx");
+    const { parseTabularFile } = await import("@/libs/excelCsvUtils");
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["nis_username", "nama_lengkap", "kelas"],
+      ["1001", "Ahmad Dahlan", "X-RPL-1"],
+      ["1002", "Budi Santoso", "X-RPL-1"],
+    ]);
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    const buffer = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+
+    const mockFile = new File([buffer], "sample_import_siswa.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const result = await parseTabularFile(mockFile);
+    expect(result.totalRows).toBe(2);
+    expect(result.headers).toEqual(["nis_username", "nama_lengkap", "kelas"]);
+    expect(result.rows[0].nis_username).toBe("1001");
+    expect(result.rows[0].nama_lengkap).toBe("Ahmad Dahlan");
+  });
 });

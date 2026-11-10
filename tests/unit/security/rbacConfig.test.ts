@@ -58,6 +58,32 @@ describe("rbacConfig & sidebarMenu", () => {
       );
     });
 
+    it("allows ADMIN and TEACHER to access management APIs", () => {
+      expect(isRouteAuthorized("ADMIN", "/api/exams")).toBe(true);
+      expect(isRouteAuthorized("ADMIN", "/api/classes")).toBe(true);
+      expect(isRouteAuthorized("ADMIN", "/api/students")).toBe(true);
+      expect(isRouteAuthorized("ADMIN", "/api/questions")).toBe(true);
+      expect(
+        isRouteAuthorized("ADMIN", "/api/moodle-proxy/mod_cbt_manage_groups"),
+      ).toBe(true);
+
+      expect(isRouteAuthorized("TEACHER", "/api/exams")).toBe(true);
+      expect(isRouteAuthorized("TEACHER", "/api/classes")).toBe(true);
+      expect(isRouteAuthorized("TEACHER", "/api/students")).toBe(true);
+      expect(isRouteAuthorized("TEACHER", "/api/questions")).toBe(true);
+      expect(
+        isRouteAuthorized(
+          "TEACHER",
+          "/api/moodle-proxy/mod_cbt_manage_schedule",
+        ),
+      ).toBe(true);
+
+      // Student cannot access management APIs
+      expect(isRouteAuthorized("STUDENT", "/api/exams")).toBe(false);
+      expect(isRouteAuthorized("STUDENT", "/api/classes")).toBe(false);
+      expect(isRouteAuthorized("STUDENT", "/api/students")).toBe(false);
+    });
+
     it("allows ADMIN to access all routes", () => {
       expect(isRouteAuthorized("ADMIN", "/dashboard")).toBe(true);
       expect(isRouteAuthorized("ADMIN", "/dashboard/proctor")).toBe(true);

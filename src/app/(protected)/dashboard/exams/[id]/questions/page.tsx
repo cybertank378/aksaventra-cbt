@@ -173,7 +173,7 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
       title="Bank Soal & Butir Pertanyaan CBT"
       subtitle="Mendukung 8 varian model soal Moodle mod_cbt dengan snapshot beku MUC"
     >
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 w-full">
         {/* Top Controls */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/dashboard/exams">
@@ -190,12 +190,22 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
 
           <div className="flex flex-wrap items-center gap-2">
             <a
-              href="/templates/sample_import_soal.csv"
-              download="sample_import_soal.csv"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors shadow-2xs"
+              href="/templates/sample_import_soal.xlsx"
+              download="sample_import_soal.xlsx"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 transition-colors shadow-2xs"
+              title="Unduh Template Format Excel (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              Unduh Template Soal
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              Template Excel (.xlsx)
+            </a>
+            <a
+              href="/templates/sample_import_soal.xls"
+              download="sample_import_soal.xls"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-teal-700 bg-white hover:bg-teal-50 border border-teal-200 transition-colors shadow-2xs"
+              title="Unduh Template Format Excel (.xls)"
+            >
+              <Download className="w-3.5 h-3.5 text-teal-600" />
+              .xls
             </a>
 
             <Button

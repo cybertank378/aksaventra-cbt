@@ -54,7 +54,7 @@ const mockActiveExams: ActiveExamItem[] = [
 
 export const AdminDashboard: FC = () => {
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full">
       {/* Welcome Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl bg-gradient-to-r from-[#0d2b5c] to-[#163b78] p-6 text-white shadow-sm">
         <div>

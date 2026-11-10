@@ -22,7 +22,13 @@ export class ExchangeMoodleLaunchTokenUseCase
   public async execute(
     input: ExchangeMoodleLaunchInput,
   ): Promise<Result<ExchangeMoodleLaunchOutput, AppError>> {
-    const { moodleUserId, moodleCbtId, launchToken, deviceHash, ipAddress = "" } = input;
+    const {
+      moodleUserId,
+      moodleCbtId,
+      launchToken,
+      deviceHash,
+      ipAddress = "",
+    } = input;
 
     // 1. Resolve student by Moodle user ID or by validating launch token
     let user = moodleUserId
@@ -31,7 +37,8 @@ export class ExchangeMoodleLaunchTokenUseCase
 
     if (!user) {
       // Validate launch token against Moodle bridge
-      const validated = await this.authRepository.validateMoodleLaunchToken(launchToken);
+      const validated =
+        await this.authRepository.validateMoodleLaunchToken(launchToken);
       if (!validated) {
         return Result.fail(
           new DomainError(
@@ -64,7 +71,8 @@ export class ExchangeMoodleLaunchTokenUseCase
     let exam = await this.authRepository.findExamByMoodleCbtId(moodleCbtId);
     if (!exam) {
       try {
-        exam = await this.authRepository.ensureExamExistsForMoodleCbt(moodleCbtId);
+        exam =
+          await this.authRepository.ensureExamExistsForMoodleCbt(moodleCbtId);
       } catch {
         // Exam creation failed
       }
