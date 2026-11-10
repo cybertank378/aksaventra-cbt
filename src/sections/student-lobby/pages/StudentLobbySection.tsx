@@ -26,13 +26,11 @@ export const StudentLobbySection: FC<StudentLobbySectionProps> = ({
       studentId={initialStudent?.nisn || initialStudent?.username}
       roomCode={initialStudent?.roomName}
     >
-      <div className="py-6 sm:py-8 px-4 sm:px-6">
-        <StudentLobbyView
-          examId={examId}
-          initialExam={initialExam}
-          initialStudent={initialStudent}
-        />
-      </div>
+      <StudentLobbyView
+        examId={examId}
+        initialExam={initialExam}
+        initialStudent={initialStudent}
+      />
     </ExamFocusLayout>
   );
 };
