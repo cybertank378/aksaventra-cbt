@@ -173,12 +173,68 @@ export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
 
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
     return { headers: [], rows: [], rawRows: [], totalRows: 0 };
   }
 
-  const worksheet = workbook.Sheets[sheetName];
+  // Intelligently select the data sheet if multi-sheet workbook is provided
+  let selectedSheetName = workbook.SheetNames[0];
+  const preferredSheetNames = [
+    "template_soal",
+    "soal",
+    "data_soal",
+    "questions",
+    "template_siswa",
+    "siswa",
+    "students",
+    "rekap_nilai",
+    "rekap",
+  ];
+
+  for (const preferred of preferredSheetNames) {
+    const found = workbook.SheetNames.find(
+      (s) => s.toLowerCase().replace(/[^a-z0-9_]/g, "_") === preferred,
+    );
+    if (found) {
+      selectedSheetName = found;
+      break;
+    }
+  }
+
+  // If no preferred name match, inspect header rows of sheets to find the one with actual data columns
+  if (
+    !preferredSheetNames.some((p) =>
+      selectedSheetName?.toLowerCase().includes(p),
+    )
+  ) {
+    for (const name of workbook.SheetNames) {
+      const ws = workbook.Sheets[name];
+      if (!ws) continue;
+      const preview = XLSX.utils.sheet_to_json<string[]>(ws, {
+        header: 1,
+        defval: "",
+      });
+      if (preview.length > 0 && Array.isArray(preview[0])) {
+        const headerStr = preview[0].join(" ").toLowerCase();
+        if (
+          headerStr.includes("teks_soal") ||
+          headerStr.includes("jenis_soal") ||
+          headerStr.includes("question") ||
+          headerStr.includes("nis_username") ||
+          headerStr.includes("nomor_meja")
+        ) {
+          selectedSheetName = name;
+          break;
+        }
+      }
+    }
+  }
+
+  const worksheet =
+    workbook.Sheets[selectedSheetName || workbook.SheetNames[0]];
+  if (!worksheet) {
+    return { headers: [], rows: [], rawRows: [], totalRows: 0 };
+  }
   const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, {
     header: 1,
     defval: "",

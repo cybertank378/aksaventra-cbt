@@ -2,7 +2,10 @@
 
 import {
   AlertCircle,
+  BookOpen,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Download,
   FileQuestion,
   Loader2,
@@ -32,6 +35,65 @@ const QUESTION_TYPE_NAMES: Record<string, string> = {
   essay: "Esai / Uraian Manual",
 };
 
+const QUESTION_TYPE_GUIDES = [
+  {
+    type: "multichoice_single",
+    name: "1. Pilihan Ganda Tunggal",
+    optionsCol: "Isi opsi_a s/d opsi_e (minimal A - C)",
+    exampleKey: "C",
+    note: "Hanya satu jawaban bernilai benar.",
+  },
+  {
+    type: "multichoice_multi",
+    name: "2. PG Kompleks (MCMA)",
+    optionsCol: "Isi opsi_a s/d opsi_e",
+    exampleKey: "A,C,E",
+    note: "Siswa dapat mencentang lebih dari satu pilihan jawaban.",
+  },
+  {
+    type: "truefalse",
+    name: "3. Benar / Salah",
+    optionsCol: "opsi_a: 'Benar', opsi_b: 'Salah'",
+    exampleKey: "TRUE",
+    note: "Kunci: TRUE / FALSE atau Benar / Salah.",
+  },
+  {
+    type: "shortanswer",
+    name: "4. Isian Singkat",
+    optionsCol: "Kosongkan opsi A s/d E",
+    exampleKey: "Linux",
+    note: "Kata / frasa jawaban singkat. Bisa variasi dipisah titik-koma.",
+  },
+  {
+    type: "numerical",
+    name: "5. Numerik & Toleransi",
+    optionsCol: "Kosongkan opsi A s/d E",
+    exampleKey: "100",
+    note: "Isi toleransi_error untuk rentang nilai (misal 0.05).",
+  },
+  {
+    type: "match",
+    name: "6. Menjodohkan",
+    optionsCol: "opsi_a s/d opsi_d diisi '1:Premis1', '2:Premis2'...",
+    exampleKey: "1:Tokyo;2:Paris;3:London",
+    note: "Pasangkan ID premis kiri dengan pasangan jawaban kanan.",
+  },
+  {
+    type: "gapselect",
+    name: "7. Teks Rumpang (Cloze)",
+    optionsCol: "opsi_a s/d opsi_e diisi kata opsi & pengecoh",
+    exampleKey: "1:Hypertext;2:Language",
+    note: "Teks soal wajib menggunakan kode rumpang ganda [[1]], [[2]].",
+  },
+  {
+    type: "essay",
+    name: "8. Esai / Uraian",
+    optionsCol: "Kosongkan opsi A s/d E",
+    exampleKey: "requires_manual_grading",
+    note: "Jawaban esai dinilai secara manual oleh Guru/Korektor.",
+  },
+];
+
 export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
   open,
   onClose,
@@ -47,6 +109,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
     message: string;
@@ -223,6 +286,77 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
               CSV
             </a>
           </div>
+        </div>
+
+        {/* Expandable Guide Accordion for 8 Question Types */}
+        <div className="flex flex-col rounded-2xl border border-indigo-200/80 bg-indigo-50/40 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowGuide(!showGuide)}
+            className="flex items-center justify-between w-full px-4 py-2.5 bg-indigo-50/80 hover:bg-indigo-100/70 text-left transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <BookOpen className="w-4 h-4 text-indigo-600 shrink-0" />
+              <div>
+                <p className="text-xs font-bold text-indigo-950">
+                  Panduan Format Pengisian 8 Tipe Soal Moodle CBT
+                </p>
+                <p className="text-[11px] text-indigo-700/80">
+                  Berkas Excel memuat sheet terpisah untuk setiap tipe soal
+                  (1_PILIHAN_GANDA s/d 8_ESAI_URAIAN)
+                </p>
+              </div>
+            </div>
+            {showGuide ? (
+              <ChevronUp className="w-4 h-4 text-indigo-600 shrink-0" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-indigo-600 shrink-0" />
+            )}
+          </button>
+
+          {showGuide && (
+            <div className="p-4 bg-white border-t border-indigo-100 space-y-3 max-h-80 overflow-y-auto">
+              <p className="text-xs text-slate-600">
+                Gunakan lembar kerja (sheet) <strong>TEMPLATE_SOAL</strong>{" "}
+                untuk mengimpor seluruh soal gabungan sekaligus, atau pelajari
+                contoh format spesifik pada masing-masing lembar kerja berikut:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                {QUESTION_TYPE_GUIDES.map((g) => (
+                  <div
+                    key={g.type}
+                    className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-indigo-50/30 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1.5">
+                      <span className="font-bold text-slate-900 text-xs">
+                        {g.name}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold bg-indigo-100 text-indigo-800">
+                        {g.type}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-[11px] text-slate-600">
+                      <p>
+                        <strong className="text-slate-700">Kolom Opsi:</strong>{" "}
+                        {g.optionsCol}
+                      </p>
+                      <p>
+                        <strong className="text-slate-700">
+                          Contoh Kunci:
+                        </strong>{" "}
+                        <code className="px-1.5 py-0.5 rounded font-mono font-bold bg-slate-200 text-slate-900">
+                          {g.exampleKey}
+                        </code>
+                      </p>
+                      <p className="text-[10px] text-slate-500 italic pt-0.5 border-t border-slate-200/60 mt-1">
+                        {g.note}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Upload Drop Zone */}
