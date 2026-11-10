@@ -12,4 +12,3 @@ export const ProctorIndexSection: FC = () => {
 };
 
 export default ProctorIndexSection;
-

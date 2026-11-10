@@ -8,4 +8,3 @@ export async function GET(): Promise<Response> {
 export async function POST(request: NextRequest): Promise<Response> {
   return await announcementsController.createAnnouncement(request);
 }
-

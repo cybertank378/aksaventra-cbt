@@ -64,3 +64,4 @@ Issue ini mengatur implementasi antarmuka dan logika backend Next.js (`aksaventr
 - [ ] Siswa yang mengklik tombol launch dari Moodle langsung dialihkan dan masuk ke sesi ujian tanpa perlu login ulang.
 - [ ] Token sesi disimpan dengan aman dalam cookie `HttpOnly` di sisi server Next.js.
 - [ ] Pesan kesalahan ditampilkan dengan jelas jika username atau password salah.
+

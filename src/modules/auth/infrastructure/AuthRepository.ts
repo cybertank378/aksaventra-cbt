@@ -18,19 +18,88 @@ export class AuthRepository implements AuthRepositoryInterface {
       where: { username },
     });
 
-    if (!user) return null;
+    if (user) {
+      return new UserSessionEntity({
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role as UserRole,
+        className: user.className,
+        roomCode: user.roomCode,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      });
+    }
 
-    return new UserSessionEntity({
-      id: user.id,
-      username: user.username,
-      fullName: user.fullName,
-      role: user.role as UserRole,
-      className: user.className,
-      roomCode: user.roomCode,
-      isActive: user.isActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
+    // Fallback: Query Moodle database directly if user not yet synced in local DB
+    try {
+      const moodleUsers = (await this.db.$queryRawUnsafe(
+        "SELECT id, username, firstname, lastname, email, auth FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
+        username,
+      )) as Array<{
+        id: bigint | number;
+        username: string;
+        firstname: string;
+        lastname: string;
+        email: string;
+      }>;
+
+      if (moodleUsers && moodleUsers.length > 0) {
+        const mu = moodleUsers[0];
+        const moodleId = Number(mu.id);
+        const fullName =
+          `${mu.firstname || ""} ${mu.lastname || ""}`.trim() || mu.username;
+
+        let role: UserRole = "STUDENT";
+        try {
+          const siteAdmins = (await this.db.$queryRawUnsafe(
+            "SELECT value FROM moodle.mdl_config WHERE name = 'siteadmins' LIMIT 1",
+          )) as Array<{ value: string }>;
+          const adminIds =
+            siteAdmins?.[0]?.value?.split(",")?.map((s) => s.trim()) || [];
+          if (adminIds.includes(String(moodleId))) {
+            role = "ADMIN";
+          }
+        } catch {
+          // Ignore role lookup error
+        }
+
+        const syncedUser = await this.db.user.upsert({
+          where: { username: mu.username },
+          create: {
+            username: mu.username,
+            fullName,
+            role,
+            passwordHash: "",
+            moodleUserId: moodleId,
+            isActive: true,
+          },
+          update: {
+            fullName,
+            role,
+            moodleUserId: moodleId,
+            isActive: true,
+          },
+        });
+
+        return new UserSessionEntity({
+          id: syncedUser.id,
+          username: syncedUser.username,
+          fullName: syncedUser.fullName,
+          role: syncedUser.role as UserRole,
+          className: syncedUser.className,
+          roomCode: syncedUser.roomCode,
+          isActive: syncedUser.isActive,
+          createdAt: syncedUser.createdAt,
+          updatedAt: syncedUser.updatedAt,
+        });
+      }
+    } catch {
+      // Ignore if moodle database is not directly queryable
+    }
+
+    return null;
   }
 
   public async findUserById(id: string): Promise<UserSessionEntity | null> {
@@ -81,16 +150,44 @@ export class AuthRepository implements AuthRepositoryInterface {
   ): Promise<boolean> {
     const user = await this.db.user.findUnique({
       where: { id: userId },
-      select: { passwordHash: true },
+      select: { username: true, passwordHash: true, moodleUserId: true },
     });
 
-    if (!user || !user.passwordHash) return false;
+    if (!user) return false;
 
-    try {
-      return await argon2.verify(user.passwordHash, plainTextPassword);
-    } catch (_err) {
-      return false;
+    // 1. If user is a Moodle account or has no local password hash, authenticate with Moodle token.php
+    if (user.moodleUserId !== null || !user.passwordHash) {
+      const moodleBaseUrl =
+        process.env.NEXT_PUBLIC_MOODLE_URL || "http://127.0.0.1:8080";
+      try {
+        const res = await fetch(
+          `${moodleBaseUrl}/login/token.php?username=${encodeURIComponent(
+            user.username,
+          )}&password=${encodeURIComponent(
+            plainTextPassword,
+          )}&service=mod_cbt_service`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.token && !data.error) {
+            return true;
+          }
+        }
+      } catch {
+        // Fallback to local hash verify
+      }
     }
+
+    // 2. Fallback to argon2 verification for local passwords
+    if (user.passwordHash) {
+      try {
+        return await argon2.verify(user.passwordHash, plainTextPassword);
+      } catch (_err) {
+        return false;
+      }
+    }
+
+    return false;
   }
 
   public async findActiveAttempt(

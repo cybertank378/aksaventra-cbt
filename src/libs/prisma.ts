@@ -9,16 +9,35 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+function parseConnectionOptions(rawUrl: string) {
+  try {
+    const parsed = new URL(rawUrl);
+    return {
+      host: parsed.hostname || "127.0.0.1",
+      port: parsed.port ? parseInt(parsed.port, 10) : 3306,
+      user: decodeURIComponent(parsed.username || "root"),
+      password: decodeURIComponent(parsed.password || ""),
+      database: parsed.pathname.replace(/^\//, "") || "aksaventra_cbt",
+      connectTimeout: 5000,
+    };
+  } catch {
+    return {
+      host: "127.0.0.1",
+      port: 3306,
+      user: "root",
+      password: "",
+      database: "aksaventra_cbt",
+      connectTimeout: 5000,
+    };
+  }
+}
+
 export function createPrismaClient(): PrismaClient {
   if (
     env.DATABASE_PROVIDER === "mariadb" ||
     env.DATABASE_PROVIDER === "mysql"
   ) {
-    const formattedUrl = env.DATABASE_URL.startsWith("mysql://")
-      ? env.DATABASE_URL.replace(/^mysql:\/\//, "mariadb://")
-      : env.DATABASE_URL;
-
-    const pool = mariadb.createPool(formattedUrl);
+    const pool = mariadb.createPool(parseConnectionOptions(env.DATABASE_URL));
     const adapter = new PrismaMariaDb(pool);
     return new PrismaClient({ adapter });
   }

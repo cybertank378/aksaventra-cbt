@@ -5,7 +5,8 @@ import AppLayout from "@/shared-ui/layout/AppLayout";
 
 export const metadata: Metadata = {
   title: "Monitoring Ujian (Live Proctoring) - Aksaventra CBT",
-  description: "Daftar sesi ujian aktif dan pemantauan intervensi live pengawas",
+  description:
+    "Daftar sesi ujian aktif dan pemantauan intervensi live pengawas",
 };
 
 export default function ProctorDashboardPage() {
@@ -34,4 +35,3 @@ export default function ProctorDashboardPage() {
     </Suspense>
   );
 }
-

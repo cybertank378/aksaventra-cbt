@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { downloadCsvBlob, generateExcelCsv } from "@/libs/excelCsvUtils";
 import type { ExamRecapitulationDTO } from "../domain/dto/RecapitulationDTO";
 
 export function useRecapitulationApi(examId?: string) {
   const [data, setData] = useState<ExamRecapitulationDTO | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRecapitulation = useCallback(
@@ -32,56 +34,75 @@ export function useRecapitulationApi(examId?: string) {
     [examId],
   );
 
-  const exportToCSV = useCallback(() => {
+  const exportToCSV = useCallback(async () => {
     if (!data || data.records.length === 0) return;
 
+    setIsExporting(true);
+    const filename = `rekap_nilai_${data.examTitle.replace(/[^a-zA-Z0-9_-]/g, "_")}.csv`;
+
+    try {
+      // 1. Attempt official Moodle Web Service export
+      const cbtId = 1; // Default CBT or mapped Moodle ID
+      const res = await fetch(
+        `/api/moodle-proxy/mod_cbt_import_export?action=export_results&cbtid=${cbtId}`,
+      );
+      const moodleRes = await res.json();
+      if (moodleRes.success && moodleRes.csv_data) {
+        downloadCsvBlob(moodleRes.csv_data, filename);
+        setIsExporting(false);
+        return;
+      }
+    } catch {
+      // Fallback to local data formatting
+    }
+
+    // 2. High-fidelity UTF-8 BOM semicolon delimited export
     const headers = [
-      "No",
-      "Nomor Meja",
-      "Ruang",
-      "NIS",
-      "Nama Siswa",
-      "Kelas",
-      "Durasi (Menit)",
-      "Status",
-      "Pelanggaran",
-      "Nilai Akhir",
-      "Ketuntasan",
+      "nomor_meja",
+      "ruang_ujian",
+      "nis_username",
+      "nama_lengkap",
+      "status_ujian",
+      "waktu_mulai",
+      "waktu_selesai",
+      "durasi_menit",
+      "jumlah_pelanggaran",
+      "nilai_akhir",
+      "nilai_maksimal",
+      "status_kelulusan",
     ];
 
-    const rows = data.records.map((r, i) => [
-      i + 1,
-      r.seatNumber,
-      r.roomCode,
-      r.username,
-      `"${r.fullName}"`,
-      `"${r.className}"`,
-      r.durationSpentMinutes,
-      r.status,
-      r.violationCount,
-      r.finalScore,
-      r.isPassed ? "Tuntas" : "Remedial",
-    ]);
+    const rows = data.records.map((r) => {
+      let kelulusan = r.isPassed ? "Lulus" : "Belum Lulus";
+      if (r.status === "LOCKED") {
+        kelulusan = "Diskualifikasi / Terkunci";
+      }
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+      return [
+        r.seatNumber || "-",
+        r.roomCode || "-",
+        r.username,
+        r.fullName,
+        r.status.toLowerCase(),
+        r.startedAt ? new Date(r.startedAt).toLocaleString("id-ID") : "-",
+        r.submittedAt ? new Date(r.submittedAt).toLocaleString("id-ID") : "-",
+        r.durationSpentMinutes,
+        r.violationCount,
+        r.finalScore !== null ? Number(r.finalScore).toFixed(2) : "0.00",
+        Number(data.maxScore ?? 100).toFixed(2),
+        kelulusan,
+      ];
+    });
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `rekapitulasi_${data.examTitle.replace(/\s+/g, "_")}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csvContent = generateExcelCsv(headers, rows, ";");
+    downloadCsvBlob(csvContent, filename);
+    setIsExporting(false);
   }, [data]);
 
   return {
     data,
     isLoading,
+    isExporting,
     error,
     fetchRecapitulation,
     exportToCSV,

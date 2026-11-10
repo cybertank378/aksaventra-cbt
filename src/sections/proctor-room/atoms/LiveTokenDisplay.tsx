@@ -117,4 +117,3 @@ export const LiveTokenDisplay: FC<LiveTokenDisplayProps> = ({
 };
 
 export default LiveTokenDisplay;
-

@@ -33,7 +33,6 @@ export const roleConfig: Record<
   },
 };
 
-
 /**
  * Prefix routes allowed without authentication.
  */

@@ -80,3 +80,4 @@ Issue ini mengatur implementasi antarmuka frontend **Next.js (`aksaventra-cbt`)*
 - [ ] Upload file CSV soal mencakup ke-8 jenis soal terproses sempurna ke bank soal ujian.
 - [ ] Rekap nilai ujian dapat diunduh dalam format CSV Excel dan terbuka rapi di Microsoft Excel.
 - [ ] Admin / Guru tidak perlu melakukan konfigurasi manual apapun di panel Moodle berkat auto-configuration engine.
+

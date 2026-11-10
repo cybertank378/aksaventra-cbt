@@ -58,4 +58,3 @@ export function useProctorApi(examId: string | null) {
     refresh: handleRefresh,
   };
 }
-

@@ -1,11 +1,13 @@
 "use client";
 
-import { Plus, Search, UserCheck } from "lucide-react";
+import { Download, Plus, Search, UploadCloud, UserCheck } from "lucide-react";
 import { type FC, useEffect, useMemo, useState } from "react";
+import { downloadCsvBlob, generateExcelCsv } from "@/libs/excelCsvUtils";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Button from "@/shared-ui/component/Button";
 import ClassBadge from "../atoms/ClassBadge";
 import CreateStudentModal from "../molecules/CreateStudentModal";
+import ImportStudentsModal from "../molecules/ImportStudentsModal";
 
 export const StudentListTable: FC = () => {
   const {
@@ -21,11 +23,43 @@ export const StudentListTable: FC = () => {
   const [search, setSearch] = useState("");
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>("ALL");
   const [modalOpen, setModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     fetchClasses();
     fetchStudents();
   }, [fetchClasses, fetchStudents]);
+
+  const handleExportStudents = async () => {
+    setIsExporting(true);
+    try {
+      // 1. Try Moodle Bridge endpoint first
+      const res = await fetch(
+        "/api/moodle-proxy/mod_cbt_import_export?action=export_students",
+      );
+      const data = await res.json();
+      if (data.success && data.csv_data) {
+        downloadCsvBlob(data.csv_data, "daftar_siswa_moodle.csv");
+        setIsExporting(false);
+        return;
+      }
+    } catch {
+      // Fallback to local students export
+    }
+
+    // 2. Client fallback from loaded students
+    const headers = ["nis_username", "nama_lengkap", "kelas", "email"];
+    const rows = filteredStudents.map((s) => [
+      s.username,
+      s.fullName,
+      classes.find((c) => c.id === s.classGroupId)?.name || "-",
+      `${s.username}@cbt.local`,
+    ]);
+    const csvContent = generateExcelCsv(headers, rows);
+    downloadCsvBlob(csvContent, "daftar_siswa_cbt.csv");
+    setIsExporting(false);
+  };
 
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
@@ -55,16 +89,50 @@ export const StudentListTable: FC = () => {
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="filled"
-          color="primary"
-          size="sm"
-          leftIcon={Plus}
-          onClick={() => setModalOpen(true)}
-        >
-          Daftarkan Siswa Baru
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/templates/sample_import_siswa.csv"
+            download="sample_import_siswa.csv"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            Unduh Template
+          </a>
+
+          <Button
+            type="button"
+            variant="outline"
+            color="primary"
+            size="sm"
+            leftIcon={UploadCloud}
+            onClick={() => setImportModalOpen(true)}
+          >
+            Import Siswa
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={Download}
+            onClick={handleExportStudents}
+            disabled={isExporting}
+          >
+            {isExporting ? "Mengekspor..." : "Export Siswa (Excel)"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="filled"
+            color="primary"
+            size="sm"
+            leftIcon={Plus}
+            onClick={() => setModalOpen(true)}
+          >
+            Daftarkan Siswa
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -182,6 +250,16 @@ export const StudentListTable: FC = () => {
         classes={classes}
         onClose={() => setModalOpen(false)}
         onSubmit={createStudent}
+      />
+
+      {/* Import Students Modal */}
+      <ImportStudentsModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSuccess={() => {
+          fetchStudents();
+          fetchClasses();
+        }}
       />
     </div>
   );

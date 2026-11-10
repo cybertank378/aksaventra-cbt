@@ -5,4 +5,3 @@ import { QuestionsRepository } from "@/modules/questions/infrastructure/Question
 const questionsRepository = new QuestionsRepository();
 const questionsService = new QuestionsService(questionsRepository);
 export const questionsController = new QuestionsController(questionsService);
-

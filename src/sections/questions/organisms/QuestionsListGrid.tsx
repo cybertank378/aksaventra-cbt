@@ -1,12 +1,20 @@
 "use client";
 
-import { Award, BookOpen, Plus, Trash2 } from "lucide-react";
+import {
+  Award,
+  BookOpen,
+  Download,
+  Plus,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import Link from "next/link";
 import { type FC, useEffect, useState } from "react";
 import type { CBTQuestionType } from "@/modules/questions/domain/dto/QuestionDTO";
 import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Button from "@/shared-ui/component/Button";
 import QuestionTypeBadge from "../atoms/QuestionTypeBadge";
+import ImportQuestionsModal from "../molecules/ImportQuestionsModal";
 import QuestionFilterBar from "../molecules/QuestionFilterBar";
 
 export const QuestionsListGrid: FC = () => {
@@ -17,6 +25,7 @@ export const QuestionsListGrid: FC = () => {
   const [subject, setSubject] = useState("ALL");
   const [type, setType] = useState("ALL");
   const [grade, setGrade] = useState("ALL");
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   useEffect(() => {
     fetchQuestions({
@@ -46,17 +55,39 @@ export const QuestionsListGrid: FC = () => {
           </p>
         </div>
 
-        <Link href="/dashboard/questions/new">
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/templates/sample_import_soal.csv"
+            download="sample_import_soal.csv"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors shadow-2xs"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            Unduh Template
+          </a>
+
           <Button
             type="button"
-            variant="filled"
+            variant="outline"
             color="primary"
             size="sm"
-            leftIcon={Plus}
+            leftIcon={UploadCloud}
+            onClick={() => setImportModalOpen(true)}
           >
-            Buat Soal Baru
+            Import Soal (8 Jenis)
           </Button>
-        </Link>
+
+          <Link href="/dashboard/questions/new">
+            <Button
+              type="button"
+              variant="filled"
+              color="primary"
+              size="sm"
+              leftIcon={Plus}
+            >
+              Buat Soal Baru
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filter Toolbar */}
@@ -147,6 +178,19 @@ export const QuestionsListGrid: FC = () => {
           ))}
         </div>
       )}
+      {/* Import Questions Modal */}
+      <ImportQuestionsModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSuccess={() => {
+          fetchQuestions({
+            subject: subject === "ALL" ? undefined : subject,
+            gradeLevel: grade === "ALL" ? undefined : grade,
+            type: type === "ALL" ? undefined : (type as CBTQuestionType),
+            search: search.trim() || undefined,
+          });
+        }}
+      />
     </div>
   );
 };

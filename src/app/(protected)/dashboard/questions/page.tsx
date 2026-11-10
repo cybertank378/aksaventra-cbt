@@ -5,7 +5,8 @@ import AppLayout from "@/shared-ui/layout/AppLayout";
 
 export const metadata: Metadata = {
   title: "Bank Soal CBT - Aksaventra CBT",
-  description: "Katalog bank butir soal ujian dengan dukungan 8 jenis pertanyaan",
+  description:
+    "Katalog bank butir soal ujian dengan dukungan 8 jenis pertanyaan",
 };
 
 export default function QuestionsCatalogPage() {
@@ -34,4 +35,3 @@ export default function QuestionsCatalogPage() {
     </Suspense>
   );
 }
-

@@ -5,4 +5,3 @@ const announcementsService = new AnnouncementsService();
 export const announcementsController = new AnnouncementsController(
   announcementsService,
 );
-

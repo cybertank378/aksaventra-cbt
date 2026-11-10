@@ -12,7 +12,9 @@ export abstract class BaseController {
     return HttpResultHandler.handle(result, successStatus);
   }
 
-  protected handleUnexpectedError(error: unknown): NextResponse<ApiResponse<never>> {
+  protected handleUnexpectedError(
+    error: unknown,
+  ): NextResponse<ApiResponse<never>> {
     const message =
       error instanceof Error ? error.message : "Internal Server Error";
     return HttpResultHandler.handle(

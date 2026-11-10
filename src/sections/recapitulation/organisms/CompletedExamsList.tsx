@@ -15,9 +15,10 @@ export const CompletedExamsList: FC = () => {
     fetchExamsList();
   }, [fetchExamsList]);
 
-  const filteredExams = examsList.filter((e) =>
-    e.title.toLowerCase().includes(search.toLowerCase()) ||
-    e.courseName.toLowerCase().includes(search.toLowerCase()),
+  const filteredExams = examsList.filter(
+    (e) =>
+      e.title.toLowerCase().includes(search.toLowerCase()) ||
+      e.courseName.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -151,4 +152,3 @@ export const CompletedExamsList: FC = () => {
 };
 
 export default CompletedExamsList;
-

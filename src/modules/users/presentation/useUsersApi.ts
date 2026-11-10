@@ -31,4 +31,3 @@ export function useUsersApi() {
 }
 
 export default useUsersApi;
-

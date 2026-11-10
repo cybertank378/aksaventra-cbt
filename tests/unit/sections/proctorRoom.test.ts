@@ -159,4 +159,3 @@ describe("Proctor Room Domain & Component Logic", () => {
     expect(formatRemainingWithBonus(600, 300)).toBe("15m 00s");
   });
 });
-
