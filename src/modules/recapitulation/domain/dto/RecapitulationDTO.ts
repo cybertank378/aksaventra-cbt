@@ -11,6 +11,7 @@ export interface StudentScoreRecordDTO {
   finalScore: number;
   isPassed: boolean;
   violationCount: number;
+  startedAt?: string | null;
   submittedAt?: string | null;
 }
 
@@ -19,6 +20,7 @@ export interface ExamRecapitulationDTO {
   examTitle: string;
   courseName: string;
   passingGrade: number; // KKM default 75.0
+  maxScore?: number; // Nilai maksimal ujian (default 100)
   totalParticipants: number;
   submittedCount: number;
   averageScore: number;

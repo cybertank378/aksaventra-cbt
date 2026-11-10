@@ -33,14 +33,15 @@ export const roleConfig: Record<
   },
 };
 
-
 /**
  * Prefix routes allowed without authentication.
  */
 export const PUBLIC_ROUTE_PREFIXES = [
   "/login",
+  "/exam",
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/auth/moodle-launch",
   "/api/health",
   "/_next",
   "/favicon.ico",

@@ -26,4 +26,3 @@ export const ProctorRoomSection: FC<ProctorRoomSectionProps> = ({
 };
 
 export default ProctorRoomSection;
-

@@ -14,6 +14,7 @@ export interface AuthJwtPayload {
   role: UserRole;
   cbtId?: number | string;
   attemptId?: number | string;
+  moodleToken?: string;
   exp?: number;
 }
 

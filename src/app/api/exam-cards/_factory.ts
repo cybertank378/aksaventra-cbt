@@ -3,4 +3,3 @@ import { ExamCardsController } from "@/modules/exam-cards/infrastructure/ExamCar
 
 const examCardsService = new ExamCardsService();
 export const examCardsController = new ExamCardsController(examCardsService);
-

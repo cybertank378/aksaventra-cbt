@@ -14,8 +14,14 @@ export interface RecapitulationTableProps {
 export const RecapitulationTable: FC<RecapitulationTableProps> = ({
   examId,
 }) => {
-  const { data, isLoading, error, fetchRecapitulation, exportToCSV } =
-    useRecapitulationApi(examId);
+  const {
+    data,
+    isLoading,
+    isExporting,
+    error,
+    fetchRecapitulation,
+    exportToCSV,
+  } = useRecapitulationApi(examId);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -92,16 +98,24 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
                 key={s}
                 type="button"
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  statusFilter === s
-                    ? "bg-[#0d2b5c] text-white shadow-xs"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === s
+                  ? "bg-[#0d2b5c] text-white shadow-xs"
+                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
+                  }`}
               >
                 {s === "ALL" ? "Semua" : s === "PASSED" ? "Tuntas" : "Remedial"}
               </button>
             ))}
           </div>
+
+          <a
+            href="/templates/sample_rekap_nilai.csv"
+            download="sample_rekap_nilai.csv"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors shadow-2xs"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            Unduh Template
+          </a>
 
           <Button
             type="button"
@@ -110,8 +124,9 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
             size="sm"
             leftIcon={Download}
             onClick={exportToCSV}
+            disabled={isExporting}
           >
-            Ekspor CSV
+            {isExporting ? "Mengekspor..." : "Export Rekap Nilai (Excel)"}
           </Button>
         </div>
       </div>

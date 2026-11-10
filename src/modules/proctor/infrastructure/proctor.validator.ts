@@ -15,7 +15,13 @@ export const rotateRoomTokenSchema = z.object({
 
 export const proctorActionSchema = z.object({
   attemptId: z.string().min(1, "attemptId is required"),
-  action: z.enum(["lock", "unlock", "reset_device", "extend_time", "force_submit"]),
+  action: z.enum([
+    "lock",
+    "unlock",
+    "reset_device",
+    "extend_time",
+    "force_submit",
+  ]),
   proctorId: z.string().optional(),
   reason: z.string().optional(),
   extendMinutes: z.coerce.number().positive().optional(),

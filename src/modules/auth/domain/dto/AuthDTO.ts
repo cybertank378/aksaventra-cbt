@@ -21,6 +21,7 @@ export interface LoginOutput {
   token: string;
   user: UserSessionDTO;
   expiresInSeconds: number;
+  redirectUrl?: string;
 }
 
 export interface VerifyExamTokenInput {
@@ -36,7 +37,7 @@ export interface VerifyExamTokenOutput {
 }
 
 export interface ExchangeMoodleLaunchInput {
-  moodleUserId: number;
+  moodleUserId?: number;
   moodleCbtId: number;
   launchToken: string;
   deviceHash: string;
@@ -48,4 +49,5 @@ export interface ExchangeMoodleLaunchOutput {
   user: UserSessionDTO;
   examId: string;
   attemptId: string;
+  redirectUrl?: string;
 }

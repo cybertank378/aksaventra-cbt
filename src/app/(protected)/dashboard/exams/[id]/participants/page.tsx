@@ -13,9 +13,7 @@ interface ExamParticipantsPageProps {
   params: Promise<{ id: string }>;
 }
 
-function ExamParticipantsContent({
-  params,
-}: ExamParticipantsPageProps) {
+function ExamParticipantsContent({ params }: ExamParticipantsPageProps) {
   const { id: examId } = use(params);
   const { participants, isLoading, error, fetchParticipants, updateSeat } =
     useExamManagementApi(examId);

@@ -1,8 +1,15 @@
 "use client";
 
-import { ArrowLeft, ListFilter, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  ListFilter,
+  Plus,
+  UploadCloud,
+} from "lucide-react";
 import Link from "next/link";
 import { Suspense, use, useState } from "react";
+import ImportQuestionsModal from "@/sections/questions/molecules/ImportQuestionsModal";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
 import AppLayout from "@/shared-ui/layout/AppLayout";
@@ -120,9 +127,10 @@ interface ExamQuestionsPageProps {
 }
 
 function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
-  const { id: _examId } = use(params);
+  const { id: examId } = use(params);
   const [questions, setQuestions] = useState<QuestionItem[]>(mockQuestions);
   const [modalOpen, setModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [filterType, setFilterType] = useState<string>("ALL");
 
   const [newType, setNewType] = useState<QuestionItem["type"]>("multichoice");
@@ -180,16 +188,38 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
             </Button>
           </Link>
 
-          <Button
-            type="button"
-            variant="filled"
-            color="primary"
-            size="sm"
-            leftIcon={Plus}
-            onClick={() => setModalOpen(true)}
-          >
-            Tambah Butir Soal Baru
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/templates/sample_import_soal.csv"
+              download="sample_import_soal.csv"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              Unduh Template Soal
+            </a>
+
+            <Button
+              type="button"
+              variant="outline"
+              color="primary"
+              size="sm"
+              leftIcon={UploadCloud}
+              onClick={() => setImportModalOpen(true)}
+            >
+              Import Soal (8 Jenis)
+            </Button>
+
+            <Button
+              type="button"
+              variant="filled"
+              color="primary"
+              size="sm"
+              leftIcon={Plus}
+              onClick={() => setModalOpen(true)}
+            >
+              Tambah Butir Soal Baru
+            </Button>
+          </div>
         </div>
 
         {/* Filter Badges for 8 Question Types */}
@@ -355,6 +385,16 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
             </div>
           </form>
         </Modal>
+
+        {/* Import Questions Modal */}
+        <ImportQuestionsModal
+          open={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          examId={examId}
+          onSuccess={() => {
+            // Success handler
+          }}
+        />
       </div>
     </AppLayout>
   );

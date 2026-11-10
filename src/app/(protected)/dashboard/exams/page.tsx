@@ -200,7 +200,9 @@ export default function ExamsManagementPage() {
                             Soal
                           </Button>
                         </Link>
-                        <Link href={`/dashboard/exams/${exam.id}/assign-groups`}>
+                        <Link
+                          href={`/dashboard/exams/${exam.id}/assign-groups`}
+                        >
                           <Button
                             type="button"
                             variant="ghost"
@@ -212,7 +214,9 @@ export default function ExamsManagementPage() {
                             Meja
                           </Button>
                         </Link>
-                        <Link href={`/dashboard/exams/${exam.id}/recapitulation`}>
+                        <Link
+                          href={`/dashboard/exams/${exam.id}/recapitulation`}
+                        >
                           <Button
                             type="button"
                             variant="outline"

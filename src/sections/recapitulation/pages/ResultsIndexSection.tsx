@@ -12,4 +12,3 @@ export const ResultsIndexSection: FC = () => {
 };
 
 export default ResultsIndexSection;
-

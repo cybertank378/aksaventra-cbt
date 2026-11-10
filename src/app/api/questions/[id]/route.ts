@@ -16,4 +16,3 @@ export async function DELETE(
   const { id } = await context.params;
   return await questionsController.deleteQuestion(id);
 }
-

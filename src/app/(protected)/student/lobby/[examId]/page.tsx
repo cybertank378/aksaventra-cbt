@@ -11,11 +11,7 @@ interface StudentLobbyPageProps {
   params: Promise<{ examId: string }>;
 }
 
-function LobbyContent({
-  params,
-}: {
-  params: Promise<{ examId: string }>;
-}) {
+function LobbyContent({ params }: { params: Promise<{ examId: string }> }) {
   const { examId } = use(params);
   return <StudentLobbySection examId={examId} />;
 }

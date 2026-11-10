@@ -236,4 +236,3 @@ export const ParticipantActionModal: FC<ParticipantActionModalProps> = ({
 };
 
 export default ParticipantActionModal;
-

@@ -25,7 +25,10 @@ export const verifyExamTokenSchema = z.object({
 });
 
 export const moodleLaunchSchema = z.object({
-  moodleUserId: z.number({ message: "moodleUserId harus berupa angka" }).int(),
+  moodleUserId: z
+    .number({ message: "moodleUserId harus berupa angka" })
+    .int()
+    .optional(),
   moodleCbtId: z.number({ message: "moodleCbtId harus berupa angka" }).int(),
   launchToken: z
     .string({ message: "launchToken wajib diisi" })
