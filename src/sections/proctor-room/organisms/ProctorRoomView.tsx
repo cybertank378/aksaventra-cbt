@@ -43,7 +43,7 @@ export const ProctorRoomView: FC<ProctorRoomViewProps> = ({
   return (
     <div
       className={clsx(
-        "flex flex-col gap-6 w-full max-w-7xl mx-auto",
+        "flex flex-col gap-6 w-full",
         className,
       )}
     >

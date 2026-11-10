@@ -107,7 +107,7 @@ function ResultsContent({ params }: { params: Promise<{ examId: string }> }) {
       title="Rekapitulasi Nilai Ujian Siswa"
       subtitle={`Detail distribusi skor dan capaian KKM naskah asesmen ${examId}`}
     >
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 w-full">
         {/* Navigation & Header Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/dashboard/exams">

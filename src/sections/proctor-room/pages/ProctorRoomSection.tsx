@@ -15,13 +15,13 @@ export const ProctorRoomSection: FC<ProctorRoomSectionProps> = ({
   roomCode,
 }) => {
   return (
-    <main className="min-h-screen bg-slate-50/80 p-4 sm:p-6 lg:p-8">
+    <div className="w-full">
       <ProctorRoomView
         examId={examId}
         examTitle={examTitle}
         roomCode={roomCode}
       />
-    </main>
+    </div>
   );
 };
 

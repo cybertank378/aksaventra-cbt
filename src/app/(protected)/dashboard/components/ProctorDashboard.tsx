@@ -44,7 +44,7 @@ const mockAssignedRooms: AssignedRoomItem[] = [
 
 export const ProctorDashboard: FC = () => {
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full">
       {/* Proctor Welcome Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl bg-gradient-to-r from-[#0d2b5c] via-[#0097a7] to-[#0d2b5c] p-6 text-white shadow-sm">
         <div>
@@ -74,11 +74,10 @@ export const ProctorDashboard: FC = () => {
             return (
               <div
                 key={room.examId}
-                className={`flex flex-col justify-between rounded-3xl bg-white border p-5 sm:p-6 shadow-xs transition-all ${
-                  isActive
+                className={`flex flex-col justify-between rounded-3xl bg-white border p-5 sm:p-6 shadow-xs transition-all ${isActive
                     ? "border-[#0097a7] ring-1 ring-[#0097a7]/20"
                     : "border-slate-200"
-                }`}
+                  }`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-3">

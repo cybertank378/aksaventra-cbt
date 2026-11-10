@@ -64,7 +64,7 @@ function AssignGroupsContent({ params }: AssignGroupsPageProps) {
       title="Penugasan Kelas & Alokasi Nomor Meja"
       subtitle="Tetapkan rombongan belajar peserta ujian dan generate alokasi meja secara berurutan"
     >
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 w-full">
         <div className="flex items-center justify-between">
           <Link href="/dashboard/exams">
             <Button
@@ -124,11 +124,10 @@ function AssignGroupsContent({ params }: AssignGroupsPageProps) {
                       key={cls.id}
                       type="button"
                       onClick={() => toggleClassSelect(cls.id)}
-                      className={`flex items-start justify-between p-4 rounded-2xl border text-left transition-all ${
-                        isSelected
+                      className={`flex items-start justify-between p-4 rounded-2xl border text-left transition-all ${isSelected
                           ? "bg-teal-50/60 border-[#0097a7] ring-1 ring-[#0097a7]"
                           : "bg-white border-slate-200 hover:border-slate-300"
-                      }`}
+                        }`}
                     >
                       <div>
                         <p className="font-bold text-xs text-slate-900">
@@ -140,11 +139,10 @@ function AssignGroupsContent({ params }: AssignGroupsPageProps) {
                       </div>
 
                       <div
-                        className={`p-1 rounded-lg border ${
-                          isSelected
+                        className={`p-1 rounded-lg border ${isSelected
                             ? "bg-[#0097a7] text-white border-[#0097a7]"
                             : "bg-slate-100 text-transparent border-slate-200"
-                        }`}
+                          }`}
                       >
                         <Check className="w-3.5 h-3.5" />
                       </div>

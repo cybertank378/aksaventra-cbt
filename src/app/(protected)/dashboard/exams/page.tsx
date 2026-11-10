@@ -90,7 +90,7 @@ export default function ExamsManagementPage() {
       title="Manajemen Naskah Ujian CBT"
       subtitle="Daftar jadwal asesmen, distribusi naskah soal, dan pemantauan pengawas"
     >
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 w-full">
         {/* Controls Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs">
           <div className="relative flex-1 max-w-md">
@@ -110,11 +110,10 @@ export default function ExamsManagementPage() {
                 key={s}
                 type="button"
                 onClick={() => setFilter(s)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  filter === s
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${filter === s
                     ? "bg-[#0d2b5c] text-white shadow-xs"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
-                }`}
+                  }`}
               >
                 {s === "ALL"
                   ? "Semua"

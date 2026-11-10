@@ -18,14 +18,14 @@ interface QuestionItem {
   id: string;
   slot: number;
   type:
-    | "multichoice"
-    | "mcma"
-    | "truefalse"
-    | "shortanswer"
-    | "numerical"
-    | "matching"
-    | "cloze"
-    | "essay";
+  | "multichoice"
+  | "mcma"
+  | "truefalse"
+  | "shortanswer"
+  | "numerical"
+  | "matching"
+  | "cloze"
+  | "essay";
   stem: string;
   points: number;
   optionsSummary?: string;
@@ -173,7 +173,7 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
       title="Bank Soal & Butir Pertanyaan CBT"
       subtitle="Mendukung 8 varian model soal Moodle mod_cbt dengan snapshot beku MUC"
     >
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 w-full">
         {/* Top Controls */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/dashboard/exams">
@@ -230,11 +230,10 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
           <button
             type="button"
             onClick={() => setFilterType("ALL")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-              filterType === "ALL"
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${filterType === "ALL"
                 ? "bg-[#0d2b5c] text-white shadow-2xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
+              }`}
           >
             Semua ({questions.length})
           </button>
@@ -246,11 +245,10 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
                 key={k}
                 type="button"
                 onClick={() => setFilterType(k)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  filterType === k
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${filterType === k
                     ? "bg-[#0097a7] text-white shadow-2xs"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
-                }`}
+                  }`}
               >
                 {label.name} ({count})
               </button>
