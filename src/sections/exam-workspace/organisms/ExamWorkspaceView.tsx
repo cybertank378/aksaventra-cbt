@@ -200,9 +200,7 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
   }
 
   return (
-    <div
-      className={`flex flex-col gap-5 w-full ${className || ""}`}
-    >
+    <div className={`flex flex-col gap-5 w-full ${className || ""}`}>
       {/* Violation Grace Warning Floating Banner */}
       <BlurGraceWarningBanner
         active={blurWarningActive}

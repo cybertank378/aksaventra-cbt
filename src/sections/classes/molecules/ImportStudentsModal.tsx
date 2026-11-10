@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { type ChangeEvent, type DragEvent, type FC, useState } from "react";
-import { parseCsvFile } from "@/libs/excelCsvUtils";
+import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
 
@@ -58,16 +58,17 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
     setIsParsing(true);
     setResult(null);
     try {
-      const text = await file.text();
-      setRawCsvText(text);
-      const parsed = await parseCsvFile(file);
+      const parsed = await parseTabularFile(file);
+      const csvString = generateExcelCsv(parsed.headers, parsed.rawRows);
+      setRawCsvText(csvString);
       setSelectedFile(file);
       setPreviewRows(parsed.rows.slice(0, 5));
       setTotalRows(parsed.totalRows);
     } catch {
       setResult({
         success: false,
-        message: "Gagal memproses berkas. Pastikan format CSV valid.",
+        message:
+          "Gagal memproses berkas. Pastikan format Excel (.xlsx, .xls) atau CSV valid.",
         importedCount: 0,
         errors: ["Berkas tidak dapat dibaca."],
       });
@@ -179,14 +180,32 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
             </div>
           </div>
 
-          <a
-            href="/templates/sample_import_siswa.csv"
-            download="sample_import_siswa.csv"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#0097a7] bg-white border border-slate-200 hover:bg-teal-50 transition-colors shadow-2xs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Unduh Template Siswa
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/templates/sample_import_siswa.xlsx"
+              download="sample_import_siswa.xlsx"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Excel (.xlsx)
+            </a>
+            <a
+              href="/templates/sample_import_siswa.xls"
+              download="sample_import_siswa.xls"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Excel (.xls)
+            </a>
+            <a
+              href="/templates/sample_import_siswa.csv"
+              download="sample_import_siswa.csv"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              CSV
+            </a>
+          </div>
         </div>
 
         {/* Upload Drop Zone */}
@@ -206,7 +225,7 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
             <input
               id="student-file-upload"
               type="file"
-              accept=".csv,.xlsx,.txt"
+              accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -221,7 +240,8 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
                 Klik untuk memilih berkas atau seret ke sini
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
-                Mendukung berkas format .csv (Pemisah titik-koma & UTF-8 BOM)
+                Mendukung berkas Excel (.xlsx / .xls) dan CSV berpemisah
+                titik-koma (;)
               </p>
             </label>
           </div>

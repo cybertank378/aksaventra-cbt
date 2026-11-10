@@ -74,10 +74,11 @@ export const ProctorDashboard: FC = () => {
             return (
               <div
                 key={room.examId}
-                className={`flex flex-col justify-between rounded-3xl bg-white border p-5 sm:p-6 shadow-xs transition-all ${isActive
+                className={`flex flex-col justify-between rounded-3xl bg-white border p-5 sm:p-6 shadow-xs transition-all ${
+                  isActive
                     ? "border-[#0097a7] ring-1 ring-[#0097a7]/20"
                     : "border-slate-200"
-                  }`}
+                }`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-3">

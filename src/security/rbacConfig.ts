@@ -39,6 +39,7 @@ export const roleConfig: Record<
 export const PUBLIC_ROUTE_PREFIXES = [
   "/login",
   "/exam",
+  "/templates",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/moodle-launch",

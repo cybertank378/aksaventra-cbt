@@ -74,4 +74,3 @@ describe("moodleClient (callMoodleApi)", () => {
     ).rejects.toThrow("HTTP error! status: 500");
   });
 });
-

@@ -18,14 +18,14 @@ interface QuestionItem {
   id: string;
   slot: number;
   type:
-  | "multichoice"
-  | "mcma"
-  | "truefalse"
-  | "shortanswer"
-  | "numerical"
-  | "matching"
-  | "cloze"
-  | "essay";
+    | "multichoice"
+    | "mcma"
+    | "truefalse"
+    | "shortanswer"
+    | "numerical"
+    | "matching"
+    | "cloze"
+    | "essay";
   stem: string;
   points: number;
   optionsSummary?: string;
@@ -190,12 +190,22 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
 
           <div className="flex flex-wrap items-center gap-2">
             <a
-              href="/templates/sample_import_soal.csv"
-              download="sample_import_soal.csv"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors shadow-2xs"
+              href="/templates/sample_import_soal.xlsx"
+              download="sample_import_soal.xlsx"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 transition-colors shadow-2xs"
+              title="Unduh Template Format Excel (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              Unduh Template Soal
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              Template Excel (.xlsx)
+            </a>
+            <a
+              href="/templates/sample_import_soal.xls"
+              download="sample_import_soal.xls"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-teal-700 bg-white hover:bg-teal-50 border border-teal-200 transition-colors shadow-2xs"
+              title="Unduh Template Format Excel (.xls)"
+            >
+              <Download className="w-3.5 h-3.5 text-teal-600" />
+              .xls
             </a>
 
             <Button
@@ -230,10 +240,11 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
           <button
             type="button"
             onClick={() => setFilterType("ALL")}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${filterType === "ALL"
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              filterType === "ALL"
                 ? "bg-[#0d2b5c] text-white shadow-2xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
+            }`}
           >
             Semua ({questions.length})
           </button>
@@ -245,10 +256,11 @@ function ExamQuestionsContent({ params }: ExamQuestionsPageProps) {
                 key={k}
                 type="button"
                 onClick={() => setFilterType(k)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${filterType === k
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  filterType === k
                     ? "bg-[#0097a7] text-white shadow-2xs"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
-                  }`}
+                }`}
               >
                 {label.name} ({count})
               </button>

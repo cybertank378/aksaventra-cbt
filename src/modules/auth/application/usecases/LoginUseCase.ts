@@ -75,11 +75,7 @@ export class LoginUseCase
 
     if (!user.isActive) {
       return Result.fail(
-        new DomainError(
-          "Akun pengguna dinonaktifkan",
-          403,
-          "ACCOUNT_DISABLED",
-        ),
+        new DomainError("Akun pengguna dinonaktifkan", 403, "ACCOUNT_DISABLED"),
       );
     }
 

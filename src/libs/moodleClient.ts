@@ -67,4 +67,3 @@ export async function callMoodleApi<T = unknown>(
 
   return json as T;
 }
-

@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { type ChangeEvent, type DragEvent, type FC, useState } from "react";
-import { parseCsvFile } from "@/libs/excelCsvUtils";
+import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
 
@@ -71,9 +71,9 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
     setIsParsing(true);
     setResult(null);
     try {
-      const text = await file.text();
-      setRawCsvText(text);
-      const parsed = await parseCsvFile(file);
+      const parsed = await parseTabularFile(file);
+      const csvString = generateExcelCsv(parsed.headers, parsed.rawRows);
+      setRawCsvText(csvString);
       setSelectedFile(file);
       setPreviewQuestions(parsed.rows.slice(0, 5));
       setTotalQuestions(parsed.totalRows);
@@ -81,7 +81,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
       setResult({
         success: false,
         message:
-          "Gagal memproses berkas naskah soal. Pastikan format CSV valid.",
+          "Gagal memproses berkas naskah soal. Pastikan format Excel (.xlsx, .xls) atau CSV valid.",
         importedCount: 0,
         errors: ["Berkas tidak dapat dibaca."],
       });
@@ -197,14 +197,32 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
             </div>
           </div>
 
-          <a
-            href="/templates/sample_import_soal.csv"
-            download="sample_import_soal.csv"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-600 bg-white border border-slate-200 hover:bg-indigo-50 transition-colors shadow-2xs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Unduh Template Soal
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/templates/sample_import_soal.xlsx"
+              download="sample_import_soal.xlsx"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Excel (.xlsx)
+            </a>
+            <a
+              href="/templates/sample_import_soal.xls"
+              download="sample_import_soal.xls"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Excel (.xls)
+            </a>
+            <a
+              href="/templates/sample_import_soal.csv"
+              download="sample_import_soal.csv"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              CSV
+            </a>
+          </div>
         </div>
 
         {/* Upload Drop Zone */}
@@ -224,7 +242,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
             <input
               id="question-file-upload"
               type="file"
-              accept=".csv,.xlsx,.txt"
+              accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -236,10 +254,11 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                 <UploadCloud className="w-7 h-7 text-indigo-600" />
               </div>
               <p className="text-xs font-bold text-slate-800">
-                Pilih atau seret berkas naskah soal (.csv)
+                Pilih atau seret berkas naskah soal (.xlsx, .xls, .csv)
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
-                Pemisah titik-koma (;) dengan pengkodean karakter UTF-8 BOM
+                Mendukung Microsoft Excel (.xlsx / .xls) dan CSV berpemisah
+                titik-koma (;)
               </p>
             </label>
           </div>
