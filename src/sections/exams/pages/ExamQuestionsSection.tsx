@@ -11,11 +11,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { type FC, useCallback, useEffect, useState } from "react";
+import type { UserRole } from "@/libs/enums";
 import { ImportQuestionsModal } from "@/sections/questions/molecules/ImportQuestionsModal";
 import Button from "@/shared-ui/component/Button";
 
 export interface ExamQuestionsSectionProps {
   examId: string;
+  userRole?: UserRole;
 }
 
 export interface QuestionItemView {
@@ -76,6 +78,7 @@ interface RawQuestionData {
 
 export const ExamQuestionsSection: FC<ExamQuestionsSectionProps> = ({
   examId,
+  userRole: _userRole,
 }) => {
   const [questions, setQuestions] = useState<QuestionItemView[]>([]);
   const [examTitle, setExamTitle] = useState(`Ujian #${examId}`);

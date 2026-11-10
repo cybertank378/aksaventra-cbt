@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { type FC, useEffect, useState } from "react";
+import type { UserRole } from "@/libs/enums";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
 import Button from "@/shared-ui/component/Button";
 
@@ -26,7 +27,13 @@ interface ExamItemView {
   status: "ACTIVE" | "SCHEDULED" | "COMPLETED";
 }
 
-export const ExamsManagementSection: FC = () => {
+export interface ExamsManagementSectionProps {
+  userRole?: UserRole;
+}
+
+export const ExamsManagementSection: FC<ExamsManagementSectionProps> = ({
+  userRole: _userRole,
+}) => {
   const { examsList, fetchExamsList, isLoading, error } =
     useExamManagementApi();
   const [search, setSearch] = useState("");

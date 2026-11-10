@@ -4,10 +4,17 @@ import { ArrowLeft, Clock, KeyRound, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
+import type { UserRole } from "@/libs/enums";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
 import Button from "@/shared-ui/component/Button";
 
-export const CreateExamSection: FC = () => {
+export interface CreateExamSectionProps {
+  userRole?: UserRole;
+}
+
+export const CreateExamSection: FC<CreateExamSectionProps> = ({
+  userRole: _userRole,
+}) => {
   const router = useRouter();
   const { createSchedule, isLoading, error } = useExamManagementApi();
 

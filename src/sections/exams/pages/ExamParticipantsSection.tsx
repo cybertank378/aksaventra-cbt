@@ -3,6 +3,7 @@
 import { ArrowLeft, Edit3, Search } from "lucide-react";
 import Link from "next/link";
 import { type FC, useEffect, useState } from "react";
+import type { UserRole } from "@/libs/enums";
 import type { ExamParticipantDTO } from "@/modules/exams/domain/dto/ExamRosterDTO";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
 import Button from "@/shared-ui/component/Button";
@@ -10,10 +11,12 @@ import Modal from "@/shared-ui/component/Modal";
 
 export interface ExamParticipantsSectionProps {
   examId: string;
+  userRole?: UserRole;
 }
 
 export const ExamParticipantsSection: FC<ExamParticipantsSectionProps> = ({
   examId,
+  userRole: _userRole,
 }) => {
   const { participants, isLoading, error, fetchParticipants, updateSeat } =
     useExamManagementApi(examId);

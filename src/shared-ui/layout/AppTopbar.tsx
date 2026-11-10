@@ -59,17 +59,62 @@ function resolveCbtHeader(pathname: string): {
   title: string;
   subtitle: string;
 } {
-  if (pathname.startsWith("/proctor")) {
+  if (pathname.includes("/proctor")) {
     return {
       title: "Pusat Kendali Pengawas",
       subtitle:
         "Monitoring peserta, pelanggaran, dan intervensi ujian realtime",
     };
   }
-  if (pathname.startsWith("/exams")) {
+  if (pathname.includes("/exams/new")) {
     return {
-      title: "Bank Ujian & Soal",
-      subtitle: "Kelola daftar ujian, konfigurasi durasi, dan token akses",
+      title: "Buat Naskah Ujian Baru",
+      subtitle: "Konfigurasi parameter asesmen, bobot, dan jadwal pelaksanaan",
+    };
+  }
+  if (pathname.includes("/questions")) {
+    return {
+      title: "Bank Soal & Butir Ujian",
+      subtitle: "Penyusunan naskah soal, opsi jawaban, dan kunci penilaian",
+    };
+  }
+  if (pathname.includes("/exams")) {
+    return {
+      title: "Manajemen Naskah Ujian CBT",
+      subtitle:
+        "Daftar jadwal asesmen, distribusi naskah soal, dan pemantauan pengawas",
+    };
+  }
+  if (pathname.includes("/classes")) {
+    return {
+      title: "Manajemen Rombongan Belajar (Kelas)",
+      subtitle:
+        "Pengelompokan siswa ke dalam rombel untuk distribusi ujian massal",
+    };
+  }
+  if (pathname.includes("/students")) {
+    return {
+      title: "Daftar Peserta Didik (Siswa)",
+      subtitle: "Pengelolaan akun login dan pemetaan rombel belajar siswa",
+    };
+  }
+  if (pathname.includes("/exam-cards")) {
+    return {
+      title: "Cetak Kartu Ujian Siswa",
+      subtitle: "Pratinjau & Pencetakan Kartu Tanda Peserta Ujian Siswa",
+    };
+  }
+  if (pathname.includes("/announcements")) {
+    return {
+      title: "Pengumuman & Arahan CBT",
+      subtitle: "Siaran Informasi Tata Tertib & Instruksi Pelaksanaan Ujian",
+    };
+  }
+  if (pathname.includes("/results")) {
+    return {
+      title: "Hasil & Rekapitulasi Nilai",
+      subtitle:
+        "Analisis perolehan skor, log durasi pengerjaan, dan catatan pelanggaran",
     };
   }
   if (pathname.startsWith("/attempts")) {
@@ -78,7 +123,7 @@ function resolveCbtHeader(pathname: string): {
       subtitle: "Status pengerjaan, log pelanggaran, dan finalisasi attempt",
     };
   }
-  if (pathname.startsWith("/dashboard")) {
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard")) {
     return {
       title: "Dashboard Utama",
       subtitle: "Ringkasan metrik performa CBT dan status aktivitas peserta",

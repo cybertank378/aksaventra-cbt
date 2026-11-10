@@ -8,12 +8,16 @@ import TeacherDashboard from "../organisms/TeacherDashboard";
 
 export interface DashboardSectionProps {
   initialRole?: UserRole;
+  userRole?: UserRole;
 }
 
 export const DashboardSection: FC<DashboardSectionProps> = ({
-  initialRole = "ADMIN",
+  initialRole,
+  userRole,
 }) => {
-  const [currentRole, setCurrentRole] = useState<UserRole>(initialRole);
+  const [currentRole, setCurrentRole] = useState<UserRole>(
+    userRole ?? initialRole ?? "ADMIN",
+  );
 
   return (
     <div className="flex flex-col gap-6 w-full">

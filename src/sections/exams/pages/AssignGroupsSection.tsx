@@ -3,16 +3,19 @@
 import { ArrowLeft, Check, CheckSquare, Users } from "lucide-react";
 import Link from "next/link";
 import { type FC, useEffect, useState } from "react";
+import type { UserRole } from "@/libs/enums";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
 import Button from "@/shared-ui/component/Button";
 
 export interface AssignGroupsSectionProps {
   examId: string;
+  userRole?: UserRole;
 }
 
 export const AssignGroupsSection: FC<AssignGroupsSectionProps> = ({
   examId,
+  userRole: _userRole,
 }) => {
   const { classes, fetchClasses } = useClassesApi();
   const { participants, isLoading, error, assignGroups, fetchParticipants } =
