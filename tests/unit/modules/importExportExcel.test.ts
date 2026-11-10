@@ -104,4 +104,37 @@ describe("Excel & CSV Utilities for Moodle Import/Export", () => {
     expect(result.rows[0].nis_username).toBe("1001");
     expect(result.rows[0].nama_lengkap).toBe("Ahmad Dahlan");
   });
+
+  it("should intelligently select the data sheet in a multi-sheet question workbook", async () => {
+    const XLSX = await import("xlsx");
+    const { parseTabularFile } = await import("@/libs/excelCsvUtils");
+
+    const wb = XLSX.utils.book_new();
+    // Sheet 1 is a guide sheet without question data
+    const wsGuide = XLSX.utils.aoa_to_sheet([
+      ["PANDUAN", "KETERANGAN"],
+      ["nomor", "Nomor butir soal"],
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsGuide, "PANDUAN_KOLOM");
+
+    // Sheet 2 is the actual TEMPLATE_SOAL sheet
+    const wsQuestions = XLSX.utils.aoa_to_sheet([
+      ["nomor", "jenis_soal", "teks_soal", "bobot", "kunci_jawaban"],
+      ["1", "multichoice_single", "Soal 1", "1.00", "A"],
+      ["2", "essay", "Soal 2 Esai", "5.00", "requires_manual_grading"],
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsQuestions, "TEMPLATE_SOAL");
+
+    const buffer = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+    const mockFile = new File([buffer], "sample_import_soal.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const result = await parseTabularFile(mockFile);
+    expect(result.totalRows).toBe(2);
+    expect(result.headers).toContain("jenis_soal");
+    expect(result.headers).toContain("teks_soal");
+    expect(result.rows[0].jenis_soal).toBe("multichoice_single");
+    expect(result.rows[1].jenis_soal).toBe("essay");
+  });
 });
