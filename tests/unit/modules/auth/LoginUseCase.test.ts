@@ -15,6 +15,14 @@ describe("LoginUseCase", () => {
     isActive: true,
   });
 
+  const mockAdmin = new UserSessionEntity({
+    id: "user-admin-1",
+    username: "admin",
+    fullName: "Admin Administrator",
+    role: "ADMIN",
+    isActive: true,
+  });
+
   const mockJwtProvider: JwtProvider = {
     signToken: vi.fn().mockResolvedValue("mock-jwt-token-xyz"),
     verifyToken: vi.fn(),
@@ -32,10 +40,22 @@ describe("LoginUseCase", () => {
     findExamByMoodleCbtId: vi.fn(),
     updateAttemptDeviceBinding: vi.fn(),
     createAttemptIfNotExists: vi.fn(),
+    validateMoodleLaunchToken: vi.fn().mockResolvedValue(null),
+    verifyMoodleCredentials: vi.fn().mockResolvedValue(null),
+    syncMoodleUser: vi.fn().mockImplementation(async (params) => {
+      return new UserSessionEntity({
+        id: `synced-${params.username}`,
+        username: params.username,
+        fullName: params.fullName,
+        role: params.role || "STUDENT",
+        isActive: true,
+      });
+    }),
+    ensureExamExistsForMoodleCbt: vi.fn(),
     ...overrides,
   });
 
-  it("logs in successfully with valid credentials and returns JWT token", async () => {
+  it("logs in successfully with local credentials and returns JWT token", async () => {
     const repo = createMockRepo();
     const useCase = new LoginUseCase(repo, mockJwtProvider);
 
@@ -49,10 +69,39 @@ describe("LoginUseCase", () => {
     expect(result.value.token).toBe("mock-jwt-token-xyz");
     expect(result.value.user.username).toBe("siswa_01");
     expect(result.value.user.role).toBe("STUDENT");
+    expect(result.value.redirectUrl).toBe("/student/lobby");
   });
 
-  it("rejects login when username is not found", async () => {
+  it("authenticates admin via Moodle /login/token.php and core_webservice_get_site_info", async () => {
     const repo = createMockRepo({
+      verifyMoodleCredentials: vi.fn().mockResolvedValue({
+        token: "moodle-wstoken-admin-123",
+        moodleUserId: 2,
+        username: "admin",
+        fullName: "Administrator Sekolah",
+        role: "ADMIN",
+      }),
+      syncMoodleUser: vi.fn().mockResolvedValue(mockAdmin),
+    });
+    const useCase = new LoginUseCase(repo, mockJwtProvider);
+
+    const result = await useCase.execute({
+      username: "admin",
+      password: "AdminPassword123!",
+    });
+
+    expect(result.isSuccess).toBe(true);
+    expect(repo.verifyMoodleCredentials).toHaveBeenCalledWith(
+      "admin",
+      "AdminPassword123!",
+    );
+    expect(result.value.user.role).toBe("ADMIN");
+    expect(result.value.redirectUrl).toBe("/dashboard");
+  });
+
+  it("rejects login when credentials fail both in Moodle and local database", async () => {
+    const repo = createMockRepo({
+      verifyMoodleCredentials: vi.fn().mockResolvedValue(null),
       findUserByUsername: vi.fn().mockResolvedValue(null),
     });
     const useCase = new LoginUseCase(repo, mockJwtProvider);
@@ -66,8 +115,9 @@ describe("LoginUseCase", () => {
     expect(result.error.code).toBe("INVALID_CREDENTIALS");
   });
 
-  it("rejects login when password verification fails", async () => {
+  it("rejects login when password verification fails locally", async () => {
     const repo = createMockRepo({
+      verifyMoodleCredentials: vi.fn().mockResolvedValue(null),
       verifyUserPassword: vi.fn().mockResolvedValue(false),
     });
     const useCase = new LoginUseCase(repo, mockJwtProvider);

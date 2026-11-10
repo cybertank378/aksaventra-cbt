@@ -312,4 +312,243 @@ export class AuthRepository implements AuthRepositoryInterface {
 
     return created;
   }
+
+  public async validateMoodleLaunchToken(launchToken: string): Promise<{
+    moodleUserId: number;
+    username: string;
+    fullName: string;
+    cbtId: number;
+  } | null> {
+    const moodleBaseUrl =
+      process.env.NEXT_PUBLIC_MOODLE_URL || "http://127.0.0.1:8080";
+
+    try {
+      const res = await fetch(
+        `${moodleBaseUrl}/mod/cbt/validate_launch.php?launch_token=${encodeURIComponent(
+          launchToken,
+        )}`,
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.valid && data.userid) {
+          return {
+            moodleUserId: Number(data.userid),
+            username: data.username,
+            fullName: data.fullname || data.username,
+            cbtId: Number(data.cbtid),
+          };
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    return null;
+  }
+
+  public async verifyMoodleCredentials(
+    username: string,
+    password: string,
+  ): Promise<{
+    token?: string;
+    moodleUserId: number;
+    username: string;
+    fullName: string;
+    role: UserRole;
+  } | null> {
+    const moodleBaseUrl =
+      process.env.NEXT_PUBLIC_MOODLE_URL || "http://127.0.0.1:8080";
+
+    try {
+      const res = await fetch(`${moodleBaseUrl}/login/token.php`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          username,
+          password,
+          service: "mod_cbt_service",
+        }).toString(),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+
+        // 1. Success: Web service token issued (Admin or permitted role)
+        if (data?.token && !data.error) {
+          const wstoken = data.token as string;
+          const siteInfoRes = await fetch(
+            `${moodleBaseUrl}/webservice/rest/server.php`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: new URLSearchParams({
+                wstoken,
+                wsfunction: "core_webservice_get_site_info",
+                moodlewsrestformat: "json",
+              }).toString(),
+            },
+          );
+
+          if (siteInfoRes.ok) {
+            const siteInfo = await siteInfoRes.json();
+            if (siteInfo && !siteInfo.errorcode && siteInfo.userid) {
+              const role: UserRole = siteInfo.userissiteadmin
+                ? "ADMIN"
+                : "STUDENT";
+
+              return {
+                token: wstoken,
+                moodleUserId: Number(siteInfo.userid),
+                username: siteInfo.username,
+                fullName: siteInfo.fullname || siteInfo.username,
+                role,
+              };
+            }
+          }
+        }
+
+        // 2. Student password is valid, but Moodle restricts web service token generation
+        if (data?.errorcode === "cannotcreatetoken") {
+          try {
+            const moodleUsers = (await this.db.$queryRawUnsafe(
+              "SELECT id, username, firstname, lastname FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
+              username,
+            )) as Array<{
+              id: bigint | number;
+              username: string;
+              firstname: string;
+              lastname: string;
+            }>;
+
+            if (moodleUsers && moodleUsers.length > 0) {
+              const mu = moodleUsers[0];
+              const fullName =
+                `${mu.firstname || ""} ${mu.lastname || ""}`.trim() ||
+                mu.username;
+              return {
+                moodleUserId: Number(mu.id),
+                username: mu.username,
+                fullName,
+                role: "STUDENT",
+              };
+            }
+          } catch {
+            // Database query fallback error
+          }
+        }
+
+        // 3. Invalid credentials
+        if (data?.errorcode === "invalidlogin") {
+          return null;
+        }
+      }
+    } catch {
+      // Moodle unreachable
+    }
+
+    return null;
+  }
+
+  public async syncMoodleUser(params: {
+    moodleUserId: number;
+    username: string;
+    fullName: string;
+    role?: UserRole;
+  }): Promise<UserSessionEntity> {
+    const role = params.role || "STUDENT";
+    const synced = await this.db.user.upsert({
+      where: { username: params.username },
+      create: {
+        username: params.username,
+        fullName: params.fullName,
+        role,
+        passwordHash: "",
+        moodleUserId: params.moodleUserId,
+        isActive: true,
+      },
+      update: {
+        fullName: params.fullName,
+        role: params.role ? role : undefined,
+        moodleUserId: params.moodleUserId,
+        isActive: true,
+      },
+    });
+
+    return new UserSessionEntity({
+      id: synced.id,
+      username: synced.username,
+      fullName: synced.fullName,
+      role: synced.role as UserRole,
+      className: synced.className,
+      roomCode: synced.roomCode,
+      isActive: synced.isActive,
+      createdAt: synced.createdAt,
+      updatedAt: synced.updatedAt,
+    });
+  }
+
+  public async ensureExamExistsForMoodleCbt(
+    moodleCbtId: number,
+  ): Promise<ExamTokenInfo> {
+    const existing = await this.findExamByMoodleCbtId(moodleCbtId);
+    if (existing) {
+      return existing;
+    }
+
+    let title = `Ujian CBT Moodle #${moodleCbtId}`;
+    let duration = 60;
+    let activeToken = "CBT123";
+
+    try {
+      const moodleCbt = (await this.db.$queryRawUnsafe(
+        "SELECT id, name, timelimit, active_token FROM moodle.mdl_cbt WHERE id = ? LIMIT 1",
+        moodleCbtId,
+      )) as Array<{
+        id: bigint | number;
+        name: string;
+        timelimit: number;
+        active_token: string | null;
+      }>;
+
+      if (moodleCbt && moodleCbt.length > 0) {
+        const c = moodleCbt[0];
+        if (c.name) title = c.name;
+        if (c.timelimit && Number(c.timelimit) > 0) {
+          duration = Math.floor(Number(c.timelimit) / 60) || 60;
+        }
+        if (c.active_token) activeToken = c.active_token;
+      }
+    } catch {
+      // Fallback defaults
+    }
+
+    const created = await this.db.exam.create({
+      data: {
+        title,
+        moodleCbtId,
+        courseName: "Moodle Integrated Course",
+        durationSeconds: duration * 60,
+        activeToken,
+        tokenExpiresAt: new Date(Date.now() + 24 * 3600 * 1000),
+        questionsJson: [],
+        answerKeysJson: {},
+        timeOpen: new Date(),
+        timeClose: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+      },
+      select: {
+        id: true,
+        activeToken: true,
+        tokenExpiresAt: true,
+        moodleCbtId: true,
+      },
+    });
+
+    return {
+      id: created.id,
+      activeToken: created.activeToken,
+      tokenExpiresAt: created.tokenExpiresAt,
+      moodleCbtId: created.moodleCbtId,
+    };
+  }
 }

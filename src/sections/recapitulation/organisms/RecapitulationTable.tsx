@@ -98,11 +98,10 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
                 key={s}
                 type="button"
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  statusFilter === s
-                    ? "bg-[#0d2b5c] text-white shadow-xs"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === s
+                  ? "bg-[#0d2b5c] text-white shadow-xs"
+                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
+                  }`}
               >
                 {s === "ALL" ? "Semua" : s === "PASSED" ? "Tuntas" : "Remedial"}
               </button>

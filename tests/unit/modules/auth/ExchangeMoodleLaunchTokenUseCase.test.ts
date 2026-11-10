@@ -39,10 +39,19 @@ describe("ExchangeMoodleLaunchTokenUseCase", () => {
     createAttemptIfNotExists: vi
       .fn()
       .mockResolvedValue({ id: "attempt-new-1" }),
+    validateMoodleLaunchToken: vi.fn().mockResolvedValue({
+      moodleUserId: 10,
+      username: "moodle_student_10",
+      fullName: "Moodle Student",
+      cbtId: 99,
+    }),
+    verifyMoodleCredentials: vi.fn().mockResolvedValue(null),
+    syncMoodleUser: vi.fn().mockResolvedValue(mockUser),
+    ensureExamExistsForMoodleCbt: vi.fn().mockResolvedValue(mockExam),
     ...overrides,
   });
 
-  it("exchanges moodle launch token and provisions new attempt successfully", async () => {
+  it("exchanges moodle launch token with explicit moodleUserId and provisions new attempt", async () => {
     const repo = createMockRepo();
     const useCase = new ExchangeMoodleLaunchTokenUseCase(repo, mockJwtProvider);
 
@@ -57,11 +66,55 @@ describe("ExchangeMoodleLaunchTokenUseCase", () => {
     expect(result.value.token).toBe("jwt-moodle-session-token");
     expect(result.value.attemptId).toBe("attempt-new-1");
     expect(result.value.examId).toBe("exam-cbt-20");
+    expect(result.value.redirectUrl).toBe("/student/lobby/exam-cbt-20");
+  });
+
+  it("performs seamless SSO handshake without moodleUserId by validating launch token", async () => {
+    const repo = createMockRepo({
+      findUserByMoodleId: vi.fn().mockResolvedValue(null),
+    });
+    const useCase = new ExchangeMoodleLaunchTokenUseCase(repo, mockJwtProvider);
+
+    const result = await useCase.execute({
+      moodleCbtId: 99,
+      launchToken: "valid-secret-launch-token",
+      deviceHash: "device-hash-fingerprint",
+    });
+
+    expect(result.isSuccess).toBe(true);
+    expect(repo.validateMoodleLaunchToken).toHaveBeenCalledWith(
+      "valid-secret-launch-token",
+    );
+    expect(repo.syncMoodleUser).toHaveBeenCalledWith({
+      moodleUserId: 10,
+      username: "moodle_student_10",
+      fullName: "Moodle Student",
+      role: "STUDENT",
+    });
+    expect(result.value.redirectUrl).toBe("/student/lobby/exam-cbt-20");
+  });
+
+  it("rejects SSO handshake when launch token is invalid or expired", async () => {
+    const repo = createMockRepo({
+      findUserByMoodleId: vi.fn().mockResolvedValue(null),
+      validateMoodleLaunchToken: vi.fn().mockResolvedValue(null),
+    });
+    const useCase = new ExchangeMoodleLaunchTokenUseCase(repo, mockJwtProvider);
+
+    const result = await useCase.execute({
+      moodleCbtId: 99,
+      launchToken: "expired-or-fake-token",
+      deviceHash: "device-hash-fingerprint",
+    });
+
+    expect(result.isFailure).toBe(true);
+    expect(result.error.code).toBe("INVALID_LAUNCH_TOKEN");
   });
 
   it("rejects exchange when moodle user does not exist", async () => {
     const repo = createMockRepo({
       findUserByMoodleId: vi.fn().mockResolvedValue(null),
+      validateMoodleLaunchToken: vi.fn().mockResolvedValue(null),
     });
     const useCase = new ExchangeMoodleLaunchTokenUseCase(repo, mockJwtProvider);
 
@@ -73,12 +126,13 @@ describe("ExchangeMoodleLaunchTokenUseCase", () => {
     });
 
     expect(result.isFailure).toBe(true);
-    expect(result.error.code).toBe("USER_NOT_FOUND");
+    expect(result.error.code).toBe("INVALID_LAUNCH_TOKEN");
   });
 
   it("rejects exchange when moodle exam CBT module is missing", async () => {
     const repo = createMockRepo({
       findExamByMoodleCbtId: vi.fn().mockResolvedValue(null),
+      ensureExamExistsForMoodleCbt: vi.fn().mockResolvedValue(null),
     });
     const useCase = new ExchangeMoodleLaunchTokenUseCase(repo, mockJwtProvider);
 

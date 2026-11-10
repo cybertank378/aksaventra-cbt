@@ -1,3 +1,4 @@
+import type { UserRole } from "@/security/rbacConfig";
 import type { UserSessionEntity } from "../entities/UserSessionEntity";
 
 export interface ActiveAttemptInfo {
@@ -39,4 +40,27 @@ export interface AuthRepositoryInterface {
     deviceHash: string;
     ipAddress: string;
   }): Promise<{ id: string }>;
+  validateMoodleLaunchToken(launchToken: string): Promise<{
+    moodleUserId: number;
+    username: string;
+    fullName: string;
+    cbtId: number;
+  } | null>;
+  verifyMoodleCredentials(
+    username: string,
+    password: string,
+  ): Promise<{
+    token?: string;
+    moodleUserId: number;
+    username: string;
+    fullName: string;
+    role: UserRole;
+  } | null>;
+  syncMoodleUser(params: {
+    moodleUserId: number;
+    username: string;
+    fullName: string;
+    role?: UserRole;
+  }): Promise<UserSessionEntity>;
+  ensureExamExistsForMoodleCbt(moodleCbtId: number): Promise<ExamTokenInfo>;
 }

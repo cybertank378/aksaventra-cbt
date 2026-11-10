@@ -125,16 +125,30 @@ export class AuthController extends BaseController {
   }
 
   public async moodleLaunch(request: NextRequest): Promise<NextResponse> {
+    let body: unknown;
     try {
-      const body = await request.json();
-      const parseResult = moodleLaunchSchema.safeParse(body);
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "INVALID_REQUEST",
+            message: "Format request tidak valid",
+          },
+        },
+        { status: 400 },
+      );
+    }
 
-      if (!parseResult.success) {
-        return this.handleResult(
-          Result.fail(handleZodError(parseResult.error)),
-        );
-      }
+    const parseResult = moodleLaunchSchema.safeParse(body);
+    if (!parseResult.success) {
+      return this.handleResult(
+        Result.fail(handleZodError(parseResult.error)),
+      );
+    }
 
+    try {
       const ipAddress =
         parseResult.data.ipAddress ||
         request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
@@ -160,16 +174,19 @@ export class AuthController extends BaseController {
       });
 
       return response;
-    } catch (_err) {
+    } catch (err) {
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: "INVALID_REQUEST",
-            message: "Format request tidak valid",
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              err instanceof Error
+                ? err.message
+                : "Terjadi kesalahan internal server",
           },
         },
-        { status: 400 },
+        { status: 500 },
       );
     }
   }

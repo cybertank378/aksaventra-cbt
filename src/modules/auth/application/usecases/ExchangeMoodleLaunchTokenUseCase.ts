@@ -22,10 +22,34 @@ export class ExchangeMoodleLaunchTokenUseCase
   public async execute(
     input: ExchangeMoodleLaunchInput,
   ): Promise<Result<ExchangeMoodleLaunchOutput, AppError>> {
-    const { moodleUserId, moodleCbtId, deviceHash, ipAddress = "" } = input;
+    const { moodleUserId, moodleCbtId, launchToken, deviceHash, ipAddress = "" } = input;
 
-    // 1. Resolve student by Moodle user ID
-    const user = await this.authRepository.findUserByMoodleId(moodleUserId);
+    // 1. Resolve student by Moodle user ID or by validating launch token
+    let user = moodleUserId
+      ? await this.authRepository.findUserByMoodleId(moodleUserId)
+      : null;
+
+    if (!user) {
+      // Validate launch token against Moodle bridge
+      const validated = await this.authRepository.validateMoodleLaunchToken(launchToken);
+      if (!validated) {
+        return Result.fail(
+          new DomainError(
+            "Token launch Moodle tidak valid atau telah kedaluwarsa",
+            401,
+            "INVALID_LAUNCH_TOKEN",
+          ),
+        );
+      }
+
+      user = await this.authRepository.syncMoodleUser({
+        moodleUserId: validated.moodleUserId,
+        username: validated.username,
+        fullName: validated.fullName,
+        role: "STUDENT",
+      });
+    }
+
     if (!user || !user.isActive) {
       return Result.fail(
         new DomainError(
@@ -37,7 +61,15 @@ export class ExchangeMoodleLaunchTokenUseCase
     }
 
     // 2. Resolve exam by Moodle cbt ID
-    const exam = await this.authRepository.findExamByMoodleCbtId(moodleCbtId);
+    let exam = await this.authRepository.findExamByMoodleCbtId(moodleCbtId);
+    if (!exam) {
+      try {
+        exam = await this.authRepository.ensureExamExistsForMoodleCbt(moodleCbtId);
+      } catch {
+        // Exam creation failed
+      }
+    }
+
     if (!exam) {
       return Result.fail(
         new DomainError(
@@ -105,6 +137,7 @@ export class ExchangeMoodleLaunchTokenUseCase
       user: user.toDTO(),
       examId: exam.id,
       attemptId: activeAttempt.id,
+      redirectUrl: `/student/lobby/${exam.id}`,
     });
   }
 }

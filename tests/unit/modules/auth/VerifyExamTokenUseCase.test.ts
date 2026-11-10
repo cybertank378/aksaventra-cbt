@@ -22,6 +22,10 @@ describe("VerifyExamTokenUseCase", () => {
     findExamByMoodleCbtId: vi.fn(),
     updateAttemptDeviceBinding: vi.fn(),
     createAttemptIfNotExists: vi.fn(),
+    validateMoodleLaunchToken: vi.fn().mockResolvedValue(null),
+    verifyMoodleCredentials: vi.fn().mockResolvedValue(null),
+    syncMoodleUser: vi.fn(),
+    ensureExamExistsForMoodleCbt: vi.fn(),
     ...overrides,
   });
 
