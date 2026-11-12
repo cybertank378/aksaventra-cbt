@@ -206,3 +206,4 @@ export class QuestionBusinessRules {
     return `${cleanSubject}-${cleanType}-${randomSuffix}`;
   }
 }
+
