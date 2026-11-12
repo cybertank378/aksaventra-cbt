@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Formulir penambahan butir soal CBT 8 tipe pertanyaan",
 };
 
+export const instant = false;
+
 export default async function CreateQuestionPage() {
   const user = await getCurrentUser();
   return <CreateQuestionSection userRole={user?.role ?? "TEACHER"} />;

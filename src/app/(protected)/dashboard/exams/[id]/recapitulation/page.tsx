@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Hasil rekapitulasi nilai peserta ujian dan analisis ketuntasan KKM",
 };
 
+export const instant = false;
+
 interface RecapitulationPageProps {
   params: Promise<{ id: string }>;
 }

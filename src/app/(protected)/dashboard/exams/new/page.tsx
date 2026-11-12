@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Konfigurasi mata pelajaran, durasi waktu, token ruangan, dan kebijakan proteksi",
 };
 
+export const instant = false;
+
 export default async function NewExamPage() {
   const user = await getCurrentUser();
   return <CreateExamSection userRole={user?.role ?? "TEACHER"} />;

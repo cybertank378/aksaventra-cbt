@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Katalog bank butir soal ujian dengan dukungan 8 jenis pertanyaan",
 };
 
+export const instant = false;
+
 export default async function QuestionsCatalogPage() {
   const user = await getCurrentUser();
   return <QuestionsCatalogSection userRole={user?.role ?? "TEACHER"} />;

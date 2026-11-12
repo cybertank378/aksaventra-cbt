@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Ruang persiapan dan verifikasi token pengerjaan ujian siswa",
 };
 
+export const instant = false;
+
 interface StudentLobbyPageProps {
   params: Promise<{ examId: string }>;
 }

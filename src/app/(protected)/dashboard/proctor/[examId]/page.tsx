@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Live monitoring peserta ujian, intervensi strike, dan proyektor token ruangan",
 };
 
+export const instant = false;
+
 interface ProctorRoomPageProps {
   params: Promise<{ examId: string }>;
 }

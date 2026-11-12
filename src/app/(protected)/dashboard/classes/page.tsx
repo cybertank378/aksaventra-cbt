@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Kelola rombongan belajar siswa untuk penugasan ujian CBT",
 };
 
+export const instant = false;
+
 export default async function ClassesPage() {
   const user = await getCurrentUser();
   return <ClassesSection userRole={user?.role ?? "ADMIN"} />;

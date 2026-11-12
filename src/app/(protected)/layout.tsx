@@ -2,6 +2,8 @@ import { type ReactNode, Suspense } from "react";
 import { getCurrentUser } from "@/modules/auth/shared/server/serverAuth";
 import AppLayout from "@/shared-ui/layout/AppLayout";
 
+export const instant = false;
+
 async function ProtectedLayoutContent({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
 
@@ -19,4 +21,5 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     </Suspense>
   );
 }
+
 

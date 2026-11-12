@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Pusat informasi dan tata tertib pelaksanaan ujian CBT",
 };
 
+export const instant = false;
+
 export default async function AnnouncementsPage() {
   const user = await getCurrentUser();
   return <AnnouncementsSection userRole={user?.role ?? "ADMIN"} />;

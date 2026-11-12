@@ -61,6 +61,10 @@ export const AdminDashboard: FC = () => {
 
   const activeExams: ActiveExamItem[] = examsList.map((e) => {
     const raw = e as unknown as { timeOpen?: string; status?: string };
+    const rawStatus = raw.status?.toUpperCase();
+    const status: "ACTIVE" | "SCHEDULED" | "ENDED" =
+      rawStatus === "SCHEDULED" || rawStatus === "ENDED" ? rawStatus : "ACTIVE";
+
     return {
       id: String(e.examId || e.moodleCbtId),
       title: e.title || e.courseName || `Ujian #${e.examId}`,
@@ -73,7 +77,7 @@ export const AdminDashboard: FC = () => {
           minute: "2-digit",
         })
         : "-",
-      status: raw.status || "ACTIVE",
+      status,
     };
   });
 
