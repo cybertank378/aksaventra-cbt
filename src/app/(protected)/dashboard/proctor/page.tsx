@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Daftar sesi ujian aktif dan pemantauan intervensi live pengawas",
 };
 
+export const instant = false;
+
 export default async function ProctorDashboardPage() {
   const user = await getCurrentUser();
   return <ProctorIndexSection userRole={user?.role ?? "PROCTOR"} />;

@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Cetak massal kartu tanda peserta ujian per rombel kelas",
 };
 
+export const instant = false;
+
 export default async function ExamCardsPage() {
   const user = await getCurrentUser();
   return <ExamCardsSection userRole={user?.role ?? "TEACHER"} />;

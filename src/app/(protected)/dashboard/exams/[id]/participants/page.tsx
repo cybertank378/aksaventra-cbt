@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Pengaturan nomor meja dan penempatan ruang ujian siswa secara manual",
 };
 
+export const instant = false;
+
 interface ExamParticipantsPageProps {
   params: Promise<{ id: string }>;
 }

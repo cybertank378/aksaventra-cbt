@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Tetapkan rombongan belajar peserta ujian dan generate alokasi meja secara berurutan",
 };
 
+export const instant = false;
+
 interface AssignGroupsPageProps {
   params: Promise<{ id: string }>;
 }

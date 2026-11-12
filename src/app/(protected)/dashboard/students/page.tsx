@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Manajemen akun login dan penempatan rombel siswa",
 };
 
+export const instant = false;
+
 export default async function StudentsPage() {
   const user = await getCurrentUser();
   return <StudentsSection userRole={user?.role ?? "ADMIN"} />;

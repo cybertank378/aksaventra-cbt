@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Zero-Latency Workspace Pengerjaan Ujian Siswa Aksaventra CBT",
 };
 
+export const instant = false;
+
 interface StudentExamPageProps {
   params: Promise<{ attemptId: string }>;
 }

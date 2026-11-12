@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Distribusi butir pertanyaan, pembobotan skor, dan impor soal multi-tipe",
 };
 
+export const instant = false;
+
 interface ExamQuestionsPageProps {
   params: Promise<{ id: string }>;
 }

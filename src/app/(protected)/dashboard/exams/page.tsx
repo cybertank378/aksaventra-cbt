@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     "Daftar jadwal asesmen, distribusi naskah soal, dan pemantauan pengawas",
 };
 
+export const instant = false;
+
 export default async function ExamsManagementPage() {
   const user = await getCurrentUser();
   return <ExamsManagementSection userRole={user?.role ?? "TEACHER"} />;
