@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft, Check, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FC, useState } from "react";
 import type {
@@ -10,6 +9,9 @@ import type {
 } from "@/modules/questions/domain/dto/QuestionDTO";
 import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import SelectField from "@/shared-ui/component/SelectField";
+import TextField from "@/shared-ui/component/TextField";
 
 export const CreateQuestionForm: FC = () => {
   const router = useRouter();
@@ -81,8 +83,12 @@ export const CreateQuestionForm: FC = () => {
     });
 
     if (result) {
-      router.push("/dashboard/questions");
+      router.replace("/dashboard/questions");
     }
+  };
+
+  const handleBack = () => {
+    router.replace("/dashboard/questions");
   };
 
   return (
@@ -90,17 +96,16 @@ export const CreateQuestionForm: FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/questions">
-            <Button
-              type="button"
-              variant="outline"
-              color="secondary"
-              size="sm"
-              leftIcon={ArrowLeft}
-            >
-              Kembali
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={ArrowLeft}
+            onClick={handleBack}
+          >
+            Kembali
+          </Button>
           <div>
             <h2 className="text-base font-extrabold text-[#0d2b5c]">
               Buat Butir Soal Baru
@@ -128,76 +133,56 @@ export const CreateQuestionForm: FC = () => {
       )}
 
       {/* Main Metadata Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-3xl bg-white border border-slate-200/90 p-5 shadow-xs">
-        <div>
-          <label
-            htmlFor="subject-select"
-            className="block text-xs font-bold text-slate-700 mb-1.5"
-          >
-            Mata Pelajaran:
-          </label>
-          <select
-            id="subject-select"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-          >
-            <option value="Matematika">Matematika</option>
-            <option value="Fisika">Fisika</option>
-            <option value="Kimia">Kimia</option>
-            <option value="Biologi">Biologi</option>
-            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-            <option value="Geografi">Geografi</option>
-            <option value="Sosiologi">Sosiologi</option>
-          </select>
-        </div>
+      <Card className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5">
+        <SelectField
+          id="subject-select"
+          label="Mata Pelajaran:"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          size="sm"
+        >
+          <option value="Matematika">Matematika</option>
+          <option value="Fisika">Fisika</option>
+          <option value="Kimia">Kimia</option>
+          <option value="Biologi">Biologi</option>
+          <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+          <option value="Geografi">Geografi</option>
+          <option value="Sosiologi">Sosiologi</option>
+        </SelectField>
 
-        <div>
-          <label
-            htmlFor="grade-select"
-            className="block text-xs font-bold text-slate-700 mb-1.5"
-          >
-            Tingkat Kelas:
-          </label>
-          <select
-            id="grade-select"
-            value={gradeLevel}
-            onChange={(e) => setGradeLevel(e.target.value)}
-            className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-          >
-            <option value="X">Kelas X</option>
-            <option value="XI">Kelas XI</option>
-            <option value="XII">Kelas XII</option>
-          </select>
-        </div>
+        <SelectField
+          id="grade-select"
+          label="Tingkat Kelas:"
+          value={gradeLevel}
+          onChange={(e) => setGradeLevel(e.target.value)}
+          size="sm"
+        >
+          <option value="X">Kelas X</option>
+          <option value="XI">Kelas XI</option>
+          <option value="XII">Kelas XII</option>
+        </SelectField>
 
-        <div>
-          <label
-            htmlFor="type-select"
-            className="block text-xs font-bold text-slate-700 mb-1.5"
-          >
-            Tipe Pertanyaan CBT:
-          </label>
-          <select
-            id="type-select"
-            value={type}
-            onChange={(e) => setType(e.target.value as CBTQuestionType)}
-            className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 font-bold text-[#0d2b5c] bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-          >
-            <option value="multichoice">Pilihan Ganda Biasa</option>
-            <option value="mcma">Pilihan Ganda Kompleks (MCMA)</option>
-            <option value="truefalse">Benar / Salah</option>
-            <option value="shortanswer">Isian Singkat</option>
-            <option value="numerical">Numerik & Toleransi</option>
-            <option value="matching">Menjodohkan</option>
-            <option value="cloze">Teks Rumpang (Cloze)</option>
-            <option value="essay">Uraian / Esai Bebas</option>
-          </select>
-        </div>
-      </div>
+        <SelectField
+          id="type-select"
+          label="Tipe Pertanyaan CBT:"
+          value={type}
+          onChange={(e) => setType(e.target.value as CBTQuestionType)}
+          size="sm"
+          className="font-bold text-[#0d2b5c]"
+        >
+          <option value="multichoice">Pilihan Ganda Biasa</option>
+          <option value="mcma">Pilihan Ganda Kompleks (MCMA)</option>
+          <option value="truefalse">Benar / Salah</option>
+          <option value="shortanswer">Isian Singkat</option>
+          <option value="numerical">Numerik & Toleransi</option>
+          <option value="matching">Menjodohkan</option>
+          <option value="cloze">Teks Rumpang (Cloze)</option>
+          <option value="essay">Uraian / Esai Bebas</option>
+        </SelectField>
+      </Card>
 
       {/* Stem & Points Card */}
-      <div className="flex flex-col gap-4 rounded-3xl bg-white border border-slate-200/90 p-5 shadow-xs">
+      <Card className="flex flex-col gap-4 p-5">
         <div>
           <label
             htmlFor="stem-textarea"
@@ -217,49 +202,35 @@ export const CreateQuestionForm: FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="points-input"
-              className="block text-xs font-bold text-slate-700 mb-1.5"
-            >
-              Bobot Skor Poin:
-            </label>
-            <input
-              id="points-input"
-              type="number"
-              step="0.5"
-              min="0.5"
-              value={points}
-              onChange={(e) => setPoints(Number(e.target.value))}
-              className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-            />
-          </div>
+          <TextField
+            id="points-input"
+            label="Bobot Skor Poin:"
+            type="number"
+            step="0.5"
+            min="0.5"
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value))}
+            size="sm"
+          />
 
           {type === "numerical" && (
-            <div>
-              <label
-                htmlFor="tolerance-input"
-                className="block text-xs font-bold text-slate-700 mb-1.5"
-              >
-                Batas Toleransi Nilai (±):
-              </label>
-              <input
-                id="tolerance-input"
-                type="number"
-                step="0.01"
-                min="0"
-                value={tolerance || 0}
-                onChange={(e) => setTolerance(Number(e.target.value))}
-                className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-              />
-            </div>
+            <TextField
+              id="tolerance-input"
+              label="Batas Toleransi Nilai (±):"
+              type="number"
+              step="0.01"
+              min="0"
+              value={tolerance || 0}
+              onChange={(e) => setTolerance(Number(e.target.value))}
+              size="sm"
+            />
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Options Matrix (if not essay) */}
       {type !== "essay" && (
-        <div className="flex flex-col gap-4 rounded-3xl bg-white border border-slate-200/90 p-5 shadow-xs">
+        <Card className="flex flex-col gap-4 p-5">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xs font-bold text-[#0d2b5c]">
@@ -288,14 +259,13 @@ export const CreateQuestionForm: FC = () => {
                 key={opt.id}
                 className="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50/50"
               >
-                <button
+                <Button
                   type="button"
+                  size="sm"
+                  variant={opt.isCorrect ? "filled" : "outline"}
+                  color={opt.isCorrect ? "primary" : "secondary"}
                   onClick={() => handleToggleCorrect(idx)}
-                  className={`h-7 w-7 rounded-xl flex items-center justify-center font-bold text-xs transition-colors shrink-0 ${
-                    opt.isCorrect
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "bg-white text-slate-400 border border-slate-200 hover:border-slate-300"
-                  }`}
+                  className="h-8 w-8 rounded-xl p-0 flex items-center justify-center font-bold text-xs shrink-0"
                   title={
                     opt.isCorrect
                       ? "Kunci Benar"
@@ -303,30 +273,36 @@ export const CreateQuestionForm: FC = () => {
                   }
                 >
                   {opt.isCorrect ? <Check className="w-4 h-4" /> : opt.label}
-                </button>
+                </Button>
 
-                <input
-                  type="text"
-                  value={opt.text}
-                  onChange={(e) => handleOptionTextChange(idx, e.target.value)}
-                  placeholder={`Isi teks pilihan jawaban ${opt.label}...`}
-                  className="flex-1 text-xs rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-                  required
-                />
+                <div className="flex-1">
+                  <TextField
+                    type="text"
+                    value={opt.text}
+                    onChange={(e) =>
+                      handleOptionTextChange(idx, e.target.value)
+                    }
+                    placeholder={`Isi teks pilihan jawaban ${opt.label}...`}
+                    size="sm"
+                    className="bg-white"
+                    required
+                  />
+                </div>
 
                 {options.length > 2 && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    color="error"
+                    size="sm"
+                    leftIcon={Trash2}
                     onClick={() => handleRemoveOption(idx)}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  />
                 )}
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Explanation Card */}

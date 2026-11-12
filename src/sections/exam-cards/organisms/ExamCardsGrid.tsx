@@ -5,6 +5,9 @@ import { type FC, useEffect, useState } from "react";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import { useExamCardsApi } from "@/modules/exam-cards/presentation/useExamCardsApi";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import SelectField from "@/shared-ui/component/SelectField";
+import TextField from "@/shared-ui/component/TextField";
 import ExamCardItem from "../molecules/ExamCardItem";
 
 export const ExamCardsGrid: FC = () => {
@@ -58,26 +61,22 @@ export const ExamCardsGrid: FC = () => {
       </div>
 
       {/* Filter Bar (Hidden when printing) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-3xl bg-white border border-slate-200/90 shadow-xs print:hidden">
-        <div className="flex items-center gap-2 flex-1 max-w-sm">
-          <input
-            type="text"
+      <Card className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 print:hidden">
+        <div className="flex-1 max-w-sm">
+          <TextField
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari siswa atau NISN..."
-            className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            size="sm"
           />
         </div>
 
         <div className="flex items-center gap-2">
           <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-500">
-            Pilih Kelas:
-          </span>
-          <select
+          <SelectField
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            size="sm"
           >
             <option value="ALL">Semua Kelas</option>
             {classes.map((cls) => (
@@ -85,9 +84,9 @@ export const ExamCardsGrid: FC = () => {
                 {cls.name}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
-      </div>
+      </Card>
 
       {error && (
         <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-700 print:hidden">

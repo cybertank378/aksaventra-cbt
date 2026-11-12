@@ -87,25 +87,17 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
         if (examData) {
           setExam({
             id: String(examData.examId || examId),
-            title: examData.title || "Ujian Penilaian Akhir Semester",
-            courseName: examData.courseName || "CBT Aksaventra",
+            title: examData.title || "Ujian CBT",
+            courseName: examData.courseName || "-",
             durationMinutes: Math.round(
               (examData.durationSeconds || 5400) / 60,
             ),
-            totalQuestions: examData.questions?.length ?? 40,
+            totalQuestions: examData.questions?.length ?? 0,
             maxStrikes: examData.maxStrikes ?? 3,
             requireSeb: Boolean(examData.sebRequired),
           });
         } else if (!initialExam) {
-          setExam({
-            id: examId,
-            title: "Ujian Penilaian Akhir Semester",
-            courseName: "Mata Pelajaran Ujian Sekolah",
-            durationMinutes: 90,
-            totalQuestions: 40,
-            maxStrikes: 3,
-            requireSeb: false,
-          });
+          setLoadError("Informasi ujian tidak ditemukan dari server atau telah ditutup.");
         }
 
         if (userData) {
@@ -118,15 +110,10 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
               userData.username,
             roomName:
               (userData as unknown as { roomName?: string }).roomName ||
-              "Ruang Lab CBT 1",
+              "-",
           });
         } else if (!initialStudent) {
-          setStudent({
-            name: "Siswa Peserta Ujian",
-            username: "peserta",
-            nisn: "NISN-2026",
-            roomName: "Ruang Lab CBT 1",
-          });
+          setLoadError("Sesi peserta tidak valid. Silakan login kembali.");
         }
       } catch (err) {
         if (!isMounted) return;
@@ -158,7 +145,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
     if (onAttemptStarted) {
       onAttemptStarted(attemptId);
     } else {
-      router.push(`/student/exam/${attemptId}`);
+      router.replace(`/student/exam/${attemptId}`);
     }
   };
 
@@ -178,7 +165,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
     );
   }
 
-  if (loadError || !exam) {
+  if (loadError || !exam || !student) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center p-4">
         <Card variant="elevated" className="max-w-md text-center p-6 sm:p-8">
@@ -188,13 +175,13 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
           </h2>
           <p className="text-xs text-slate-500 mb-6">
             {loadError ||
-              "Informasi ujian tidak ditemukan atau telah berakhir."}
+              "Informasi ujian atau profil peserta tidak ditemukan dari server."}
           </p>
           <Button
             variant="filled"
             color="primary"
             fullWidth
-            onClick={() => router.push("/login")}
+            onClick={() => router.replace("/login")}
           >
             Kembali ke Halaman Masuk
           </Button>
@@ -203,12 +190,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
     );
   }
 
-  const activeStudent = student || {
-    name: "Siswa Peserta",
-    username: "peserta",
-    nisn: "NISN-2026",
-    roomName: "Lab CBT",
-  };
+  const activeStudent = student;
 
   return (
     <div className={`flex flex-col gap-6 max-w-5xl mx-auto ${className || ""}`}>
@@ -239,7 +221,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
               {exam.title}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300">
-              {exam.courseName || "Mata Pelajaran Ujian Sekolah"}
+              {exam.courseName || "-"}
             </p>
           </div>
 
@@ -280,7 +262,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
                 Jumlah Soal
               </p>
               <p className="text-sm font-bold text-white">
-                {exam.totalQuestions ?? 40} Butir
+                {exam.totalQuestions} Butir
               </p>
             </div>
           </div>
@@ -304,7 +286,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
                 Ruangan / Sesi
               </p>
               <p className="text-sm font-bold text-white">
-                {activeStudent.roomName || "Lab Komputer Utama"}
+                {activeStudent.roomName || "-"}
               </p>
             </div>
           </div>

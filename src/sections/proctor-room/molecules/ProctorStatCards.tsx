@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { FC } from "react";
 import type { ParticipantMonitorDTO } from "@/modules/proctor/domain/dto/ProctorActionDTO";
+import Card from "@/shared-ui/component/Card";
 
 export interface ProctorStatCardsProps {
   participants: ParticipantMonitorDTO[];
@@ -106,12 +107,11 @@ export const ProctorStatCards: FC<ProctorStatCardsProps> = ({
         const isSelected = activeFilter === card.key;
 
         return (
-          <button
+          <Card
             key={card.key}
-            type="button"
             onClick={() => onFilterClick?.(card.key)}
             className={clsx(
-              "flex flex-col text-left p-4 rounded-2xl border transition-all shadow-2xs hover:shadow-sm cursor-pointer",
+              "flex flex-col text-left p-4 cursor-pointer transition-all hover:shadow-sm",
               card.bgClass,
               isSelected
                 ? "ring-2 ring-[#0097a7] ring-offset-1 border-transparent"
@@ -147,7 +147,7 @@ export const ProctorStatCards: FC<ProctorStatCardsProps> = ({
                 </span>
               )}
             </div>
-          </button>
+          </Card>
         );
       })}
     </div>

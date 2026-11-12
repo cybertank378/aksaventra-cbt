@@ -1,11 +1,7 @@
 "use client";
 
 import {
-  AlertCircle,
   BookOpen,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Download,
   FileQuestion,
   Loader2,
@@ -14,8 +10,20 @@ import {
 } from "lucide-react";
 import { type ChangeEvent, type DragEvent, type FC, useState } from "react";
 import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
+import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import ExpandableCard from "@/shared-ui/component/ExpandableCard";
 import Modal from "@/shared-ui/component/Modal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
 
 interface ImportQuestionsModalProps {
   open: boolean;
@@ -100,6 +108,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
   onSuccess,
   examId = 1,
 }) => {
+  const { importQuestions, isLoading } = useQuestionsApi();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [rawCsvText, setRawCsvText] = useState<string>("");
   const [previewQuestions, setPreviewQuestions] = useState<
@@ -107,22 +116,14 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
   >([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isParsing, setIsParsing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [result, setResult] = useState<{
-    success: boolean;
-    message: string;
-    importedCount: number;
-    errors: string[];
-  } | null>(null);
 
   const handleReset = () => {
     setSelectedFile(null);
     setRawCsvText("");
     setPreviewQuestions([]);
     setTotalQuestions(0);
-    setResult(null);
   };
 
   const handleClose = () => {
@@ -132,7 +133,6 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
 
   const processFile = async (file: File) => {
     setIsParsing(true);
-    setResult(null);
     try {
       const parsed = await parseTabularFile(file);
       const csvString = generateExcelCsv(parsed.headers, parsed.rawRows);
@@ -141,13 +141,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
       setPreviewQuestions(parsed.rows.slice(0, 5));
       setTotalQuestions(parsed.totalRows);
     } catch {
-      setResult({
-        success: false,
-        message:
-          "Gagal memproses berkas naskah soal. Pastikan format Excel (.xlsx, .xls) atau CSV valid.",
-        importedCount: 0,
-        errors: ["Berkas tidak dapat dibaca."],
-      });
+      handleReset();
     } finally {
       setIsParsing(false);
     }
@@ -180,57 +174,24 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
     }
   };
 
+  const handleProcessDownload = (url: string, filename: string) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSubmit = async () => {
     if (!rawCsvText) return;
 
-    setIsSubmitting(true);
-    setResult(null);
-
-    try {
-      const numericCbtId = Number(examId) || 1;
-      const res = await fetch("/api/moodle-proxy/mod_cbt_import_export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "import_questions",
-          cbtid: numericCbtId,
-          payload: rawCsvText,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setResult({
-          success: true,
-          message:
-            data.message ||
-            `Berhasil mengimpor ${data.processed_count} butir soal.`,
-          importedCount: data.processed_count || 0,
-          errors: data.errors || [],
-        });
-        if (onSuccess) {
-          onSuccess();
-        }
-      } else {
-        setResult({
-          success: false,
-          message: data.message || data.error || "Gagal mengimpor butir soal.",
-          importedCount: 0,
-          errors: data.errors || [
-            data.error || "Format kolom naskah soal tidak sesuai.",
-          ],
-        });
+    const res = await importQuestions(rawCsvText, examId);
+    if (res.success) {
+      if (onSuccess) {
+        onSuccess();
       }
-    } catch {
-      setResult({
-        success: false,
-        message: "Gagal terhubung ke Moodle Headless Bridge.",
-        importedCount: 0,
-        errors: ["Koneksi jaringan terputus."],
-      });
-    } finally {
-      setIsSubmitting(false);
+      handleClose();
     }
   };
 
@@ -244,120 +205,130 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
     >
       <div className="flex flex-col gap-5 py-2">
         {/* Template Download Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
-              <FileQuestion className="w-5 h-5" />
+        <Card
+          variant="flat"
+          className="p-4 rounded-2xl bg-slate-50 border-slate-200"
+          bodyClassName="p-0"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+                <FileQuestion className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800">
+                  Unduh Template Soal Lengkap 8 Varian
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Memuat contoh nyata untuk semua tipe soal, bobot, dan kunci
+                  jawaban
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-slate-800">
-                Unduh Template Soal Lengkap 8 Varian
-              </p>
-              <p className="text-[11px] text-slate-500">
-                Memuat contoh nyata untuk semua tipe soal, bobot, dan kunci
-                jawaban
-              </p>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <a
-              href="/templates/sample_import_soal.xlsx"
-              download="sample_import_soal.xlsx"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Excel (.xlsx)
-            </a>
-            <a
-              href="/templates/sample_import_soal.xls"
-              download="sample_import_soal.xls"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Excel (.xls)
-            </a>
-            <a
-              href="/templates/sample_import_soal.csv"
-              download="sample_import_soal.csv"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              CSV
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                color="success"
+                size="sm"
+                leftIcon={Download}
+                onClick={() =>
+                  handleProcessDownload(
+                    "/templates/sample_import_soal.xlsx",
+                    "sample_import_soal.xlsx",
+                  )
+                }
+              >
+                Excel (.xlsx)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                color="teal"
+                size="sm"
+                leftIcon={Download}
+                onClick={() =>
+                  handleProcessDownload(
+                    "/templates/sample_import_soal.xls",
+                    "sample_import_soal.xls",
+                  )
+                }
+              >
+                Excel (.xls)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                color="secondary"
+                size="sm"
+                leftIcon={Download}
+                onClick={() =>
+                  handleProcessDownload(
+                    "/templates/sample_import_soal.csv",
+                    "sample_import_soal.csv",
+                  )
+                }
+              >
+                CSV
+              </Button>
+            </div>
           </div>
-        </div>
+        </Card>
 
         {/* Expandable Guide Accordion for 8 Question Types */}
-        <div className="flex flex-col rounded-2xl border border-indigo-200/80 bg-indigo-50/40 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setShowGuide(!showGuide)}
-            className="flex items-center justify-between w-full px-4 py-2.5 bg-indigo-50/80 hover:bg-indigo-100/70 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <BookOpen className="w-4 h-4 text-indigo-600 shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-indigo-950">
-                  Panduan Format Pengisian 8 Tipe Soal Moodle CBT
-                </p>
-                <p className="text-[11px] text-indigo-700/80">
-                  Berkas Excel memuat sheet terpisah untuk setiap tipe soal
-                  (1_PILIHAN_GANDA s/d 8_ESAI_URAIAN)
-                </p>
-              </div>
-            </div>
-            {showGuide ? (
-              <ChevronUp className="w-4 h-4 text-indigo-600 shrink-0" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-indigo-600 shrink-0" />
-            )}
-          </button>
-
-          {showGuide && (
-            <div className="p-4 bg-white border-t border-indigo-100 space-y-3 max-h-80 overflow-y-auto">
-              <p className="text-xs text-slate-600">
-                Gunakan lembar kerja (sheet) <strong>TEMPLATE_SOAL</strong>{" "}
-                untuk mengimpor seluruh soal gabungan sekaligus, atau pelajari
-                contoh format spesifik pada masing-masing lembar kerja berikut:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
-                {QUESTION_TYPE_GUIDES.map((g) => (
-                  <div
-                    key={g.type}
-                    className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-indigo-50/30 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-1 mb-1.5">
-                      <span className="font-bold text-slate-900 text-xs">
-                        {g.name}
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold bg-indigo-100 text-indigo-800">
-                        {g.type}
-                      </span>
-                    </div>
-                    <div className="space-y-1 text-[11px] text-slate-600">
-                      <p>
-                        <strong className="text-slate-700">Kolom Opsi:</strong>{" "}
-                        {g.optionsCol}
-                      </p>
-                      <p>
-                        <strong className="text-slate-700">
-                          Contoh Kunci:
-                        </strong>{" "}
-                        <code className="px-1.5 py-0.5 rounded font-mono font-bold bg-slate-200 text-slate-900">
-                          {g.exampleKey}
-                        </code>
-                      </p>
-                      <p className="text-[10px] text-slate-500 italic pt-0.5 border-t border-slate-200/60 mt-1">
-                        {g.note}
-                      </p>
-                    </div>
+        <ExpandableCard
+          title="Panduan Format Pengisian 8 Tipe Soal Moodle CBT"
+          subtitle="Berkas Excel memuat sheet terpisah untuk setiap tipe soal (1_PILIHAN_GANDA s/d 8_ESAI_URAIAN)"
+          icon={BookOpen}
+          isOpen={showGuide}
+          onToggle={() => setShowGuide(!showGuide)}
+          className="border-indigo-200/80 bg-indigo-50/30"
+        >
+          <div className="space-y-3">
+            <p className="text-xs text-slate-600">
+              Gunakan lembar kerja (sheet) <strong>TEMPLATE_SOAL</strong> untuk
+              mengimpor seluruh soal gabungan sekaligus, atau pelajari contoh
+              format spesifik pada masing-masing lembar kerja berikut:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+              {QUESTION_TYPE_GUIDES.map((g) => (
+                <Card
+                  key={g.type}
+                  variant="flat"
+                  className="p-3 rounded-xl border border-slate-200 bg-slate-50/60"
+                  bodyClassName="p-0"
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1.5">
+                    <span className="font-bold text-slate-900 text-xs">
+                      {g.name}
+                    </span>
+                    <Badge color="primary" variant="soft" size="sm">
+                      {g.type}
+                    </Badge>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-1 text-[11px] text-slate-600">
+                    <p>
+                      <strong className="text-slate-700">Kolom Opsi:</strong>{" "}
+                      {g.optionsCol}
+                    </p>
+                    <p>
+                      <strong className="text-slate-700">
+                        Contoh Kunci:
+                      </strong>{" "}
+                      <code className="px-1.5 py-0.5 rounded font-mono font-bold bg-slate-200 text-slate-900">
+                        {g.exampleKey}
+                      </code>
+                    </p>
+                    <p className="text-[10px] text-slate-500 italic pt-0.5 border-t border-slate-200/60 mt-1">
+                      {g.note}
+                    </p>
+                  </div>
+                </Card>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        </ExpandableCard>
 
         {/* Upload Drop Zone */}
         {!selectedFile ? (
@@ -398,27 +369,36 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200">
-              <div className="flex items-center gap-2.5">
-                <FileQuestion className="w-5 h-5 text-indigo-600" />
-                <div>
-                  <p className="text-xs font-bold text-slate-900">
-                    {selectedFile.name}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {totalQuestions} butir soal teridentifikasi
-                  </p>
+            <Card
+              variant="flat"
+              className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200"
+              bodyClassName="p-0"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <FileQuestion className="w-5 h-5 text-indigo-600" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {totalQuestions} butir soal teridentifikasi
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleReset}
-                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  color="danger"
+                  size="sm"
+                  iconOnly
+                  leftIcon={X}
+                  onClick={handleReset}
+                  aria-label="Hapus berkas terpilih"
+                />
+              </div>
+            </Card>
 
             {/* Preview Questions */}
             {previewQuestions.length > 0 && (
@@ -426,88 +406,63 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                 <p className="text-[11px] font-bold text-slate-600">
                   Pratinjau Soal (5 Butir Pertama):
                 </p>
-                <div className="overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full text-[11px] text-left">
-                    <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
-                      <tr>
-                        <th className="px-3 py-2">No</th>
-                        <th className="px-3 py-2">Tipe Soal</th>
-                        <th className="px-3 py-2">Teks Narasi Soal</th>
-                        <th className="px-3 py-2">Bobot</th>
-                        <th className="px-3 py-2">Kunci / Jawaban</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {previewQuestions.map((q, i) => {
-                        const rawType = (
-                          q.jenis_soal ||
-                          q.type ||
-                          ""
-                        ).toLowerCase();
-                        const typeLabel =
-                          QUESTION_TYPE_NAMES[rawType] || rawType || "PG";
+                <Table wrapperClassName="rounded-xl border border-slate-200 overflow-hidden">
+                  <TableHead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                    <TableRow>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        No
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Tipe Soal
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Teks Narasi Soal
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Bobot
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Kunci / Jawaban
+                      </TableHeaderCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody className="divide-y divide-slate-100 text-slate-700">
+                    {previewQuestions.map((q, i) => {
+                      const rawType = (
+                        q.jenis_soal ||
+                        q.type ||
+                        ""
+                      ).toLowerCase();
+                      const typeLabel =
+                        QUESTION_TYPE_NAMES[rawType] || rawType || "PG";
 
-                        return (
-                          <tr key={`q-${i}`}>
-                            <td className="px-3 py-2 font-mono font-bold text-slate-800">
-                              {q.nomor || i + 1}
-                            </td>
-                            <td className="px-3 py-2 whitespace-nowrap">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">
-                                {typeLabel}
-                              </span>
-                            </td>
-                            <td
-                              className="px-3 py-2 max-w-xs truncate"
-                              title={q.teks_soal || q.question || ""}
-                            >
-                              {q.teks_soal || q.question || "-"}
-                            </td>
-                            <td className="px-3 py-2 font-mono">
-                              {q.bobot || q.weight || "1.00"}
-                            </td>
-                            <td className="px-3 py-2 font-mono text-emerald-700 font-semibold">
-                              {q.kunci_jawaban || q.key || "-"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Result & Feedback Banner */}
-        {result && (
-          <div
-            className={`p-4 rounded-2xl border flex flex-col gap-2 ${
-              result.success
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-rose-50 border-rose-200 text-rose-800"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {result.success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-rose-600" />
-              )}
-              <p className="text-xs font-bold">{result.message}</p>
-            </div>
-
-            {result.errors.length > 0 && (
-              <div className="mt-1 pl-6">
-                <p className="text-[11px] font-semibold text-rose-700 mb-1">
-                  Catatan Kesalahan Validasi:
-                </p>
-                <ul className="list-disc pl-4 text-[11px] text-rose-600 space-y-0.5 max-h-32 overflow-y-auto">
-                  {result.errors.map((err) => (
-                    <li key={err}>{err}</li>
-                  ))}
-                </ul>
+                      return (
+                        <TableRow key={`q-${i}`}>
+                          <TableCell className="px-3 py-2 text-xs font-mono font-bold text-slate-800">
+                            {q.nomor || i + 1}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-xs whitespace-nowrap">
+                            <Badge color="primary" variant="soft" size="sm">
+                              {typeLabel}
+                            </Badge>
+                          </TableCell>
+                          <TableCell
+                            className="px-3 py-2 text-xs max-w-xs truncate"
+                            title={q.teks_soal || q.question || ""}
+                          >
+                            {q.teks_soal || q.question || "-"}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-xs font-mono">
+                            {q.bobot || q.weight || "1.00"}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-xs font-mono text-emerald-700 font-semibold">
+                            {q.kunci_jawaban || q.key || "-"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>
@@ -521,22 +476,22 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
             color="secondary"
             size="sm"
             onClick={handleClose}
-            disabled={isSubmitting}
+            disabled={isLoading}
           >
-            {result?.success ? "Selesai" : "Batal"}
+            Batal
           </Button>
 
-          {selectedFile && !result?.success && (
+          {selectedFile && (
             <Button
               type="button"
               variant="filled"
               color="primary"
               size="sm"
               onClick={handleSubmit}
-              disabled={isSubmitting || isParsing}
-              leftIcon={isSubmitting ? Loader2 : UploadCloud}
+              disabled={isLoading || isParsing}
+              leftIcon={isLoading ? Loader2 : UploadCloud}
             >
-              {isSubmitting
+              {isLoading
                 ? "Memproses Naskah..."
                 : `Simpan ${totalQuestions} Butir Soal`}
             </Button>

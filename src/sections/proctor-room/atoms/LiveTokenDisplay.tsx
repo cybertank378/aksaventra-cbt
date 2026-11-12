@@ -3,6 +3,9 @@
 import clsx from "clsx";
 import { Check, Copy } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
+import Badge from "@/shared-ui/component/Badge";
+import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
 
 export interface LiveTokenDisplayProps {
   token: string;
@@ -58,9 +61,9 @@ export const LiveTokenDisplay: FC<LiveTokenDisplayProps> = ({
   };
 
   return (
-    <div
+    <Card
       className={clsx(
-        "flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-white to-slate-50 border border-slate-200 p-4 shadow-xs",
+        "flex flex-col items-center justify-center p-4",
         className,
       )}
     >
@@ -69,18 +72,15 @@ export const LiveTokenDisplay: FC<LiveTokenDisplayProps> = ({
           Token Ujian Aktif
         </span>
         {expiresAt && secondsRemaining !== null && (
-          <span
-            className={clsx(
-              "text-[11px] font-semibold px-2 py-0.5 rounded-full",
-              secondsRemaining < 120
-                ? "bg-rose-100 text-rose-700 animate-pulse"
-                : "bg-teal-50 text-[#0097a7]",
-            )}
+          <Badge
+            color={secondsRemaining < 120 ? "error" : "teal"}
+            size="sm"
+            className={secondsRemaining < 120 ? "animate-pulse" : undefined}
           >
             {secondsRemaining > 0
               ? `${formatCountdown(secondsRemaining)}`
               : "Kedaluwarsa"}
-          </span>
+          </Badge>
         )}
       </div>
 
@@ -97,22 +97,20 @@ export const LiveTokenDisplay: FC<LiveTokenDisplayProps> = ({
         </span>
 
         {token && token !== "------" && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            color="secondary"
+            size="sm"
             onClick={handleCopy}
-            className="p-2 rounded-xl text-slate-400 hover:text-[#0097a7] hover:bg-teal-50 transition-colors"
             title="Salin Token"
             aria-label="Salin Token Ujian"
-          >
-            {copied ? (
-              <Check className="w-5 h-5 text-emerald-600" />
-            ) : (
-              <Copy className="w-5 h-5" />
-            )}
-          </button>
+            leftIcon={copied ? Check : Copy}
+            className={copied ? "text-emerald-600" : "text-slate-400 hover:text-[#0097a7]"}
+          />
         )}
       </div>
-    </div>
+    </Card>
   );
 };
 

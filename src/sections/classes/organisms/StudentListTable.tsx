@@ -4,7 +4,18 @@ import { Download, Plus, Search, UploadCloud, UserCheck } from "lucide-react";
 import { type FC, useEffect, useMemo, useState } from "react";
 import { downloadCsvBlob, generateExcelCsv } from "@/libs/excelCsvUtils";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import SelectField from "@/shared-ui/component/SelectField";
+import TextField from "@/shared-ui/component/TextField";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
 import ClassBadge from "../atoms/ClassBadge";
 import CreateStudentModal from "../molecules/CreateStudentModal";
 import ImportStudentsModal from "../molecules/ImportStudentsModal";
@@ -18,6 +29,7 @@ export const StudentListTable: FC = () => {
     fetchClasses,
     fetchStudents,
     createStudent,
+    exportStudents,
   } = useClassesApi();
 
   const [search, setSearch] = useState("");
@@ -31,16 +43,21 @@ export const StudentListTable: FC = () => {
     fetchStudents();
   }, [fetchClasses, fetchStudents]);
 
+  const handleProcessDownload = (url: string, filename: string) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleExportStudents = async () => {
     setIsExporting(true);
     try {
-      // 1. Try Moodle Bridge endpoint first
-      const res = await fetch(
-        "/api/moodle-proxy/mod_cbt_import_export?action=export_students",
-      );
-      const data = await res.json();
-      if (data.success && data.csv_data) {
-        downloadCsvBlob(data.csv_data, "daftar_siswa_moodle.csv");
+      const csvData = await exportStudents();
+      if (csvData) {
+        downloadCsvBlob(csvData, "daftar_siswa_moodle.csv");
         setIsExporting(false);
         return;
       }
@@ -90,24 +107,36 @@ export const StudentListTable: FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <a
-            href="/templates/sample_import_siswa.xlsx"
-            download="sample_import_siswa.xlsx"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 bg-white hover:bg-emerald-50 border border-emerald-200 transition-colors shadow-2xs"
-            title="Unduh Template Format Excel (.xlsx)"
+          <Button
+            type="button"
+            variant="outline"
+            color="success"
+            size="sm"
+            leftIcon={Download}
+            onClick={() =>
+              handleProcessDownload(
+                "/templates/sample_import_siswa.xlsx",
+                "sample_import_siswa.xlsx",
+              )
+            }
           >
-            <Download className="w-3.5 h-3.5 text-emerald-600" />
-            Template Excel (.xlsx)
-          </a>
-          <a
-            href="/templates/sample_import_siswa.xls"
-            download="sample_import_siswa.xls"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-teal-700 bg-white hover:bg-teal-50 border border-teal-200 transition-colors shadow-2xs"
-            title="Unduh Template Format Excel (.xls)"
+            Template (.xlsx)
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            color="teal"
+            size="sm"
+            leftIcon={Download}
+            onClick={() =>
+              handleProcessDownload(
+                "/templates/sample_import_siswa.xls",
+                "sample_import_siswa.xls",
+              )
+            }
           >
-            <Download className="w-3.5 h-3.5 text-teal-600" />
             .xls
-          </a>
+          </Button>
 
           <Button
             type="button"
@@ -153,22 +182,21 @@ export const StudentListTable: FC = () => {
 
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
+        <div className="flex-1 max-w-md">
+          <TextField
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari siswa berdasarkan nama atau NIS..."
-            className="w-full text-xs rounded-xl border border-slate-200 pl-9 pr-3.5 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            leftIcon={Search}
+            size="sm"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <select
+          <SelectField
             value={selectedClassFilter}
             onChange={(e) => setSelectedClassFilter(e.target.value)}
-            className="text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            size="sm"
           >
             <option value="ALL">Semua Rombel / Kelas</option>
             {classes.map((c) => (
@@ -176,83 +204,79 @@ export const StudentListTable: FC = () => {
                 {c.name}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
       </div>
 
       {/* Students Table */}
-      <div className="overflow-hidden rounded-3xl bg-white border border-slate-200/90 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/90 text-slate-500 font-semibold uppercase text-[11px] border-b border-slate-200/80">
-              <tr>
-                <th className="px-5 py-3.5">Nama Siswa</th>
-                <th className="px-5 py-3.5">NIS / Username</th>
-                <th className="px-5 py-3.5">Kelas / Rombel</th>
-                <th className="px-5 py-3.5">Ruang Default</th>
-                <th className="px-5 py-3.5 text-right">Status Akun</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading && students.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center">
-                    <div className="h-6 w-6 mx-auto animate-spin rounded-full border-2 border-slate-300 border-t-[#0097a7]" />
-                  </td>
-                </tr>
-              ) : filteredStudents.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-5 py-8 text-center text-slate-400"
-                  >
-                    Tidak ada siswa yang ditemukan.
-                  </td>
-                </tr>
-              ) : (
-                filteredStudents.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="hover:bg-slate-50/80 transition-colors"
-                  >
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-full bg-[#0d2b5c] text-white flex items-center justify-center font-bold text-xs shrink-0">
-                          {s.fullName.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-bold text-slate-900">
-                          {s.fullName}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-slate-700 font-medium">
-                      {s.username}
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap">
-                      {s.className ? (
-                        <ClassBadge name={s.className} size="sm" />
-                      ) : (
-                        <span className="text-slate-400 italic">
-                          Belum ditentukan
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap text-slate-600 font-semibold">
-                      {s.roomCode || "LAB-01"}
-                    </td>
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                        <UserCheck className="w-3.5 h-3.5" />
-                        Aktif
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Table wrapperClassName="rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+        <TableHead className="bg-slate-50/90 text-slate-500 font-semibold uppercase text-[11px] border-b border-slate-200/80">
+          <TableRow>
+            <TableHeaderCell className="px-5 py-3.5">Nama Siswa</TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">NIS / Username</TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">Kelas / Rombel</TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">Ruang Default</TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5 text-right">Status Akun</TableHeaderCell>
+          </TableRow>
+        </TableHead>
+        <TableBody className="divide-y divide-slate-100">
+          {isLoading && students.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="px-5 py-12 text-center">
+                <div className="h-6 w-6 mx-auto animate-spin rounded-full border-2 border-slate-300 border-t-[#0097a7]" />
+              </TableCell>
+            </TableRow>
+          ) : filteredStudents.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={5}
+                className="px-5 py-8 text-center text-slate-400"
+              >
+                Tidak ada siswa yang ditemukan.
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredStudents.map((s) => (
+              <TableRow
+                key={s.id}
+                className="hover:bg-slate-50/80 transition-colors"
+              >
+                <TableCell className="px-5 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-7 w-7 rounded-full bg-[#0d2b5c] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      {s.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-bold text-slate-900">
+                      {s.fullName}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-5 py-3.5 font-mono text-slate-700 font-medium">
+                  {s.username}
+                </TableCell>
+                <TableCell className="px-5 py-3.5 whitespace-nowrap">
+                  {s.className ? (
+                    <ClassBadge name={s.className} size="sm" />
+                  ) : (
+                    <span className="text-slate-400 italic">
+                      Belum ditentukan
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="px-5 py-3.5 whitespace-nowrap text-slate-600 font-semibold">
+                  {s.roomCode || "-"}
+                </TableCell>
+                <TableCell className="px-5 py-3.5 text-right whitespace-nowrap">
+                  <Badge color="success" variant="soft" size="sm">
+                    <UserCheck className="w-3.5 h-3.5 mr-1 inline" />
+                    Aktif
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       {/* Create Student Modal */}
       <CreateStudentModal

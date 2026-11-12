@@ -1,12 +1,16 @@
 "use client";
 
-import { ArrowRight, Clock, KeyRound, Radio, Users } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight, Clock, KeyRound, Radio, Search, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import TextField from "@/shared-ui/component/TextField";
 
 export const ActiveExamList: FC = () => {
+  const router = useRouter();
   const { examsList, isLoading, error, fetchExamsList } =
     useExamManagementApi();
   const [search, setSearch] = useState("");
@@ -20,6 +24,10 @@ export const ActiveExamList: FC = () => {
       e.title.toLowerCase().includes(search.toLowerCase()) ||
       e.courseName.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const handleOpenProctor = (examId: number | string) => {
+    router.replace(`/dashboard/proctor/${examId}`);
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -35,12 +43,12 @@ export const ActiveExamList: FC = () => {
         </div>
 
         <div className="w-full sm:w-72">
-          <input
-            type="text"
+          <TextField
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari ujian atau mata pelajaran..."
-            className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            leftIcon={Search}
+            size="sm"
           />
         </div>
       </div>
@@ -74,20 +82,20 @@ export const ActiveExamList: FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredExams.map((item) => (
-            <div
+            <Card
               key={item.examId}
-              className="flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs hover:shadow-md transition-shadow"
+              className="flex flex-col justify-between p-5 hover:shadow-md transition-shadow"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-[#0097a7] ring-1 ring-inset ring-[#0097a7]/30">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#0097a7] animate-pulse" />
+                  <Badge color="teal" size="sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#0097a7] animate-pulse mr-1" />
                     Live Monitoring
-                  </span>
-                  <span className="flex items-center gap-1 text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
-                    <KeyRound className="w-3 h-3 text-slate-400" />
-                    {item.activeToken || "AUTO"}
-                  </span>
+                  </Badge>
+                  <Badge color="neutral" size="sm" className="font-mono font-bold">
+                    <KeyRound className="w-3 h-3 mr-1 text-slate-400" />
+                    {item.activeToken || "-"}
+                  </Badge>
                 </div>
 
                 <div>
@@ -112,23 +120,19 @@ export const ActiveExamList: FC = () => {
               </div>
 
               <div className="pt-4 mt-2">
-                <Link
-                  href={`/dashboard/proctor/${item.examId}`}
-                  className="block"
+                <Button
+                  type="button"
+                  variant="filled"
+                  color="primary"
+                  size="sm"
+                  fullWidth
+                  rightIcon={ArrowRight}
+                  onClick={() => handleOpenProctor(item.examId)}
                 >
-                  <Button
-                    type="button"
-                    variant="filled"
-                    color="primary"
-                    size="sm"
-                    fullWidth
-                    rightIcon={ArrowRight}
-                  >
-                    Buka Ruang Pengawas
-                  </Button>
-                </Link>
+                  Buka Ruang Pengawas
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

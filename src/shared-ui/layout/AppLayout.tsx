@@ -1,7 +1,9 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import type { UserRole } from "@/libs/enums";
+import type { AuthJwtPayload } from "@/proxy";
 import AppSidebar, {
   type SidebarUserSummary,
 } from "@/shared-ui/layout/AppSidebar";
@@ -10,7 +12,7 @@ import AppTopbar, { type TopbarMenuItem } from "@/shared-ui/layout/AppTopbar";
 interface AppLayoutProps {
   children: ReactNode;
   role?: UserRole;
-  user?: SidebarUserSummary | null;
+  user?: SidebarUserSummary | AuthJwtPayload | null;
   onLogout?: () => void | Promise<void>;
   isLoggingOut?: boolean;
   topbarMenuItems?: TopbarMenuItem[];
@@ -29,6 +31,33 @@ export default function AppLayout({
   subtitle,
 }: AppLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Student exam workspace has its own standalone zero-latency full-screen shell
+  if (pathname?.startsWith("/student/exam/")) {
+    return <>{children}</>;
+  }
+
+  // Normalise user display info without `any`
+  const normalizedUser: SidebarUserSummary | null = user
+    ? "userId" in user
+      ? {
+          id: String(user.userId),
+          name: user.username,
+          username: user.username,
+          email: null,
+          role: user.role ?? role,
+          image: null,
+        }
+      : {
+          id: user.id ? String(user.id) : undefined,
+          name: user.name ?? user.username ?? "Pengguna",
+          username: user.username ?? "pengguna",
+          email: user.email ?? null,
+          role: user.role ?? role,
+          image: user.image ?? null,
+        }
+    : null;
 
   const handleOpenMobileSidebar = () => {
     setMobileOpen(true);
@@ -43,7 +72,7 @@ export default function AppLayout({
       {/* SIDEBAR */}
       <AppSidebar
         role={role}
-        user={user}
+        user={normalizedUser}
         mobileOpen={mobileOpen}
         onClose={handleCloseMobileSidebar}
       />
@@ -53,9 +82,9 @@ export default function AppLayout({
         {/* TOPBAR */}
         <AppTopbar
           role={role}
-          username={user?.name ?? undefined}
-          userEmail={user?.email ?? undefined}
-          userImage={user?.image}
+          username={normalizedUser?.name ?? undefined}
+          userEmail={normalizedUser?.email ?? undefined}
+          userImage={normalizedUser?.image}
           onMenuClick={handleOpenMobileSidebar}
           onLogout={onLogout}
           isLoggingOut={isLoggingOut}

@@ -3,6 +3,7 @@
 import { type FC, useState } from "react";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
+import TextField from "@/shared-ui/component/TextField";
 
 export interface CreateClassModalProps {
   open: boolean;
@@ -63,57 +64,36 @@ export const CreateClassModal: FC<CreateClassModalProps> = ({
       size="md"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="class-name"
-            className="text-xs font-semibold text-slate-700"
-          >
-            Nama Kelas (Wajib)
-          </label>
-          <input
-            id="class-name"
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Contoh: XII MIPA 1 atau X RPL 2"
-            className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-          />
-        </div>
+        <TextField
+          id="class-name"
+          label="Nama Kelas (Wajib)"
+          type="text"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Contoh: XII MIPA 1 atau X RPL 2"
+          size="sm"
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="class-code"
-            className="text-xs font-semibold text-slate-700"
-          >
-            Kode Rombel / Cohort (Opsional)
-          </label>
-          <input
-            id="class-code"
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Contoh: 12-MIPA-1"
-            className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-          />
-        </div>
+        <TextField
+          id="class-code"
+          label="Kode Rombel / Cohort (Opsional)"
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Contoh: 12-MIPA-1"
+          size="sm"
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="class-desc"
-            className="text-xs font-semibold text-slate-700"
-          >
-            Keterangan / Jurusan (Opsional)
-          </label>
-          <input
-            id="class-desc"
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Contoh: Jurusan MIPA Pagi"
-            className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-          />
-        </div>
+        <TextField
+          id="class-desc"
+          label="Keterangan / Jurusan (Opsional)"
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Contoh: Jurusan MIPA Pagi"
+          size="sm"
+        />
 
         {error && (
           <p className="text-xs font-semibold text-rose-600">{error}</p>

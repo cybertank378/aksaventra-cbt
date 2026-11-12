@@ -1,12 +1,16 @@
 "use client";
 
-import { ArrowRight, Award, BarChart3, Clock, Users } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight, Award, BarChart3, Clock, Search, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import TextField from "@/shared-ui/component/TextField";
 
 export const CompletedExamsList: FC = () => {
+  const router = useRouter();
   const { examsList, isLoading, error, fetchExamsList } =
     useExamManagementApi();
   const [search, setSearch] = useState("");
@@ -20,6 +24,14 @@ export const CompletedExamsList: FC = () => {
       e.title.toLowerCase().includes(search.toLowerCase()) ||
       e.courseName.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const handleViewRecap = (examId: number | string) => {
+    router.replace(`/dashboard/exams/${examId}/recapitulation`);
+  };
+
+  const handleViewResults = (examId: number | string) => {
+    router.replace(`/dashboard/results/${examId}`);
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -35,12 +47,12 @@ export const CompletedExamsList: FC = () => {
         </div>
 
         <div className="w-full sm:w-72">
-          <input
-            type="text"
+          <TextField
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari ujian atau mata pelajaran..."
-            className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            leftIcon={Search}
+            size="sm"
           />
         </div>
       </div>
@@ -74,20 +86,22 @@ export const CompletedExamsList: FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredExams.map((item) => (
-            <div
+            <Card
               key={item.examId}
-              className="flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs hover:shadow-md transition-shadow"
+              className="flex flex-col justify-between p-5 hover:shadow-md transition-shadow"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <Badge color="success" size="sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1" />
                     Tersedia Rekap
-                  </span>
-                  <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
-                    <Award className="w-3.5 h-3.5 text-amber-500" />
-                    KKM 75.0
-                  </span>
+                  </Badge>
+                  <Badge color="neutral" size="sm" className="font-bold">
+                    <Award className="w-3.5 h-3.5 mr-1 text-amber-500" />
+                    {(item as unknown as { passingGrade?: number }).passingGrade
+                      ? `KKM ${(item as unknown as { passingGrade?: number }).passingGrade}`
+                      : "KKM Asesmen"}
+                  </Badge>
                 </div>
 
                 <div>
@@ -112,38 +126,30 @@ export const CompletedExamsList: FC = () => {
               </div>
 
               <div className="pt-4 mt-2 grid grid-cols-2 gap-2">
-                <Link
-                  href={`/dashboard/exams/${item.examId}/recapitulation`}
-                  className="block"
+                <Button
+                  type="button"
+                  variant="outline"
+                  color="secondary"
+                  size="sm"
+                  fullWidth
+                  onClick={() => handleViewRecap(item.examId)}
                 >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    color="secondary"
-                    size="sm"
-                    fullWidth
-                  >
-                    Rekap KKM
-                  </Button>
-                </Link>
+                  Rekap KKM
+                </Button>
 
-                <Link
-                  href={`/dashboard/results/${item.examId}`}
-                  className="block"
+                <Button
+                  type="button"
+                  variant="filled"
+                  color="primary"
+                  size="sm"
+                  fullWidth
+                  rightIcon={ArrowRight}
+                  onClick={() => handleViewResults(item.examId)}
                 >
-                  <Button
-                    type="button"
-                    variant="filled"
-                    color="primary"
-                    size="sm"
-                    fullWidth
-                    rightIcon={ArrowRight}
-                  >
-                    Rincian
-                  </Button>
-                </Link>
+                  Rincian
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
