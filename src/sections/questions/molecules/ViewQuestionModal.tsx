@@ -12,6 +12,7 @@ import type { FC } from "react";
 import type { QuestionDTO } from "@/modules/questions/domain/dto/QuestionDTO";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import MathRenderer from "@/shared-ui/component/MathRenderer";
 import Modal from "@/shared-ui/component/Modal";
 import QuestionTypeBadge from "../atoms/QuestionTypeBadge";
 
@@ -80,8 +81,8 @@ export const ViewQuestionModal: FC<ViewQuestionModalProps> = ({
             <BookOpen className="w-4 h-4 text-[#0097a7]" />
             <span>Stem Pertanyaan / Teks Soal:</span>
           </div>
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-800 leading-relaxed shadow-2xs whitespace-pre-wrap">
-            {question.stem}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-800 leading-relaxed shadow-2xs">
+            <MathRenderer content={question.stem} />
           </div>
         </div>
 
@@ -107,7 +108,7 @@ export const ViewQuestionModal: FC<ViewQuestionModalProps> = ({
                       : "bg-white border-slate-200"
                   }`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 flex-1">
                     <span
                       className={`inline-flex items-center justify-center w-7 h-7 rounded-xl text-xs font-black shrink-0 ${
                         opt.isCorrect
@@ -117,9 +118,10 @@ export const ViewQuestionModal: FC<ViewQuestionModalProps> = ({
                     >
                       {opt.label}
                     </span>
-                    <span className="text-xs font-medium text-slate-800 pt-1 leading-relaxed">
-                      {opt.text}
-                    </span>
+                    <MathRenderer
+                      content={opt.text}
+                      className="text-xs font-medium text-slate-800 pt-1 leading-relaxed flex-1"
+                    />
                   </div>
 
                   {opt.isCorrect && (
@@ -141,8 +143,8 @@ export const ViewQuestionModal: FC<ViewQuestionModalProps> = ({
               <HelpCircle className="w-4 h-4 text-amber-500" />
               <span>Pembahasan / Keterangan Kunci:</span>
             </div>
-            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 text-xs text-amber-950 leading-relaxed whitespace-pre-wrap">
-              {question.explanation}
+            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 text-xs text-amber-950 leading-relaxed">
+              <MathRenderer content={question.explanation} />
             </div>
           </div>
         )}

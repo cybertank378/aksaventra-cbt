@@ -21,6 +21,7 @@ import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsAp
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
+import MathRenderer from "@/shared-ui/component/MathRenderer";
 import QuestionTypeBadge from "../atoms/QuestionTypeBadge";
 import EditQuestionModal from "../molecules/EditQuestionModal";
 import ImportQuestionsModal from "../molecules/ImportQuestionsModal";
@@ -220,9 +221,10 @@ export const QuestionsListGrid: FC = () => {
                   </Badge>
                 </div>
 
-                <div className="text-xs font-medium text-slate-800 leading-relaxed line-clamp-3">
-                  {q.stem}
-                </div>
+                <MathRenderer
+                  content={q.stem}
+                  className="text-xs font-medium text-slate-800 leading-relaxed line-clamp-3"
+                />
 
                 {q.options && q.options.length > 0 && (
                   <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
