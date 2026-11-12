@@ -1,5 +1,6 @@
 import type {
   CBTQuestionType,
+  CreateQuestionInputDTO,
   QuestionDTO,
   QuestionOptionDTO,
 } from "../dto/QuestionDTO";
@@ -19,6 +20,23 @@ export class QuestionEntity {
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
   ) {}
+
+  public update(data: Partial<CreateQuestionInputDTO>): QuestionEntity {
+    return new QuestionEntity(
+      this.id,
+      this.code,
+      data.subject ?? this.subject,
+      data.gradeLevel ?? this.gradeLevel,
+      data.type ?? this.type,
+      data.stem ?? this.stem,
+      data.points ?? this.points,
+      data.tolerance !== undefined ? data.tolerance : this.tolerance,
+      data.options ?? this.options,
+      data.explanation !== undefined ? data.explanation : this.explanation,
+      this.createdAt,
+      new Date(),
+    );
+  }
 
   public toDTO(): QuestionDTO {
     return {

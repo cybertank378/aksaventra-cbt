@@ -4,31 +4,47 @@ import {
   Award,
   BookOpen,
   Download,
+  Edit3,
+  Eye,
   Plus,
   Trash2,
   UploadCloud,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
-import type { CBTQuestionType } from "@/modules/questions/domain/dto/QuestionDTO";
+import type {
+  CBTQuestionType,
+  CreateQuestionInputDTO,
+  QuestionDTO,
+} from "@/modules/questions/domain/dto/QuestionDTO";
 import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
 import QuestionTypeBadge from "../atoms/QuestionTypeBadge";
+import EditQuestionModal from "../molecules/EditQuestionModal";
 import ImportQuestionsModal from "../molecules/ImportQuestionsModal";
 import QuestionFilterBar from "../molecules/QuestionFilterBar";
+import ViewQuestionModal from "../molecules/ViewQuestionModal";
 
 export const QuestionsListGrid: FC = () => {
   const router = useRouter();
-  const { questions, isLoading, error, fetchQuestions, deleteQuestion } =
-    useQuestionsApi();
+  const {
+    questions,
+    isLoading,
+    error,
+    fetchQuestions,
+    updateQuestion,
+    deleteQuestion,
+  } = useQuestionsApi();
 
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("ALL");
   const [type, setType] = useState("ALL");
   const [grade, setGrade] = useState("ALL");
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [viewingQuestion, setViewingQuestion] = useState<QuestionDTO | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<QuestionDTO | null>(null);
 
   useEffect(() => {
     fetchQuestions({
@@ -43,6 +59,22 @@ export const QuestionsListGrid: FC = () => {
     if (confirm(`Apakah Anda yakin ingin menghapus butir soal ${code}?`)) {
       await deleteQuestion(id);
     }
+  };
+
+  const handleView = (q: QuestionDTO) => {
+    setViewingQuestion(q);
+  };
+
+  const handleEdit = (q: QuestionDTO) => {
+    setEditingQuestion(q);
+  };
+
+  const handleSaveEdit = async (
+    id: string,
+    data: Partial<CreateQuestionInputDTO>,
+  ): Promise<boolean> => {
+    const updated = await updateQuestion(id, data);
+    return Boolean(updated);
   };
 
   const handleProcessDownload = (url: string, filename: string) => {
@@ -206,6 +238,28 @@ export const QuestionsListGrid: FC = () => {
               <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-slate-100">
                 <Button
                   type="button"
+                  variant="outline"
+                  color="secondary"
+                  size="sm"
+                  leftIcon={Eye}
+                  onClick={() => handleView(q)}
+                  title="Lihat Detail Butir Soal"
+                >
+                  Lihat
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  color="primary"
+                  size="sm"
+                  leftIcon={Edit3}
+                  onClick={() => handleEdit(q)}
+                  title="Edit Butir Soal"
+                >
+                  Edit
+                </Button>
+                <Button
+                  type="button"
                   variant="ghost"
                   color="error"
                   size="sm"
@@ -218,6 +272,26 @@ export const QuestionsListGrid: FC = () => {
           ))}
         </div>
       )}
+
+      {/* View Question Detail Modal */}
+      <ViewQuestionModal
+        open={Boolean(viewingQuestion)}
+        question={viewingQuestion}
+        onClose={() => setViewingQuestion(null)}
+        onEdit={(q) => {
+          setViewingQuestion(null);
+          setEditingQuestion(q);
+        }}
+      />
+
+      {/* Edit Question Modal */}
+      <EditQuestionModal
+        open={Boolean(editingQuestion)}
+        question={editingQuestion}
+        onClose={() => setEditingQuestion(null)}
+        onSave={handleSaveEdit}
+      />
+
       {/* Import Questions Modal */}
       <ImportQuestionsModal
         open={importModalOpen}

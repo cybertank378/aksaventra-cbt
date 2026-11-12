@@ -44,6 +44,15 @@ export class QuestionsService extends BaseService {
     );
   }
 
+  public async updateQuestion(
+    id: string,
+    input: Partial<CreateQuestionInputDTO>,
+  ): Promise<Result<QuestionDTO | null, AppError>> {
+    return this.execute(async () =>
+      Result.ok(await this.manageQuestionsUseCase.updateQuestion(id, input)),
+    );
+  }
+
   public async deleteQuestion(id: string): Promise<Result<boolean, AppError>> {
     return this.execute(async () =>
       Result.ok(await this.manageQuestionsUseCase.deleteQuestion(id)),

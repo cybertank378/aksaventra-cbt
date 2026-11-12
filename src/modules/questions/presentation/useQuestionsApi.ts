@@ -91,12 +91,54 @@ export function useQuestionsApi() {
         const json = await res.json();
         if (json.success && json.data) {
           setQuestions((prev) => [json.data, ...prev]);
+          showSuccessToast("Berhasil membuat butir soal");
           return json.data;
         }
-        setError(json.error?.message || "Gagal membuat butir soal");
+        const errMsg = json.error?.message || "Gagal membuat butir soal";
+        showErrorToast(errMsg);
+        setError(errMsg);
         return null;
       } catch {
-        setError("Gangguan jaringan saat membuat butir soal");
+        const err = "Gangguan jaringan saat membuat butir soal";
+        showErrorToast(err);
+        setError(err);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const updateQuestion = useCallback(
+    async (
+      id: string,
+      input: Partial<CreateQuestionInputDTO>,
+    ): Promise<QuestionDTO | null> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/questions/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setQuestions((prev) =>
+            prev.map((q) => (q.id === id ? json.data : q)),
+          );
+          showSuccessToast("Berhasil memperbarui butir soal");
+          return json.data;
+        }
+        const errMsg = json.error?.message || "Gagal memperbarui butir soal";
+        showErrorToast(errMsg);
+        setError(errMsg);
+        return null;
+      } catch {
+        const err = "Gangguan jaringan saat memperbarui butir soal";
+        showErrorToast(err);
+        setError(err);
         return null;
       } finally {
         setIsLoading(false);
@@ -194,6 +236,7 @@ export function useQuestionsApi() {
     fetchQuestions,
     fetchQuestionById,
     createQuestion,
+    updateQuestion,
     deleteQuestion,
     importQuestions,
   };

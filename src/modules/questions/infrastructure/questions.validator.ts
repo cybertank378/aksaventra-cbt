@@ -30,6 +30,8 @@ export const createQuestionSchema = z.object({
   explanation: z.string().optional(),
 });
 
+export const updateQuestionSchema = createQuestionSchema.partial();
+
 export const questionsFilterSchema = z.object({
   subject: z.string().optional(),
   gradeLevel: z.string().optional(),

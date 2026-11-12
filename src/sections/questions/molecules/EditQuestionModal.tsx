@@ -1,0 +1,364 @@
+"use client";
+
+import { Check, Plus, Save, Trash2, X } from "lucide-react";
+import { type FC, useEffect, useState } from "react";
+import type {
+  CBTQuestionType,
+  CreateQuestionInputDTO,
+  QuestionDTO,
+  QuestionOptionDTO,
+} from "@/modules/questions/domain/dto/QuestionDTO";
+import Button from "@/shared-ui/component/Button";
+import Modal from "@/shared-ui/component/Modal";
+import SelectField from "@/shared-ui/component/SelectField";
+import TextAreaField from "@/shared-ui/component/TextAreaField";
+import TextField from "@/shared-ui/component/TextField";
+
+interface EditQuestionModalProps {
+  open: boolean;
+  question: QuestionDTO | null;
+  onClose: () => void;
+  onSave: (id: string, data: Partial<CreateQuestionInputDTO>) => Promise<boolean>;
+}
+
+export const EditQuestionModal: FC<EditQuestionModalProps> = ({
+  open,
+  question,
+  onClose,
+  onSave,
+}) => {
+  const [subject, setSubject] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [type, setType] = useState<CBTQuestionType>("multichoice");
+  const [stem, setStem] = useState("");
+  const [points, setPoints] = useState<number>(2.5);
+  const [tolerance, setTolerance] = useState<number | undefined>(undefined);
+  const [options, setOptions] = useState<QuestionOptionDTO[]>([]);
+  const [explanation, setExplanation] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (question) {
+      setSubject(question.subject);
+      setGradeLevel(question.gradeLevel);
+      setType(question.type);
+      setStem(question.stem);
+      setPoints(question.points);
+      setTolerance(question.tolerance);
+      setOptions(question.options || []);
+      setExplanation(question.explanation || "");
+      setErrorMessage(null);
+    }
+  }, [question]);
+
+  if (!question) return null;
+
+  const handleAddOption = () => {
+    const labels = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    const label = labels[options.length] || `${options.length + 1}`;
+    setOptions((prev) => [
+      ...prev,
+      { id: `opt-${Date.now()}`, label, text: "", isCorrect: false },
+    ]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    if (options.length <= 2) return;
+    setOptions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleOptionTextChange = (index: number, text: string) => {
+    setOptions((prev) =>
+      prev.map((opt, i) => (i === index ? { ...opt, text } : opt)),
+    );
+  };
+
+  const handleToggleCorrect = (index: number) => {
+    if (type === "multichoice" || type === "truefalse") {
+      setOptions((prev) =>
+        prev.map((opt, i) => ({ ...opt, isCorrect: i === index })),
+      );
+    } else {
+      setOptions((prev) =>
+        prev.map((opt, i) =>
+          i === index ? { ...opt, isCorrect: !opt.isCorrect } : opt,
+        ),
+      );
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+
+    if (!stem.trim()) {
+      setErrorMessage("Teks soal (stem) wajib diisi.");
+      return;
+    }
+
+    if (type === "multichoice" && options.filter((o) => o.isCorrect).length !== 1) {
+      setErrorMessage("Soal Pilihan Ganda biasa wajib memiliki tepat 1 kunci jawaban.");
+      return;
+    }
+
+    if (type === "mcma" && options.filter((o) => o.isCorrect).length < 1) {
+      setErrorMessage("Soal Pilihan Ganda Kompleks wajib memiliki minimal 1 kunci jawaban.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const success = await onSave(question.id, {
+        subject,
+        gradeLevel,
+        type,
+        stem,
+        points: Number(points) || 1,
+        tolerance: type === "numerical" ? tolerance : undefined,
+        options: type === "essay" ? [] : options,
+        explanation: explanation.trim() || undefined,
+      });
+
+      if (success) {
+        onClose();
+      }
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Gagal menyimpan perubahan soal.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Edit Butir Soal: ${question.code}`}
+      subtitle="Perbarui parameter soal, teks stem pertanyaan, dan konfigurasi kunci jawaban"
+      size="xl"
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 py-2">
+        {errorMessage && (
+          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">
+            {errorMessage}
+          </div>
+        )}
+
+        {/* Basic Parameters Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <SelectField
+            label="Mata Pelajaran"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            size="sm"
+          >
+            <option value="Matematika">Matematika</option>
+            <option value="Fisika">Fisika</option>
+            <option value="Kimia">Kimia</option>
+            <option value="Biologi">Biologi</option>
+            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+            <option value="Bahasa Inggris">Bahasa Inggris</option>
+            <option value="Geografi">Geografi</option>
+            <option value="Sosiologi">Sosiologi</option>
+            <option value="Ekonomi">Ekonomi</option>
+            <option value="Sejarah">Sejarah</option>
+          </SelectField>
+
+          <SelectField
+            label="Tingkat / Kelas"
+            value={gradeLevel}
+            onChange={(e) => setGradeLevel(e.target.value)}
+            size="sm"
+          >
+            <option value="X">Kelas X</option>
+            <option value="XI">Kelas XI</option>
+            <option value="XII">Kelas XII</option>
+          </SelectField>
+
+          <SelectField
+            label="Tipe Soal"
+            value={type}
+            onChange={(e) => setType(e.target.value as CBTQuestionType)}
+            size="sm"
+          >
+            <option value="multichoice">Pilihan Ganda Biasa</option>
+            <option value="mcma">Pilihan Ganda Kompleks</option>
+            <option value="truefalse">Benar / Salah</option>
+            <option value="shortanswer">Isian Singkat</option>
+            <option value="numerical">Numerik</option>
+            <option value="matching">Menjodohkan</option>
+            <option value="cloze">Teks Rumpang</option>
+            <option value="essay">Uraian / Esai</option>
+          </SelectField>
+
+          <TextField
+            label="Bobot Poin"
+            type="number"
+            step="0.5"
+            min="0.5"
+            max="100"
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value))}
+            size="sm"
+          />
+        </div>
+
+        {/* Numerical Tolerance if applicable */}
+        {type === "numerical" && (
+          <div className="max-w-xs">
+            <TextField
+              label="Toleransi Nilai (±)"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Contoh: 0.05"
+              value={tolerance ?? ""}
+              onChange={(e) =>
+                setTolerance(
+                  e.target.value ? Number(e.target.value) : undefined,
+                )
+              }
+              size="sm"
+            />
+          </div>
+        )}
+
+        {/* Stem Pertanyaan */}
+        <div>
+          <TextAreaField
+            label="Stem Pertanyaan / Teks Soal"
+            rows={4}
+            value={stem}
+            onChange={(e) => setStem(e.target.value)}
+            placeholder="Tuliskan stem pertanyaan soal... (Mendukung rumus LaTeX math seperti $E=mc^2$)"
+          />
+        </div>
+
+        {/* Options Editor */}
+        {type !== "essay" && (
+          <div className="flex flex-col gap-3 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-800">
+                  Opsi Jawaban & Kunci
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {type === "multichoice" || type === "truefalse"
+                    ? "Pilih satu opsi sebagai kunci jawaban benar."
+                    : "Tandai opsi yang merupakan jawaban benar."}
+                </p>
+              </div>
+
+              {type !== "truefalse" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  color="secondary"
+                  size="sm"
+                  leftIcon={Plus}
+                  onClick={handleAddOption}
+                >
+                  Tambah Opsi
+                </Button>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              {options.map((opt, index) => (
+                <div
+                  key={opt.id}
+                  className={`flex items-center gap-2 p-3 rounded-2xl border transition-colors ${
+                    opt.isCorrect
+                      ? "bg-emerald-50/70 border-emerald-300"
+                      : "bg-slate-50/60 border-slate-200"
+                  }`}
+                >
+                  <Button
+                    type="button"
+                    variant={opt.isCorrect ? "filled" : "outline"}
+                    color={opt.isCorrect ? "success" : "secondary"}
+                    size="sm"
+                    onClick={() => handleToggleCorrect(index)}
+                    title={
+                      opt.isCorrect
+                        ? "Kunci Jawaban Benar"
+                        : "Klik untuk jadikan Kunci Jawaban"
+                    }
+                    className="w-8 h-8 rounded-xl shrink-0 font-bold"
+                  >
+                    {opt.isCorrect ? <Check className="w-4 h-4" /> : opt.label}
+                  </Button>
+
+                  <div className="flex-1">
+                    <TextField
+                      value={opt.text}
+                      onChange={(e) =>
+                        handleOptionTextChange(index, e.target.value)
+                      }
+                      placeholder={`Teks pilihan jawaban ${opt.label}...`}
+                      size="sm"
+                    />
+                  </div>
+
+                  {options.length > 2 && type !== "truefalse" && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      color="error"
+                      size="sm"
+                      leftIcon={Trash2}
+                      onClick={() => handleRemoveOption(index)}
+                      title="Hapus opsi ini"
+                      className="shrink-0"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Explanation */}
+        <div>
+          <TextAreaField
+            label="Pembahasan / Catatan Kunci (Opsional)"
+            rows={2}
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+            placeholder="Tuliskan pembahasan atau langkah penyelesaian soal..."
+          />
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+          <Button
+            type="button"
+            variant="ghost"
+            color="secondary"
+            size="sm"
+            leftIcon={X}
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            variant="filled"
+            color="primary"
+            size="sm"
+            leftIcon={Save}
+            loading={isSubmitting}
+          >
+            Simpan Perubahan
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+export default EditQuestionModal;

@@ -248,6 +248,23 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
     return entity;
   }
 
+  async update(
+    id: string,
+    data: Partial<CreateQuestionInputDTO>,
+  ): Promise<QuestionEntity | null> {
+    const index = this.questions.findIndex((q) => q.id === id);
+    if (index === -1) {
+      return null;
+    }
+    const current = this.questions[index];
+    if (!current) {
+      return null;
+    }
+    const updated = current.update(data);
+    this.questions[index] = updated;
+    return updated;
+  }
+
   async delete(id: string): Promise<boolean> {
     const before = this.questions.length;
     this.questions = this.questions.filter((q) => q.id !== id);
