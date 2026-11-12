@@ -11,7 +11,16 @@ import { type ChangeEvent, type DragEvent, type FC, useState } from "react";
 import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
 import Modal from "@/shared-ui/component/Modal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
 
 interface ImportStudentsModalProps {
   open: boolean;
@@ -111,49 +120,73 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
     >
       <div className="flex flex-col gap-5 py-2">
         {/* Template Download Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-teal-50 text-[#0097a7]">
-              <FileSpreadsheet className="w-5 h-5" />
+        <Card
+          variant="flat"
+          className="p-4 rounded-2xl bg-slate-50 border-slate-200"
+          bodyClassName="p-0"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-teal-50 text-[#0097a7]">
+                <FileSpreadsheet className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800">
+                  Gunakan Template Resmi CSV Excel
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Format:
+                  nis_username;nama_lengkap;password;kelas;ruang_ujian;nomor_meja;email
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-slate-800">
-                Gunakan Template Resmi CSV Excel
-              </p>
-              <p className="text-[11px] text-slate-500">
-                Format:
-                nis_username;nama_lengkap;password;kelas;ruang_ujian;nomor_meja;email
-              </p>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <a
-              href="/templates/sample_import_siswa.xlsx"
-              download="sample_import_siswa.xlsx"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Excel (.xlsx)
-            </a>
-            <a
-              href="/templates/sample_import_siswa.xls"
-              download="sample_import_siswa.xls"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Excel (.xls)
-            </a>
-            <a
-              href="/templates/sample_import_siswa.csv"
-              download="sample_import_siswa.csv"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              CSV
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                asChild
+                variant="outline"
+                color="success"
+                size="sm"
+                leftIcon={Download}
+              >
+                <a
+                  href="/templates/sample_import_siswa.xlsx"
+                  download="sample_import_siswa.xlsx"
+                >
+                  Excel (.xlsx)
+                </a>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                color="teal"
+                size="sm"
+                leftIcon={Download}
+              >
+                <a
+                  href="/templates/sample_import_siswa.xls"
+                  download="sample_import_siswa.xls"
+                >
+                  Excel (.xls)
+                </a>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                color="secondary"
+                size="sm"
+                leftIcon={Download}
+              >
+                <a
+                  href="/templates/sample_import_siswa.csv"
+                  download="sample_import_siswa.csv"
+                >
+                  CSV
+                </a>
+              </Button>
+            </div>
           </div>
-        </div>
+        </Card>
 
         {/* Upload Drop Zone */}
         {!selectedFile ? (
@@ -194,27 +227,36 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-teal-50/60 border border-teal-200">
-              <div className="flex items-center gap-2.5">
-                <FileSpreadsheet className="w-5 h-5 text-[#0097a7]" />
-                <div>
-                  <p className="text-xs font-bold text-slate-900">
-                    {selectedFile.name}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {totalRows} baris siswa terdeteksi
-                  </p>
+            <Card
+              variant="flat"
+              className="p-3.5 rounded-2xl bg-teal-50/60 border border-teal-200"
+              bodyClassName="p-0"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <FileSpreadsheet className="w-5 h-5 text-[#0097a7]" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {totalRows} baris siswa terdeteksi
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleReset}
-                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  color="danger"
+                  size="sm"
+                  iconOnly
+                  leftIcon={X}
+                  onClick={handleReset}
+                  aria-label="Hapus berkas terpilih"
+                />
+              </div>
+            </Card>
 
             {/* Preview Table */}
             {previewRows.length > 0 && (
@@ -222,40 +264,48 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
                 <p className="text-[11px] font-bold text-slate-600">
                   Pratinjau Data (5 Baris Pertama):
                 </p>
-                <div className="overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full text-[11px] text-left">
-                    <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
-                      <tr>
-                        <th className="px-3 py-2">NIS/User</th>
-                        <th className="px-3 py-2">Nama Lengkap</th>
-                        <th className="px-3 py-2">Kelas</th>
-                        <th className="px-3 py-2">Ruang</th>
-                        <th className="px-3 py-2">Meja</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {previewRows.map((r, i) => (
-                        <tr key={`row-${r.nis_username || i}`}>
-                          <td className="px-3 py-2 font-mono">
-                            {r.nis_username || r.username || "-"}
-                          </td>
-                          <td className="px-3 py-2 font-medium">
-                            {r.nama_lengkap || r.name || "-"}
-                          </td>
-                          <td className="px-3 py-2">
-                            {r.kelas || r.class || "-"}
-                          </td>
-                          <td className="px-3 py-2">
-                            {r.ruang_ujian || r.ruangan || "-"}
-                          </td>
-                          <td className="px-3 py-2">
-                            {r.nomor_meja || r.meja || "-"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table wrapperClassName="rounded-xl border border-slate-200 overflow-hidden">
+                  <TableHead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                    <TableRow>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        NIS/User
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Nama Lengkap
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Kelas
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Ruang
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Meja
+                      </TableHeaderCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody className="divide-y divide-slate-100 text-slate-700">
+                    {previewRows.map((r, i) => (
+                      <TableRow key={`row-${r.nis_username || i}`}>
+                        <TableCell className="px-3 py-2 text-xs font-mono">
+                          {r.nis_username || r.username || "-"}
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs font-medium">
+                          {r.nama_lengkap || r.name || "-"}
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs">
+                          {r.kelas || r.class || "-"}
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs">
+                          {r.ruang_ujian || r.ruangan || "-"}
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs">
+                          {r.nomor_meja || r.meja || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>

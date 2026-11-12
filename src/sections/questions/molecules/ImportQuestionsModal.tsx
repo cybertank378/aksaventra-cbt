@@ -2,8 +2,6 @@
 
 import {
   BookOpen,
-  ChevronDown,
-  ChevronUp,
   Download,
   FileQuestion,
   Loader2,
@@ -13,8 +11,19 @@ import {
 import { type ChangeEvent, type DragEvent, type FC, useState } from "react";
 import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
 import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import ExpandableCard from "@/shared-ui/component/ExpandableCard";
 import Modal from "@/shared-ui/component/Modal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
 
 interface ImportQuestionsModalProps {
   open: boolean;
@@ -187,120 +196,127 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
     >
       <div className="flex flex-col gap-5 py-2">
         {/* Template Download Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
-              <FileQuestion className="w-5 h-5" />
+        <Card
+          variant="flat"
+          className="p-4 rounded-2xl bg-slate-50 border-slate-200"
+          bodyClassName="p-0"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+                <FileQuestion className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800">
+                  Unduh Template Soal Lengkap 8 Varian
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Memuat contoh nyata untuk semua tipe soal, bobot, dan kunci
+                  jawaban
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-slate-800">
-                Unduh Template Soal Lengkap 8 Varian
-              </p>
-              <p className="text-[11px] text-slate-500">
-                Memuat contoh nyata untuk semua tipe soal, bobot, dan kunci
-                jawaban
-              </p>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <a
-              href="/templates/sample_import_soal.xlsx"
-              download="sample_import_soal.xlsx"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Excel (.xlsx)
-            </a>
-            <a
-              href="/templates/sample_import_soal.xls"
-              download="sample_import_soal.xls"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Excel (.xls)
-            </a>
-            <a
-              href="/templates/sample_import_soal.csv"
-              download="sample_import_soal.csv"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              CSV
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                asChild
+                variant="outline"
+                color="success"
+                size="sm"
+                leftIcon={Download}
+              >
+                <a
+                  href="/templates/sample_import_soal.xlsx"
+                  download="sample_import_soal.xlsx"
+                >
+                  Excel (.xlsx)
+                </a>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                color="teal"
+                size="sm"
+                leftIcon={Download}
+              >
+                <a
+                  href="/templates/sample_import_soal.xls"
+                  download="sample_import_soal.xls"
+                >
+                  Excel (.xls)
+                </a>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                color="secondary"
+                size="sm"
+                leftIcon={Download}
+              >
+                <a
+                  href="/templates/sample_import_soal.csv"
+                  download="sample_import_soal.csv"
+                >
+                  CSV
+                </a>
+              </Button>
+            </div>
           </div>
-        </div>
+        </Card>
 
         {/* Expandable Guide Accordion for 8 Question Types */}
-        <div className="flex flex-col rounded-2xl border border-indigo-200/80 bg-indigo-50/40 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setShowGuide(!showGuide)}
-            className="flex items-center justify-between w-full px-4 py-2.5 bg-indigo-50/80 hover:bg-indigo-100/70 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <BookOpen className="w-4 h-4 text-indigo-600 shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-indigo-950">
-                  Panduan Format Pengisian 8 Tipe Soal Moodle CBT
-                </p>
-                <p className="text-[11px] text-indigo-700/80">
-                  Berkas Excel memuat sheet terpisah untuk setiap tipe soal
-                  (1_PILIHAN_GANDA s/d 8_ESAI_URAIAN)
-                </p>
-              </div>
-            </div>
-            {showGuide ? (
-              <ChevronUp className="w-4 h-4 text-indigo-600 shrink-0" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-indigo-600 shrink-0" />
-            )}
-          </button>
-
-          {showGuide && (
-            <div className="p-4 bg-white border-t border-indigo-100 space-y-3 max-h-80 overflow-y-auto">
-              <p className="text-xs text-slate-600">
-                Gunakan lembar kerja (sheet) <strong>TEMPLATE_SOAL</strong>{" "}
-                untuk mengimpor seluruh soal gabungan sekaligus, atau pelajari
-                contoh format spesifik pada masing-masing lembar kerja berikut:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
-                {QUESTION_TYPE_GUIDES.map((g) => (
-                  <div
-                    key={g.type}
-                    className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-indigo-50/30 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-1 mb-1.5">
-                      <span className="font-bold text-slate-900 text-xs">
-                        {g.name}
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold bg-indigo-100 text-indigo-800">
-                        {g.type}
-                      </span>
-                    </div>
-                    <div className="space-y-1 text-[11px] text-slate-600">
-                      <p>
-                        <strong className="text-slate-700">Kolom Opsi:</strong>{" "}
-                        {g.optionsCol}
-                      </p>
-                      <p>
-                        <strong className="text-slate-700">
-                          Contoh Kunci:
-                        </strong>{" "}
-                        <code className="px-1.5 py-0.5 rounded font-mono font-bold bg-slate-200 text-slate-900">
-                          {g.exampleKey}
-                        </code>
-                      </p>
-                      <p className="text-[10px] text-slate-500 italic pt-0.5 border-t border-slate-200/60 mt-1">
-                        {g.note}
-                      </p>
-                    </div>
+        <ExpandableCard
+          title="Panduan Format Pengisian 8 Tipe Soal Moodle CBT"
+          subtitle="Berkas Excel memuat sheet terpisah untuk setiap tipe soal (1_PILIHAN_GANDA s/d 8_ESAI_URAIAN)"
+          icon={BookOpen}
+          isOpen={showGuide}
+          onToggle={() => setShowGuide(!showGuide)}
+          className="border-indigo-200/80 bg-indigo-50/30"
+        >
+          <div className="space-y-3">
+            <p className="text-xs text-slate-600">
+              Gunakan lembar kerja (sheet) <strong>TEMPLATE_SOAL</strong> untuk
+              mengimpor seluruh soal gabungan sekaligus, atau pelajari contoh
+              format spesifik pada masing-masing lembar kerja berikut:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+              {QUESTION_TYPE_GUIDES.map((g) => (
+                <Card
+                  key={g.type}
+                  variant="flat"
+                  className="p-3 rounded-xl border border-slate-200 bg-slate-50/60"
+                  bodyClassName="p-0"
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1.5">
+                    <span className="font-bold text-slate-900 text-xs">
+                      {g.name}
+                    </span>
+                    <Badge color="primary" variant="soft" size="sm">
+                      {g.type}
+                    </Badge>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-1 text-[11px] text-slate-600">
+                    <p>
+                      <strong className="text-slate-700">Kolom Opsi:</strong>{" "}
+                      {g.optionsCol}
+                    </p>
+                    <p>
+                      <strong className="text-slate-700">
+                        Contoh Kunci:
+                      </strong>{" "}
+                      <code className="px-1.5 py-0.5 rounded font-mono font-bold bg-slate-200 text-slate-900">
+                        {g.exampleKey}
+                      </code>
+                    </p>
+                    <p className="text-[10px] text-slate-500 italic pt-0.5 border-t border-slate-200/60 mt-1">
+                      {g.note}
+                    </p>
+                  </div>
+                </Card>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        </ExpandableCard>
 
         {/* Upload Drop Zone */}
         {!selectedFile ? (
@@ -341,27 +357,36 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200">
-              <div className="flex items-center gap-2.5">
-                <FileQuestion className="w-5 h-5 text-indigo-600" />
-                <div>
-                  <p className="text-xs font-bold text-slate-900">
-                    {selectedFile.name}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {totalQuestions} butir soal teridentifikasi
-                  </p>
+            <Card
+              variant="flat"
+              className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200"
+              bodyClassName="p-0"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <FileQuestion className="w-5 h-5 text-indigo-600" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {totalQuestions} butir soal teridentifikasi
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleReset}
-                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  color="danger"
+                  size="sm"
+                  iconOnly
+                  leftIcon={X}
+                  onClick={handleReset}
+                  aria-label="Hapus berkas terpilih"
+                />
+              </div>
+            </Card>
 
             {/* Preview Questions */}
             {previewQuestions.length > 0 && (
@@ -369,55 +394,63 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                 <p className="text-[11px] font-bold text-slate-600">
                   Pratinjau Soal (5 Butir Pertama):
                 </p>
-                <div className="overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full text-[11px] text-left">
-                    <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
-                      <tr>
-                        <th className="px-3 py-2">No</th>
-                        <th className="px-3 py-2">Tipe Soal</th>
-                        <th className="px-3 py-2">Teks Narasi Soal</th>
-                        <th className="px-3 py-2">Bobot</th>
-                        <th className="px-3 py-2">Kunci / Jawaban</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {previewQuestions.map((q, i) => {
-                        const rawType = (
-                          q.jenis_soal ||
-                          q.type ||
-                          ""
-                        ).toLowerCase();
-                        const typeLabel =
-                          QUESTION_TYPE_NAMES[rawType] || rawType || "PG";
+                <Table wrapperClassName="rounded-xl border border-slate-200 overflow-hidden">
+                  <TableHead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                    <TableRow>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        No
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Tipe Soal
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Teks Narasi Soal
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Bobot
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Kunci / Jawaban
+                      </TableHeaderCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody className="divide-y divide-slate-100 text-slate-700">
+                    {previewQuestions.map((q, i) => {
+                      const rawType = (
+                        q.jenis_soal ||
+                        q.type ||
+                        ""
+                      ).toLowerCase();
+                      const typeLabel =
+                        QUESTION_TYPE_NAMES[rawType] || rawType || "PG";
 
-                        return (
-                          <tr key={`q-${i}`}>
-                            <td className="px-3 py-2 font-mono font-bold text-slate-800">
-                              {q.nomor || i + 1}
-                            </td>
-                            <td className="px-3 py-2 whitespace-nowrap">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">
-                                {typeLabel}
-                              </span>
-                            </td>
-                            <td
-                              className="px-3 py-2 max-w-xs truncate"
-                              title={q.teks_soal || q.question || ""}
-                            >
-                              {q.teks_soal || q.question || "-"}
-                            </td>
-                            <td className="px-3 py-2 font-mono">
-                              {q.bobot || q.weight || "1.00"}
-                            </td>
-                            <td className="px-3 py-2 font-mono text-emerald-700 font-semibold">
-                              {q.kunci_jawaban || q.key || "-"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                      return (
+                        <TableRow key={`q-${i}`}>
+                          <TableCell className="px-3 py-2 text-xs font-mono font-bold text-slate-800">
+                            {q.nomor || i + 1}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-xs whitespace-nowrap">
+                            <Badge color="primary" variant="soft" size="sm">
+                              {typeLabel}
+                            </Badge>
+                          </TableCell>
+                          <TableCell
+                            className="px-3 py-2 text-xs max-w-xs truncate"
+                            title={q.teks_soal || q.question || ""}
+                          >
+                            {q.teks_soal || q.question || "-"}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-xs font-mono">
+                            {q.bobot || q.weight || "1.00"}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-xs font-mono text-emerald-700 font-semibold">
+                            {q.kunci_jawaban || q.key || "-"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>
