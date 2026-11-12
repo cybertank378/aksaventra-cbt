@@ -11,11 +11,21 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FC, useEffect } from "react";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
 
 interface ActiveExamItem {
   id: string;
@@ -28,6 +38,7 @@ interface ActiveExamItem {
 }
 
 export const AdminDashboard: FC = () => {
+  const router = useRouter();
   const { examsList, fetchExamsList, isLoading: isExamsLoading } =
     useExamManagementApi();
   const {
@@ -49,20 +60,34 @@ export const AdminDashboard: FC = () => {
   const isLoading = isExamsLoading || isClassesLoading;
 
   const activeExams: ActiveExamItem[] = examsList.map((e) => {
+    const raw = e as unknown as { timeOpen?: string; status?: string };
     return {
       id: String(e.examId || e.moodleCbtId),
       title: e.title || e.courseName || `Ujian #${e.examId}`,
-      courseName: e.courseName || "Umum",
+      courseName: e.courseName || "-",
       activeParticipants: e.questions?.length || 0,
       totalParticipants: e.questions?.length || 0,
-      startTime: "Hari ini",
-      status: "ACTIVE",
+      startTime: raw.timeOpen
+        ? new Date(raw.timeOpen).toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+        : "-",
+      status: raw.status || "ACTIVE",
     };
   });
 
   const activeSessionsCount = activeExams.filter(
     (e) => e.status === "ACTIVE",
   ).length;
+
+  const handleNavigateToExams = () => {
+    router.replace("/dashboard/exams");
+  };
+
+  const handleOpenProctor = (id: string) => {
+    router.replace(`/dashboard/proctor/${id}`);
+  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -82,23 +107,22 @@ export const AdminDashboard: FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/dashboard/exams">
-            <Button
-              type="button"
-              variant="filled"
-              color="primary"
-              size="md"
-              leftIcon={Plus}
-            >
-              Kelola Ujian
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="filled"
+            color="primary"
+            size="md"
+            leftIcon={Plus}
+            onClick={handleNavigateToExams}
+          >
+            Kelola Ujian
+          </Button>
         </div>
       </div>
 
       {/* System Metrics Overview */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+        <Card className="p-4">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-semibold text-slate-600">
               Sesi Ujian Aktif
@@ -111,9 +135,9 @@ export const AdminDashboard: FC = () => {
           <p className="text-[11px] text-teal-600 font-semibold mt-1">
             Live di Laboratorium
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+        <Card className="p-4">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-semibold text-slate-600">
               Total Siswa Terdaftar
@@ -126,9 +150,9 @@ export const AdminDashboard: FC = () => {
           <p className="text-[11px] text-slate-500 font-medium mt-1">
             Peserta Ujian CBT
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+        <Card className="p-4">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-semibold text-slate-600">
               Rombel / Kelas
@@ -141,9 +165,9 @@ export const AdminDashboard: FC = () => {
           <p className="text-[11px] text-emerald-600 font-semibold mt-1">
             Kelas Tersinkron
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+        <Card className="p-4">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-semibold text-slate-600">
               Total Naskah Ujian
@@ -156,11 +180,11 @@ export const AdminDashboard: FC = () => {
           <p className="text-[11px] text-indigo-600 font-semibold mt-1">
             Tersedia di Sistem
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Active Exam Rooms Table */}
-      <div className="rounded-3xl bg-white border border-slate-200 shadow-xs overflow-hidden">
+      <Card className="p-0 overflow-hidden">
         <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-base font-bold text-slate-900">
@@ -171,100 +195,90 @@ export const AdminDashboard: FC = () => {
             </p>
           </div>
 
-          <Link href="/dashboard/exams">
-            <Button
-              type="button"
-              variant="outline"
-              color="secondary"
-              size="sm"
-              rightIcon={ArrowRight}
-            >
-              Lihat Seluruh Ujian
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            rightIcon={ArrowRight}
+            onClick={handleNavigateToExams}
+          >
+            Lihat Seluruh Ujian
+          </Button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/80 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-3.5">Nama Ujian &amp; Mata Pelajaran</th>
-                <th className="px-6 py-3.5">Mulai</th>
-                <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading && activeExams.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-12 text-center text-slate-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-teal-600 mb-2" />
-                    Memuat data asesmen langsung...
-                  </td>
-                </tr>
-              ) : activeExams.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-12 text-center text-slate-400">
-                    Belum ada jadwal asesmen aktif saat ini.
-                  </td>
-                </tr>
-              ) : (
-                activeExams.slice(0, 5).map((exam) => (
-                  <tr
-                    key={exam.id}
-                    className="hover:bg-slate-50/60 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-slate-900 text-xs">
-                        {exam.title}
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {exam.courseName}
-                      </p>
-                    </td>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell className="px-6 py-3.5">Nama Ujian &amp; Mata Pelajaran</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-3.5">Mulai</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-3.5">Status</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-3.5 text-right">Aksi</TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {isLoading && activeExams.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="py-12 text-center text-slate-400">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-teal-600 mb-2" />
+                  Memuat data asesmen langsung...
+                </TableCell>
+              </TableRow>
+            ) : activeExams.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="py-12 text-center text-slate-400">
+                  Belum ada jadwal asesmen aktif saat ini.
+                </TableCell>
+              </TableRow>
+            ) : (
+              activeExams.slice(0, 5).map((exam) => (
+                <TableRow
+                  key={exam.id}
+                  className="hover:bg-slate-50/60 transition-colors"
+                >
+                  <TableCell className="px-6 py-4">
+                    <p className="font-bold text-slate-900 text-xs">
+                      {exam.title}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {exam.courseName}
+                    </p>
+                  </TableCell>
 
-                    <td className="px-6 py-4 font-mono font-medium text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{exam.startTime}</span>
-                      </div>
-                    </td>
+                  <TableCell className="px-6 py-4 font-mono font-medium text-slate-600">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{exam.startTime}</span>
+                    </div>
+                  </TableCell>
 
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                          exam.status === "ACTIVE"
-                            ? "bg-teal-50 text-teal-700 border border-teal-200"
-                            : "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-                        {exam.status === "ACTIVE" && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                        )}
-                        {exam.status === "ACTIVE" ? "Live" : "Terjadwal"}
-                      </span>
-                    </td>
+                  <TableCell className="px-6 py-4">
+                    <Badge
+                      color={exam.status === "ACTIVE" ? "teal" : "neutral"}
+                      size="sm"
+                    >
+                      {exam.status === "ACTIVE" ? "Live" : "Terjadwal"}
+                    </Badge>
+                  </TableCell>
 
-                    <td className="px-6 py-4 text-right">
-                      <Link href={`/dashboard/proctor/${exam.id}`}>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          color="primary"
-                          size="sm"
-                          rightIcon={ArrowRight}
-                        >
-                          Monitoring
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  <TableCell className="px-6 py-4 text-right">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      color="primary"
+                      size="sm"
+                      rightIcon={ArrowRight}
+                      onClick={() => handleOpenProctor(exam.id)}
+                    >
+                      Monitoring
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 };

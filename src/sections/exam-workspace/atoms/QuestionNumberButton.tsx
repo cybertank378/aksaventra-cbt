@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import type { FC } from "react";
+import Button from "@/shared-ui/component/Button";
 
 export interface QuestionNumberButtonProps {
   number: number;
@@ -21,12 +22,12 @@ export const QuestionNumberButton: FC<QuestionNumberButtonProps> = ({
   className,
 }) => {
   return (
-    <button
+    <Button
       type="button"
       onClick={onClick}
       aria-label={`Nomor Soal ${number}${isActive ? " (Aktif)" : ""}${isAnswered ? " (Sudah Dijawab)" : ""}${isFlagged ? " (Ragu-ragu)" : ""}`}
       className={clsx(
-        "relative flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl text-xs sm:text-sm font-bold transition-all duration-150 cursor-pointer select-none outline-none",
+        "relative flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl text-xs sm:text-sm font-bold transition-all duration-150 cursor-pointer select-none outline-none p-0",
         // Flagged (Ragu-ragu) state takes priority or combines with answered
         isFlagged
           ? "bg-[#eab308] text-slate-950 shadow-xs hover:bg-[#ca8a04]"
@@ -47,7 +48,7 @@ export const QuestionNumberButton: FC<QuestionNumberButtonProps> = ({
           className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-amber-400 border-2 border-white ring-1 ring-amber-500"
         />
       )}
-    </button>
+    </Button>
   );
 };
 

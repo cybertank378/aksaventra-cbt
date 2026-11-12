@@ -8,6 +8,9 @@ import type {
 } from "@/modules/announcements/domain/dto/AnnouncementDTO";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
+import SelectField from "@/shared-ui/component/SelectField";
+import TextAreaField from "@/shared-ui/component/TextAreaField";
+import TextField from "@/shared-ui/component/TextField";
 
 interface Props {
   open: boolean;
@@ -55,87 +58,59 @@ export function CreateAnnouncementModal({
       subtitle="Siarkan informasi dan instruksi penting untuk siswa atau pengawas CBT"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div>
-          <label
-            htmlFor="ann-title"
-            className="block text-xs font-bold text-slate-700 mb-1"
-          >
-            Judul Pengumuman:
-          </label>
-          <input
-            id="ann-title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Contoh: Tata Tertib Ujian Semester Ganjil..."
-            className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-            required
-          />
-        </div>
+        <TextField
+          id="ann-title"
+          label="Judul Pengumuman:"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Contoh: Tata Tertib Ujian Semester Ganjil..."
+          size="sm"
+          required
+        />
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label
-              htmlFor="ann-priority"
-              className="block text-xs font-bold text-slate-700 mb-1"
-            >
-              Prioritas:
-            </label>
-            <select
-              id="ann-priority"
-              value={priority}
-              onChange={(e) =>
-                setPriority(e.target.value as AnnouncementPriority)
-              }
-              className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-            >
-              <option value="LOW">Info Santai (Low)</option>
-              <option value="NORMAL">Normal</option>
-              <option value="HIGH">Penting (High)</option>
-              <option value="URGENT">Mendesak (Urgent)</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="ann-target"
-              className="block text-xs font-bold text-slate-700 mb-1"
-            >
-              Sasaran Penerima:
-            </label>
-            <select
-              id="ann-target"
-              value={targetRole}
-              onChange={(e) =>
-                setTargetRole(e.target.value as AnnouncementTarget)
-              }
-              className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-            >
-              <option value="ALL">Semua Pengguna</option>
-              <option value="STUDENTS">Khusus Siswa</option>
-              <option value="PROCTORS">Khusus Pengawas Ruang</option>
-              <option value="TEACHERS">Khusus Guru</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="ann-content"
-            className="block text-xs font-bold text-slate-700 mb-1"
+          <SelectField
+            id="ann-priority"
+            label="Prioritas:"
+            value={priority}
+            onChange={(e) =>
+              setPriority(e.target.value as AnnouncementPriority)
+            }
+            size="sm"
           >
-            Isi Pengumuman:
-          </label>
-          <textarea
-            id="ann-content"
-            rows={4}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Tuliskan isi instruksi secara lengkap..."
-            className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-            required
-          />
+            <option value="LOW">Info Santai (Low)</option>
+            <option value="NORMAL">Normal</option>
+            <option value="HIGH">Penting (High)</option>
+            <option value="URGENT">Mendesak (Urgent)</option>
+          </SelectField>
+
+          <SelectField
+            id="ann-target"
+            label="Sasaran Penerima:"
+            value={targetRole}
+            onChange={(e) =>
+              setTargetRole(e.target.value as AnnouncementTarget)
+            }
+            size="sm"
+          >
+            <option value="ALL">Semua Pengguna</option>
+            <option value="STUDENTS">Khusus Siswa</option>
+            <option value="PROCTORS">Khusus Pengawas Ruang</option>
+            <option value="TEACHERS">Khusus Guru</option>
+          </SelectField>
         </div>
+
+        <TextAreaField
+          id="ann-content"
+          label="Isi Pengumuman:"
+          rows={4}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Tuliskan isi instruksi secara lengkap..."
+          size="sm"
+          required
+        />
 
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
           <Button

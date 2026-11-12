@@ -161,7 +161,7 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
     try {
       const result = await submitWithFlush();
       if (result.success) {
-        router.push(`/student/exam/${attemptId}/result`);
+        router.replace(`/student/exam/${attemptId}/result`);
       } else {
         // Network failure / offline submit receipt fallback
         setShowOfflineReceipt(true);
@@ -179,7 +179,7 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
     try {
       const result = await submitWithFlush();
       if (result.success) {
-        router.push(`/student/exam/${attemptId}/result`);
+        router.replace(`/student/exam/${attemptId}/result`);
       } else {
         setShowOfflineReceipt(true);
       }

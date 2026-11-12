@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import type { FC } from "react";
+import Button from "@/shared-ui/component/Button";
 
 export type ExamFontSize = "sm" | "base" | "lg" | "xl";
 
@@ -37,21 +38,19 @@ export const FontSizeToggle: FC<FontSizeToggleProps> = ({
       {fontOptions.map((opt) => {
         const isActive = fontSize === opt.value;
         return (
-          <button
+          <Button
             key={opt.value}
             type="button"
             title={opt.title}
             aria-pressed={isActive}
+            size="sm"
+            variant={isActive ? "filled" : "ghost"}
+            color={isActive ? "primary" : "secondary"}
             onClick={() => onChange(opt.value)}
-            className={clsx(
-              "px-2.5 py-1 text-xs font-bold rounded-lg transition-all duration-150 select-none",
-              isActive
-                ? "bg-[#0d2b5c] text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-            )}
+            className="px-2.5 py-1 text-xs font-bold rounded-lg"
           >
             {opt.label}
-          </button>
+          </Button>
         );
       })}
     </fieldset>

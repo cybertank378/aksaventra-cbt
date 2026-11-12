@@ -7,12 +7,13 @@ import {
   RefreshCw,
   ShieldAlert,
 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FC, useEffect } from "react";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
 import Button from "@/shared-ui/component/Button";
 
 export const ProctorDashboard: FC = () => {
+  const router = useRouter();
   const { examsList, fetchExamsList, isLoading } = useExamManagementApi();
 
   useEffect(() => {
@@ -20,18 +21,36 @@ export const ProctorDashboard: FC = () => {
   }, [fetchExamsList]);
 
   const proctorRooms = examsList.map((e) => {
+    const raw = e as unknown as {
+      roomCode?: string;
+      roomName?: string;
+      timeOpen?: string;
+    };
     return {
       examId: String(e.examId || e.moodleCbtId),
       examTitle: e.title || e.courseName || `Ujian #${e.examId}`,
-      roomCode: "LAB-01",
-      roomName: "Laboratorium CBT",
+      roomCode: raw.roomCode || "-",
+      roomName: raw.roomName || "Ruang Pengawas",
       totalStudents: e.questions?.length || 0,
-      activeToken: e.activeToken || "AKSA88",
-      startTime: "Hari ini",
+      activeToken: e.activeToken || "-",
+      startTime: raw.timeOpen
+        ? new Date(raw.timeOpen).toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "-",
       durationMinutes: Math.round((e.durationSeconds || 5400) / 60),
       status: "ACTIVE" as const,
     };
   });
+
+  const handleOpenCommandCenter = () => {
+    router.replace("/dashboard/proctor");
+  };
+
+  const handleOpenProctorRoom = (examId: string) => {
+    router.replace(`/dashboard/proctor/${examId}`);
+  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -51,16 +70,15 @@ export const ProctorDashboard: FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/dashboard/proctor">
-            <Button
-              type="button"
-              variant="filled"
-              size="md"
-              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold"
-            >
-              Command Center Proktor
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="filled"
+            size="md"
+            onClick={handleOpenCommandCenter}
+            className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold"
+          >
+            Command Center Proktor
+          </Button>
         </div>
       </div>
 
@@ -155,17 +173,16 @@ export const ProctorDashboard: FC = () => {
                       Durasi: <strong>{room.durationMinutes} Menit</strong>
                     </span>
 
-                    <Link href={`/dashboard/proctor/${room.examId}`}>
-                      <Button
-                        type="button"
-                        variant="filled"
-                        color={isActive ? "primary" : "secondary"}
-                        size="sm"
-                        rightIcon={ArrowRight}
-                      >
-                        Buka Ruang Pengawas
-                      </Button>
-                    </Link>
+                    <Button
+                      type="button"
+                      variant="filled"
+                      color={isActive ? "primary" : "secondary"}
+                      size="sm"
+                      rightIcon={ArrowRight}
+                      onClick={() => handleOpenProctorRoom(room.examId)}
+                    >
+                      Buka Ruang Pengawas
+                    </Button>
                   </div>
                 </div>
               );

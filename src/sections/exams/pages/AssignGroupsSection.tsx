@@ -1,12 +1,23 @@
 "use client";
 
 import { ArrowLeft, Check, CheckSquare, Users } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
 import type { UserRole } from "@/libs/enums";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import TextField from "@/shared-ui/component/TextField";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
 
 export interface AssignGroupsSectionProps {
   examId: string;
@@ -17,13 +28,14 @@ export const AssignGroupsSection: FC<AssignGroupsSectionProps> = ({
   examId,
   userRole: _userRole,
 }) => {
+  const router = useRouter();
   const { classes, fetchClasses } = useClassesApi();
   const { participants, isLoading, error, assignGroups, fetchParticipants } =
     useExamManagementApi(examId);
 
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
-  const [roomCode, setRoomCode] = useState("LAB-01");
-  const [seatPrefix, setSeatPrefix] = useState("M");
+  const [roomCode, setRoomCode] = useState("");
+  const [seatPrefix, setSeatPrefix] = useState("");
   const [assignedSuccess, setAssignedSuccess] = useState(false);
 
   useEffect(() => {
@@ -53,32 +65,42 @@ export const AssignGroupsSection: FC<AssignGroupsSectionProps> = ({
     }
   };
 
+  const handleBackToExams = () => {
+    router.replace("/dashboard/exams");
+  };
+
+  const handleViewParticipants = () => {
+    router.replace(`/dashboard/exams/${examId}/participants`);
+  };
+
+  const handleOpenClasses = () => {
+    router.replace("/dashboard/classes");
+  };
+
   return (
     <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center justify-between">
-        <Link href="/dashboard/exams">
-          <Button
-            type="button"
-            variant="outline"
-            color="secondary"
-            size="sm"
-            leftIcon={ArrowLeft}
-          >
-            Kembali ke Daftar Ujian
-          </Button>
-        </Link>
+        <Button
+          type="button"
+          variant="outline"
+          color="secondary"
+          size="sm"
+          leftIcon={ArrowLeft}
+          onClick={handleBackToExams}
+        >
+          Kembali ke Daftar Ujian
+        </Button>
 
-        <Link href={`/dashboard/exams/${examId}/participants`}>
-          <Button
-            type="button"
-            variant="outline"
-            color="primary"
-            size="sm"
-            leftIcon={Users}
-          >
-            Lihat Daftar Peserta &amp; Meja
-          </Button>
-        </Link>
+        <Button
+          type="button"
+          variant="outline"
+          color="primary"
+          size="sm"
+          leftIcon={Users}
+          onClick={handleViewParticipants}
+        >
+          Lihat Daftar Peserta &amp; Meja
+        </Button>
       </div>
 
       {/* Form Container */}
@@ -95,26 +117,30 @@ export const AssignGroupsSection: FC<AssignGroupsSectionProps> = ({
           </div>
 
           {classes.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 text-xs">
-              Tidak ada data kelas. Tambahkan kelas di menu{" "}
-              <Link
-                href="/dashboard/classes"
-                className="text-[#0097a7] underline"
+            <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+              <span>
+                Tidak ada data kelas. Tambahkan kelas di menu Kelas &amp; Rombel
+                terlebih dahulu.
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                color="teal"
+                size="sm"
+                onClick={handleOpenClasses}
               >
-                Kelas &amp; Rombel
-              </Link>
-              .
+                Buka Kelas &amp; Rombel
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {classes.map((cls) => {
                 const isSelected = selectedClassIds.includes(cls.id);
                 return (
-                  <button
+                  <Card
                     key={cls.id}
-                    type="button"
                     onClick={() => toggleClassSelect(cls.id)}
-                    className={`flex items-start justify-between p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                    className={`flex items-start justify-between p-4 cursor-pointer transition-all ${
                       isSelected
                         ? "bg-teal-50/60 border-[#0097a7] ring-1 ring-[#0097a7]"
                         : "bg-white border-slate-200 hover:border-slate-300"
@@ -138,7 +164,7 @@ export const AssignGroupsSection: FC<AssignGroupsSectionProps> = ({
                     >
                       <Check className="w-3.5 h-3.5" />
                     </div>
-                  </button>
+                  </Card>
                 );
               })}
             </div>
@@ -156,39 +182,23 @@ export const AssignGroupsSection: FC<AssignGroupsSectionProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="room-code-input"
-              className="text-xs font-semibold text-slate-700"
-            >
-              Nama / Kode Ruang Ujian
-            </label>
-            <input
-              id="room-code-input"
-              type="text"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value)}
-              placeholder="LAB-01"
-              className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0097a7]"
-            />
-          </div>
+          <TextField
+            id="room-code-input"
+            label="Nama / Kode Ruang Ujian"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value)}
+            placeholder="LAB-01"
+            size="sm"
+          />
 
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="seat-prefix-input"
-              className="text-xs font-semibold text-slate-700"
-            >
-              Prefix Nomor Meja
-            </label>
-            <input
-              id="seat-prefix-input"
-              type="text"
-              value={seatPrefix}
-              onChange={(e) => setSeatPrefix(e.target.value)}
-              placeholder="Contoh: M (menghasilkan M-01, M-02, dst)"
-              className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0097a7]"
-            />
-          </div>
+          <TextField
+            id="seat-prefix-input"
+            label="Prefix Nomor Meja"
+            value={seatPrefix}
+            onChange={(e) => setSeatPrefix(e.target.value)}
+            placeholder="Contoh: M (menghasilkan M-01, M-02, dst)"
+            size="sm"
+          />
 
           {error && (
             <p className="text-xs font-semibold text-rose-600">{error}</p>
@@ -216,7 +226,7 @@ export const AssignGroupsSection: FC<AssignGroupsSectionProps> = ({
 
       {/* Preview of Assigned Participants and Seat Numbers */}
       {participants.length > 0 && (
-        <div className="flex flex-col gap-4 p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs">
+        <Card className="flex flex-col gap-4 p-5 sm:p-6">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-bold text-slate-900">
@@ -229,43 +239,41 @@ export const AssignGroupsSection: FC<AssignGroupsSectionProps> = ({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/90 text-slate-500 font-semibold uppercase text-[11px] border-b border-slate-200/80">
-                <tr>
-                  <th className="px-4 py-3">Nomor Meja</th>
-                  <th className="px-4 py-3">Ruang Ujian</th>
-                  <th className="px-4 py-3">Nama Siswa</th>
-                  <th className="px-4 py-3">NIS / Username</th>
-                  <th className="px-4 py-3">Kelas</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {participants.map((p) => (
-                  <tr key={p.studentId} className="hover:bg-slate-50/80">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="font-mono font-black text-xs px-2.5 py-1 rounded-lg bg-[#0d2b5c] text-white">
-                        {p.seatNumber}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap font-bold text-[#0097a7]">
-                      {p.roomCode}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-slate-900">
-                      {p.fullName}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-slate-500">
-                      {p.username}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                      {p.className || "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeaderCell className="px-4 py-3">Nomor Meja</TableHeaderCell>
+                <TableHeaderCell className="px-4 py-3">Ruang Ujian</TableHeaderCell>
+                <TableHeaderCell className="px-4 py-3">Nama Siswa</TableHeaderCell>
+                <TableHeaderCell className="px-4 py-3">NIS / Username</TableHeaderCell>
+                <TableHeaderCell className="px-4 py-3">Kelas</TableHeaderCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {participants.map((p) => (
+                <TableRow key={p.studentId} className="hover:bg-slate-50/80">
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <Badge color="primary" variant="filled" size="sm" className="font-mono font-black text-xs">
+                      {p.seatNumber}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap font-bold text-[#0097a7]">
+                    {p.roomCode}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 font-semibold text-slate-900">
+                    {p.fullName}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 font-mono text-slate-500">
+                    {p.username}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap text-slate-600">
+                    {p.className || "-"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );

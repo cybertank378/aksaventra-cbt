@@ -1,13 +1,24 @@
 "use client";
 
 import { ArrowLeft, Edit3, Search } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
 import type { UserRole } from "@/libs/enums";
 import type { ExamParticipantDTO } from "@/modules/exams/domain/dto/ExamRosterDTO";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
 import Modal from "@/shared-ui/component/Modal";
+import TextField from "@/shared-ui/component/TextField";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
 
 export interface ExamParticipantsSectionProps {
   examId: string;
@@ -18,6 +29,7 @@ export const ExamParticipantsSection: FC<ExamParticipantsSectionProps> = ({
   examId,
   userRole: _userRole,
 }) => {
+  const router = useRouter();
   const { participants, isLoading, error, fetchParticipants, updateSeat } =
     useExamManagementApi(examId);
 
@@ -36,6 +48,14 @@ export const ExamParticipantsSection: FC<ExamParticipantsSectionProps> = ({
     setEditingParticipant(p);
     setCustomRoom(p.roomCode);
     setCustomSeat(p.seatNumber);
+  };
+
+  const handleBackToExams = () => {
+    router.replace("/dashboard/exams");
+  };
+
+  const handleAssignGroups = () => {
+    router.replace(`/dashboard/exams/${examId}/assign-groups`);
   };
 
   const handleSaveSeat = async () => {
@@ -67,23 +87,26 @@ export const ExamParticipantsSection: FC<ExamParticipantsSectionProps> = ({
     <div className="flex flex-col gap-6 w-full">
       {/* Navigation & Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/dashboard/exams">
-          <Button
-            type="button"
-            variant="outline"
-            color="secondary"
-            size="sm"
-            leftIcon={ArrowLeft}
-          >
-            Kembali ke Daftar Ujian
-          </Button>
-        </Link>
+        <Button
+          type="button"
+          variant="outline"
+          color="secondary"
+          size="sm"
+          leftIcon={ArrowLeft}
+          onClick={handleBackToExams}
+        >
+          Kembali ke Daftar Ujian
+        </Button>
 
-        <Link href={`/dashboard/exams/${examId}/assign-groups`}>
-          <Button type="button" variant="filled" color="primary" size="sm">
-            Tugaskan Rombel Baru
-          </Button>
-        </Link>
+        <Button
+          type="button"
+          variant="filled"
+          color="primary"
+          size="sm"
+          onClick={handleAssignGroups}
+        >
+          Tugaskan Rombel Baru
+        </Button>
       </div>
 
       {error && (
@@ -94,14 +117,13 @@ export const ExamParticipantsSection: FC<ExamParticipantsSectionProps> = ({
 
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
+        <div className="flex-1 max-w-md">
+          <TextField
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari berdasarkan nama, NIS, atau nomor meja..."
-            className="w-full text-xs rounded-xl border border-slate-200 pl-9 pr-3.5 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#0097a7]"
+            leftIcon={Search}
+            size="sm"
           />
         </div>
 
@@ -111,77 +133,75 @@ export const ExamParticipantsSection: FC<ExamParticipantsSectionProps> = ({
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-3xl bg-white border border-slate-200/90 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/90 text-slate-500 font-semibold uppercase text-[11px] border-b border-slate-200/80">
-              <tr>
-                <th className="px-5 py-3.5">Nomor Meja</th>
-                <th className="px-5 py-3.5">Ruang</th>
-                <th className="px-5 py-3.5">Nama Siswa</th>
-                <th className="px-5 py-3.5">NIS / Username</th>
-                <th className="px-5 py-3.5">Kelas</th>
-                <th className="px-5 py-3.5 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading && participants.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center">
-                    <div className="h-6 w-6 mx-auto animate-spin rounded-full border-2 border-slate-300 border-t-[#0097a7]" />
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-5 py-8 text-center text-slate-400"
-                  >
-                    Belum ada siswa yang ditugaskan ke ujian ini.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((p) => (
-                  <tr
-                    key={p.studentId}
-                    className="hover:bg-slate-50/80 transition-colors"
-                  >
-                    <td className="px-5 py-3.5 whitespace-nowrap">
-                      <span className="font-mono font-black text-xs px-2.5 py-1 rounded-lg bg-[#0d2b5c] text-white">
-                        {p.seatNumber}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap font-bold text-[#0097a7]">
-                      {p.roomCode}
-                    </td>
-                    <td className="px-5 py-3.5 font-bold text-slate-900">
-                      {p.fullName}
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-slate-600">
-                      {p.username}
-                    </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">
-                      {p.className || "-"}
-                    </td>
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        color="secondary"
-                        size="sm"
-                        leftIcon={Edit3}
-                        onClick={() => handleOpenEdit(p)}
-                      >
-                        Ubah Meja
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Card className="p-0 overflow-hidden">
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell className="px-5 py-3.5">Nomor Meja</TableHeaderCell>
+              <TableHeaderCell className="px-5 py-3.5">Ruang</TableHeaderCell>
+              <TableHeaderCell className="px-5 py-3.5">Nama Siswa</TableHeaderCell>
+              <TableHeaderCell className="px-5 py-3.5">NIS / Username</TableHeaderCell>
+              <TableHeaderCell className="px-5 py-3.5">Kelas</TableHeaderCell>
+              <TableHeaderCell className="px-5 py-3.5 text-right">Aksi</TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {isLoading && participants.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="px-5 py-12 text-center">
+                  <div className="h-6 w-6 mx-auto animate-spin rounded-full border-2 border-slate-300 border-t-[#0097a7]" />
+                </TableCell>
+              </TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="px-5 py-8 text-center text-slate-400"
+                >
+                  Belum ada siswa yang ditugaskan ke ujian ini.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((p) => (
+                <TableRow
+                  key={p.studentId}
+                  className="hover:bg-slate-50/80 transition-colors"
+                >
+                  <TableCell className="px-5 py-3.5 whitespace-nowrap">
+                    <Badge color="primary" variant="filled" size="sm" className="font-mono font-black text-xs">
+                      {p.seatNumber}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-5 py-3.5 whitespace-nowrap font-bold text-[#0097a7]">
+                    {p.roomCode}
+                  </TableCell>
+                  <TableCell className="px-5 py-3.5 font-bold text-slate-900">
+                    {p.fullName}
+                  </TableCell>
+                  <TableCell className="px-5 py-3.5 font-mono text-slate-600">
+                    {p.username}
+                  </TableCell>
+                  <TableCell className="px-5 py-3.5 whitespace-nowrap text-slate-600">
+                    {p.className || "-"}
+                  </TableCell>
+                  <TableCell className="px-5 py-3.5 text-right whitespace-nowrap">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      color="secondary"
+                      size="sm"
+                      leftIcon={Edit3}
+                      onClick={() => handleOpenEdit(p)}
+                    >
+                      Ubah Meja
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
 
       {/* Modal Edit Seat Number */}
       <Modal
@@ -202,37 +222,22 @@ export const ExamParticipantsSection: FC<ExamParticipantsSectionProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="custom-room-input"
-                className="text-xs font-semibold text-slate-700"
-              >
-                Ruang Ujian
-              </label>
-              <input
-                id="custom-room-input"
-                type="text"
-                value={customRoom}
-                onChange={(e) => setCustomRoom(e.target.value)}
-                className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0097a7]"
-              />
-            </div>
+            <TextField
+              id="custom-room-input"
+              label="Ruang Ujian"
+              value={customRoom}
+              onChange={(e) => setCustomRoom(e.target.value)}
+              size="sm"
+            />
 
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="custom-seat-input"
-                className="text-xs font-semibold text-slate-700"
-              >
-                Nomor Meja
-              </label>
-              <input
-                id="custom-seat-input"
-                type="text"
-                value={customSeat}
-                onChange={(e) => setCustomSeat(e.target.value)}
-                className="w-full text-xs rounded-xl border border-slate-200 px-3 py-2 font-mono font-bold text-[#0d2b5c] focus:outline-hidden focus:ring-2 focus:ring-[#0097a7]"
-              />
-            </div>
+            <TextField
+              id="custom-seat-input"
+              label="Nomor Meja"
+              value={customSeat}
+              onChange={(e) => setCustomSeat(e.target.value)}
+              size="sm"
+              className="font-mono font-bold text-[#0d2b5c]"
+            />
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
               <Button

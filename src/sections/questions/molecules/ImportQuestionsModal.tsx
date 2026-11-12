@@ -174,6 +174,15 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
     }
   };
 
+  const handleProcessDownload = (url: string, filename: string) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSubmit = async () => {
     if (!rawCsvText) return;
 
@@ -219,46 +228,49 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
 
             <div className="flex flex-wrap items-center gap-2">
               <Button
-                asChild
+                type="button"
                 variant="outline"
                 color="success"
                 size="sm"
                 leftIcon={Download}
+                onClick={() =>
+                  handleProcessDownload(
+                    "/templates/sample_import_soal.xlsx",
+                    "sample_import_soal.xlsx",
+                  )
+                }
               >
-                <a
-                  href="/templates/sample_import_soal.xlsx"
-                  download="sample_import_soal.xlsx"
-                >
-                  Excel (.xlsx)
-                </a>
+                Excel (.xlsx)
               </Button>
               <Button
-                asChild
+                type="button"
                 variant="outline"
                 color="teal"
                 size="sm"
                 leftIcon={Download}
+                onClick={() =>
+                  handleProcessDownload(
+                    "/templates/sample_import_soal.xls",
+                    "sample_import_soal.xls",
+                  )
+                }
               >
-                <a
-                  href="/templates/sample_import_soal.xls"
-                  download="sample_import_soal.xls"
-                >
-                  Excel (.xls)
-                </a>
+                Excel (.xls)
               </Button>
               <Button
-                asChild
+                type="button"
                 variant="outline"
                 color="secondary"
                 size="sm"
                 leftIcon={Download}
+                onClick={() =>
+                  handleProcessDownload(
+                    "/templates/sample_import_soal.csv",
+                    "sample_import_soal.csv",
+                  )
+                }
               >
-                <a
-                  href="/templates/sample_import_soal.csv"
-                  download="sample_import_soal.csv"
-                >
-                  CSV
-                </a>
+                CSV
               </Button>
             </div>
           </div>

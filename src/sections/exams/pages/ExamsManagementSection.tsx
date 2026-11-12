@@ -11,11 +11,22 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
 import type { UserRole } from "@/libs/enums";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Card from "@/shared-ui/component/Card";
+import TextField from "@/shared-ui/component/TextField";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
 
 interface ExamItemView {
   id: string;
@@ -34,6 +45,7 @@ export interface ExamsManagementSectionProps {
 export const ExamsManagementSection: FC<ExamsManagementSectionProps> = ({
   userRole: _userRole,
 }) => {
+  const router = useRouter();
   const { examsList, fetchExamsList, isLoading, error } =
     useExamManagementApi();
   const [search, setSearch] = useState("");
@@ -48,15 +60,30 @@ export const ExamsManagementSection: FC<ExamsManagementSectionProps> = ({
     examsList && examsList.length > 0
       ? examsList.map((e) => {
           const durationMins = Math.round((e.durationSeconds || 5400) / 60);
+          const raw = e as unknown as {
+            timeOpen?: string;
+            timeClose?: string;
+            status?: string;
+          };
+          const computedStatus: "ACTIVE" | "SCHEDULED" | "COMPLETED" =
+            raw.status === "SCHEDULED" || raw.status === "COMPLETED"
+              ? raw.status
+              : raw.timeClose && new Date(raw.timeClose) < new Date()
+                ? "COMPLETED"
+                : raw.timeOpen && new Date(raw.timeOpen) > new Date()
+                  ? "SCHEDULED"
+                  : "ACTIVE";
 
           return {
             id: String(e.examId || e.moodleCbtId),
             title: e.title || e.courseName || `Ujian CBT #${e.examId}`,
-            course: e.courseName || "Mata Pelajaran Umum",
+            course: e.courseName || "-",
             durationMinutes: durationMins,
             totalQuestions: e.questions?.length || 0,
-            startDate: "Tersedia",
-            status: "ACTIVE",
+            startDate: raw.timeOpen
+              ? new Date(raw.timeOpen).toLocaleDateString("id-ID")
+              : "-",
+            status: computedStatus,
           };
         })
       : [];
@@ -71,18 +98,37 @@ export const ExamsManagementSection: FC<ExamsManagementSectionProps> = ({
     return true;
   });
 
+  const handleCreateExam = () => {
+    router.replace("/dashboard/exams/new");
+  };
+
+  const handleManageQuestions = (id: string) => {
+    router.replace(`/dashboard/exams/${id}/questions`);
+  };
+
+  const handleManageParticipants = (id: string) => {
+    router.replace(`/dashboard/exams/${id}/participants`);
+  };
+
+  const handleViewRecap = (id: string) => {
+    router.replace(`/dashboard/exams/${id}/recapitulation`);
+  };
+
+  const handleOpenProctor = (id: string) => {
+    router.replace(`/dashboard/proctor/${id}`);
+  };
+
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Search & Filter Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
+        <div className="w-full sm:w-96">
+          <TextField
             placeholder="Cari naskah ujian atau mata pelajaran..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#0d2b5c]/20 focus:border-[#0d2b5c] transition-all bg-slate-50/50"
+            leftIcon={Search}
+            size="sm"
           />
         </div>
 
@@ -99,29 +145,27 @@ export const ExamsManagementSection: FC<ExamsManagementSectionProps> = ({
             {isLoading ? "Memuat..." : "Refresh"}
           </Button>
 
-          <Link href="/dashboard/exams/new">
-            <Button
-              type="button"
-              variant="filled"
-              color="primary"
-              size="sm"
-              leftIcon={Plus}
-            >
-              Buat Ujian Baru
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="filled"
+            color="primary"
+            size="sm"
+            leftIcon={Plus}
+            onClick={handleCreateExam}
+          >
+            Buat Ujian Baru
+          </Button>
 
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1">
             {["ALL", "ACTIVE", "SCHEDULED", "COMPLETED"].map((tab) => (
-              <button
+              <Button
                 key={tab}
                 type="button"
+                size="sm"
+                variant={filter === tab ? "filled" : "ghost"}
+                color={filter === tab ? "primary" : "secondary"}
                 onClick={() => setFilter(tab)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  filter === tab
-                    ? "bg-[#0d2b5c] text-white shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                className="rounded-lg text-xs"
               >
                 {tab === "ALL"
                   ? "Semua"
@@ -130,7 +174,7 @@ export const ExamsManagementSection: FC<ExamsManagementSectionProps> = ({
                     : tab === "SCHEDULED"
                       ? "Terjadwal"
                       : "Selesai"}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -143,168 +187,158 @@ export const ExamsManagementSection: FC<ExamsManagementSectionProps> = ({
       )}
 
       {/* Exams Table Container */}
-      <div className="rounded-3xl bg-white border border-slate-200/90 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-6 py-4">Nama Ujian</th>
-                <th className="px-6 py-4">Jadwal & Durasi</th>
-                <th className="px-6 py-4">Jumlah Soal</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {isLoading && mappedExams.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-500">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
-                      <p className="font-semibold text-xs">
-                        Memuat data ujian dari Moodle CBT...
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredExams.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-500">
-                    <p className="font-bold text-sm text-slate-700">
-                      Tidak ada naskah ujian ditemukan
+      <Card className="p-0 overflow-hidden">
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell className="px-6 py-4">Nama Ujian</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-4">Jadwal & Durasi</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-4">Jumlah Soal</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-4">Status</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-4 text-right">Aksi</TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {isLoading && mappedExams.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-12 text-center text-slate-500">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
+                    <p className="font-semibold text-xs">
+                      Memuat data ujian dari Moodle CBT...
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Silakan buat jadwal naskah ujian baru atau ubah kata kunci
-                      pencarian.
-                    </p>
-                    <Link
-                      href="/dashboard/exams/new"
-                      className="inline-block mt-4"
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredExams.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-12 text-center text-slate-500">
+                  <p className="font-bold text-sm text-slate-700">
+                    Tidak ada naskah ujian ditemukan
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Silakan buat jadwal naskah ujian baru atau ubah kata kunci
+                    pencarian.
+                  </p>
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      variant="filled"
+                      color="primary"
+                      size="sm"
+                      leftIcon={Plus}
+                      onClick={() => router.push("/dashboard/exams/new")}
                     >
+                      Buat Ujian Baru
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredExams.map((e) => (
+                <TableRow
+                  key={e.id}
+                  className="hover:bg-slate-50/60 transition-colors"
+                >
+                  <TableCell className="px-6 py-4">
+                    <p className="font-bold text-slate-900 text-xs">
+                      {e.title}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {e.course}
+                    </p>
+                  </TableCell>
+
+                  <TableCell className="px-6 py-4 text-slate-600 space-y-1">
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{e.startDate}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{e.durationMinutes} Menit</span>
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="px-6 py-4 font-semibold text-slate-700">
+                    {e.totalQuestions} Butir Soal
+                  </TableCell>
+
+                  <TableCell className="px-6 py-4">
+                    <Badge
+                      color={
+                        e.status === "ACTIVE"
+                          ? "teal"
+                          : e.status === "SCHEDULED"
+                            ? "neutral"
+                            : "success"
+                      }
+                      size="sm"
+                    >
+                      {e.status === "ACTIVE"
+                        ? "Aktif"
+                        : e.status === "SCHEDULED"
+                          ? "Terjadwal"
+                          : "Selesai"}
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        color="secondary"
+                        size="sm"
+                        leftIcon={BookOpen}
+                        title="Kelola Butir Soal"
+                        onClick={() => handleManageQuestions(e.id)}
+                      >
+                        Soal
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        color="secondary"
+                        size="sm"
+                        leftIcon={Users}
+                        title="Distribusi Meja & Peserta"
+                        onClick={() => handleManageParticipants(e.id)}
+                      >
+                        Meja
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        color="secondary"
+                        size="sm"
+                        leftIcon={BarChart3}
+                        title="Rekapitulasi Nilai"
+                        onClick={() => handleViewRecap(e.id)}
+                      >
+                        Rekap
+                      </Button>
+
                       <Button
                         type="button"
                         variant="filled"
                         color="primary"
                         size="sm"
-                        leftIcon={Plus}
+                        rightIcon={ArrowRight}
+                        onClick={() => handleOpenProctor(e.id)}
                       >
-                        Buat Ujian Baru
+                        Proktor
                       </Button>
-                    </Link>
-                  </td>
-                </tr>
-              ) : (
-                filteredExams.map((e) => (
-                  <tr
-                    key={e.id}
-                    className="hover:bg-slate-50/60 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-slate-900 text-xs">
-                        {e.title}
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {e.course}
-                      </p>
-                    </td>
-
-                    <td className="px-6 py-4 text-slate-600 space-y-1">
-                      <div className="flex items-center gap-1.5 text-[11px]">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{e.startDate}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[11px]">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{e.durationMinutes} Menit</span>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 font-semibold text-slate-700">
-                      {e.totalQuestions} Butir Soal
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                          e.status === "ACTIVE"
-                            ? "bg-teal-50 text-teal-700 border border-teal-200"
-                            : e.status === "SCHEDULED"
-                              ? "bg-slate-100 text-slate-600"
-                              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        }`}
-                      >
-                        {e.status === "ACTIVE" && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                        )}
-                        {e.status === "ACTIVE"
-                          ? "Aktif"
-                          : e.status === "SCHEDULED"
-                            ? "Terjadwal"
-                            : "Selesai"}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Link href={`/dashboard/exams/${e.id}/questions`}>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            color="secondary"
-                            size="sm"
-                            leftIcon={BookOpen}
-                            title="Kelola Butir Soal"
-                          >
-                            Soal
-                          </Button>
-                        </Link>
-
-                        <Link href={`/dashboard/exams/${e.id}/participants`}>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            color="secondary"
-                            size="sm"
-                            leftIcon={Users}
-                            title="Distribusi Meja & Peserta"
-                          >
-                            Meja
-                          </Button>
-                        </Link>
-
-                        <Link href={`/dashboard/exams/${e.id}/recapitulation`}>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            color="secondary"
-                            size="sm"
-                            leftIcon={BarChart3}
-                            title="Rekapitulasi Nilai"
-                          >
-                            Rekap
-                          </Button>
-                        </Link>
-
-                        <Link href={`/dashboard/proctor/${e.id}`}>
-                          <Button
-                            type="button"
-                            variant="filled"
-                            color="primary"
-                            size="sm"
-                            rightIcon={ArrowRight}
-                          >
-                            Proktor
-                          </Button>
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 };

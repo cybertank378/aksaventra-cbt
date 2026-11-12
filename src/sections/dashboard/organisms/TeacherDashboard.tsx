@@ -9,12 +9,13 @@ import {
   RefreshCw,
   Users,
 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FC, useEffect } from "react";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
 import Button from "@/shared-ui/component/Button";
 
 export const TeacherDashboard: FC = () => {
+  const router = useRouter();
   const { examsList, fetchExamsList, isLoading } = useExamManagementApi();
 
   useEffect(() => {
@@ -28,6 +29,26 @@ export const TeacherDashboard: FC = () => {
     questionCount: e.questions?.length || 0,
     durationMinutes: Math.round((e.durationSeconds || 5400) / 60),
   }));
+
+  const handleCreateQuestion = () => {
+    router.replace("/dashboard/questions/new");
+  };
+
+  const handleCreateExam = () => {
+    router.replace("/dashboard/exams/new");
+  };
+
+  const handleManageAllExams = () => {
+    router.replace("/dashboard/exams");
+  };
+
+  const handleManageQuestions = (examId: string) => {
+    router.replace(`/dashboard/exams/${examId}/questions`);
+  };
+
+  const handleViewRecap = (examId: string) => {
+    router.replace(`/dashboard/exams/${examId}/recapitulation`);
+  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -47,28 +68,26 @@ export const TeacherDashboard: FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/dashboard/questions/new">
-            <Button
-              type="button"
-              variant="outline"
-              size="md"
-              leftIcon={Plus}
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            >
-              Buat Soal Baru
-            </Button>
-          </Link>
-          <Link href="/dashboard/exams/new">
-            <Button
-              type="button"
-              variant="filled"
-              size="md"
-              leftIcon={Plus}
-              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold"
-            >
-              Jadwalkan Ujian
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            leftIcon={Plus}
+            onClick={handleCreateQuestion}
+            className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+          >
+            Buat Soal Baru
+          </Button>
+          <Button
+            type="button"
+            variant="filled"
+            size="md"
+            leftIcon={Plus}
+            onClick={handleCreateExam}
+            className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold"
+          >
+            Jadwalkan Ujian
+          </Button>
         </div>
       </div>
 
@@ -131,11 +150,15 @@ export const TeacherDashboard: FC = () => {
             </p>
           </div>
 
-          <Link href="/dashboard/exams">
-            <Button type="button" variant="outline" color="secondary" size="sm">
-              Kelola Semua Ujian
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            onClick={handleManageAllExams}
+          >
+            Kelola Semua Ujian
+          </Button>
         </div>
 
         <div className="divide-y divide-slate-100">
@@ -177,28 +200,26 @@ export const TeacherDashboard: FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                  <Link href={`/dashboard/exams/${exam.id}/questions`}>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      color="secondary"
-                      size="sm"
-                      leftIcon={FileQuestion}
-                    >
-                      Kelola Soal
-                    </Button>
-                  </Link>
-                  <Link href={`/dashboard/exams/${exam.id}/recapitulation`}>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      color="primary"
-                      size="sm"
-                      leftIcon={BarChart3}
-                    >
-                      Rekap Nilai
-                    </Button>
-                  </Link>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="secondary"
+                    size="sm"
+                    leftIcon={FileQuestion}
+                    onClick={() => handleManageQuestions(exam.id)}
+                  >
+                    Kelola Soal
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="primary"
+                    size="sm"
+                    leftIcon={BarChart3}
+                    onClick={() => handleViewRecap(exam.id)}
+                  >
+                    Rekap Nilai
+                  </Button>
                 </div>
               </div>
             ))

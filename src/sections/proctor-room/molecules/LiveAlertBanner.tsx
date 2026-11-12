@@ -61,13 +61,14 @@ export const LiveAlertBanner: FC<LiveAlertBannerProps> = ({
           </Button>
         )}
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => setDismissed(true)}
-          className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10"
-        >
-          <X className="w-4 h-4" />
-        </button>
+          leftIcon={X}
+          className="text-white hover:bg-white/10"
+        />
       </div>
     </div>
   );

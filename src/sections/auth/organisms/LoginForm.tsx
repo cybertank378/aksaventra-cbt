@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Lock, LogIn, User } from "lucide-react";
+import { Lock, LogIn, User } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FC, type FormEvent, useState } from "react";
 import { useAuthApi } from "@/modules/auth/presentation/useAuthApi";
@@ -11,7 +11,7 @@ import {
 } from "@/security/rbacConfig";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
-import Input from "@/shared-ui/component/Input";
+import TextField from "@/shared-ui/component/TextField";
 
 export interface LoginFormProps {
   onSuccess?: (user: {
@@ -31,7 +31,6 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -61,10 +60,10 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
       } else {
         const role = (user.role as UserRole) || "STUDENT";
         if (role === "STUDENT" && examIdParam) {
-          router.push(`/student/lobby/${examIdParam}`);
+          router.replace(`/student/lobby/${examIdParam}`);
         } else {
           const redirectPath = getDefaultRedirectForRole(role);
-          router.push(redirectPath);
+          router.replace(redirectPath);
         }
       }
     } catch (err) {
@@ -102,7 +101,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
         )}
 
         <div className="flex flex-col gap-4">
-          <Input
+          <TextField
             id="username-input"
             label="Username / NISN"
             placeholder="Masukkan username atau nomor induk..."
@@ -117,35 +116,22 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
             required
           />
 
-          <div className="flex flex-col gap-1.5">
-            <div className="relative flex items-center">
-              <Input
-                id="password-input"
-                label="Kata Sandi (Password)"
-                type={showPassword ? "text" : "password"}
-                placeholder="Masukkan kata sandi..."
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (localError) setLocalError(null);
-                }}
-                disabled={isLoading}
-                leftIcon={Lock}
-                autoComplete="current-password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3.5 top-[34px] text-slate-400 hover:text-slate-600 focus:outline-none"
-                aria-label={
-                  showPassword ? "Sembunyikan password" : "Lihat password"
-                }
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
+          <TextField
+            id="password-input"
+            label="Kata Sandi (Password)"
+            type="password"
+            placeholder="Masukkan kata sandi..."
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (localError) setLocalError(null);
+            }}
+            disabled={isLoading}
+            leftIcon={Lock}
+            enablePasswordToggle
+            autoComplete="current-password"
+            required
+          />
         </div>
 
         <Button

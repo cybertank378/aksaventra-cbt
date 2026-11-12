@@ -8,6 +8,7 @@ import type {
 } from "@/modules/proctor/domain/dto/ProctorActionDTO";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
+import TextField from "@/shared-ui/component/TextField";
 import ParticipantStatusBadge from "../atoms/ParticipantStatusBadge";
 
 export interface ParticipantActionModalProps {
@@ -131,39 +132,30 @@ export const ParticipantActionModal: FC<ParticipantActionModalProps> = ({
           </label>
           <div className="flex items-center gap-2">
             {[5, 10, 15, 30].map((mins) => (
-              <button
+              <Button
                 key={mins}
                 type="button"
+                size="sm"
+                variant={extendMinutes === mins ? "filled" : "outline"}
+                color={extendMinutes === mins ? "primary" : "secondary"}
                 onClick={() => setExtendMinutes(mins)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-                  extendMinutes === mins
-                    ? "bg-[#0097a7] text-white border-[#0097a7]"
-                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                }`}
+                className="rounded-lg"
               >
                 +{mins} Menit
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
         {/* Optional Reason Input */}
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="proctor-reason"
-            className="text-xs font-semibold text-slate-700"
-          >
-            Alasan / Catatan Intervensi Pengawas (Opsional):
-          </label>
-          <input
-            id="proctor-reason"
-            type="text"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Contoh: Salah klik tab / mati lampu / gangguan jaringan"
-            className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
-          />
-        </div>
+        <TextField
+          id="proctor-reason"
+          label="Alasan / Catatan Intervensi Pengawas (Opsional):"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Contoh: Salah klik tab / mati lampu / gangguan jaringan"
+          size="sm"
+        />
 
         {errorMessage && (
           <p className="text-xs font-semibold text-rose-600">{errorMessage}</p>
