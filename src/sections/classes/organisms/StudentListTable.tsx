@@ -18,6 +18,7 @@ export const StudentListTable: FC = () => {
     fetchClasses,
     fetchStudents,
     createStudent,
+    exportStudents,
   } = useClassesApi();
 
   const [search, setSearch] = useState("");
@@ -34,13 +35,9 @@ export const StudentListTable: FC = () => {
   const handleExportStudents = async () => {
     setIsExporting(true);
     try {
-      // 1. Try Moodle Bridge endpoint first
-      const res = await fetch(
-        "/api/moodle-proxy/mod_cbt_import_export?action=export_students",
-      );
-      const data = await res.json();
-      if (data.success && data.csv_data) {
-        downloadCsvBlob(data.csv_data, "daftar_siswa_moodle.csv");
+      const csvData = await exportStudents();
+      if (csvData) {
+        downloadCsvBlob(csvData, "daftar_siswa_moodle.csv");
         setIsExporting(false);
         return;
       }

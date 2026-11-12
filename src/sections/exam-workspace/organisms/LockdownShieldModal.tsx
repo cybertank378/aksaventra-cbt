@@ -2,6 +2,7 @@
 
 import { Lock, RefreshCw, ShieldAlert } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
+import { useAttemptApi } from "@/modules/attempts/presentation/useAttemptApi";
 import Button from "@/shared-ui/component/Button";
 
 export interface LockdownShieldModalProps {
@@ -19,6 +20,7 @@ export const LockdownShieldModal: FC<LockdownShieldModalProps> = ({
   maxStrikes = 3,
   onUnlocked,
 }) => {
+  const { syncBatch } = useAttemptApi();
   const [isPolling, setIsPolling] = useState(false);
 
   // Heartbeat polling every 5 seconds to detect when Proctor triggers Unlock Strike
@@ -31,24 +33,16 @@ export const LockdownShieldModal: FC<LockdownShieldModalProps> = ({
       try {
         setIsPolling(true);
         // Ping attempt sync endpoint to receive updated status
-        const res = await fetch(`/api/attempts/${attemptId}/sync`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            attemptId,
-            answers: [],
-            syncVersion: 0,
-          }),
+        const data = await syncBatch({
+          attemptId,
+          answers: [],
+          syncVersion: 0,
         });
 
         if (!isMounted) return;
 
-        if (res.ok) {
-          const data = await res.json();
-          const currentStatus = data.data?.status || data.status;
-          if (currentStatus === "IN_PROGRESS") {
-            onUnlocked();
-          }
+        if (data && data.status === "IN_PROGRESS") {
+          onUnlocked();
         }
       } catch (_err) {
         // Continue polling silently

@@ -34,9 +34,9 @@ export function useExamManagementApi(examId?: string) {
   }, []);
 
   const fetchExam = useCallback(
-    async (id?: string) => {
+    async (id?: string): Promise<ExamSnapshotDTO | null> => {
       const targetId = id || examId;
-      if (!targetId) return;
+      if (!targetId) return null;
 
       setIsLoading(true);
       setError(null);
@@ -45,11 +45,13 @@ export function useExamManagementApi(examId?: string) {
         const json = await res.json();
         if (json.success && json.data) {
           setExam(json.data);
-        } else {
-          setError(json.error?.message || "Gagal memuat snapshot ujian");
+          return json.data as ExamSnapshotDTO;
         }
+        setError(json.error?.message || "Gagal memuat snapshot ujian");
+        return null;
       } catch {
         setError("Gangguan jaringan saat memuat data ujian");
+        return null;
       } finally {
         setIsLoading(false);
       }

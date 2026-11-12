@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  AlertCircle,
-  CheckCircle2,
   Download,
   FileSpreadsheet,
   Loader2,
@@ -11,6 +9,7 @@ import {
 } from "lucide-react";
 import { type ChangeEvent, type DragEvent, type FC, useState } from "react";
 import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
+import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
 
@@ -27,26 +26,19 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
   onSuccess,
   cbtId = 1,
 }) => {
+  const { importStudents, isLoading } = useClassesApi();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [rawCsvText, setRawCsvText] = useState<string>("");
   const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([]);
   const [totalRows, setTotalRows] = useState(0);
   const [isParsing, setIsParsing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [result, setResult] = useState<{
-    success: boolean;
-    message: string;
-    importedCount: number;
-    errors: string[];
-  } | null>(null);
 
   const handleReset = () => {
     setSelectedFile(null);
     setRawCsvText("");
     setPreviewRows([]);
     setTotalRows(0);
-    setResult(null);
   };
 
   const handleClose = () => {
@@ -56,7 +48,6 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
 
   const processFile = async (file: File) => {
     setIsParsing(true);
-    setResult(null);
     try {
       const parsed = await parseTabularFile(file);
       const csvString = generateExcelCsv(parsed.headers, parsed.rawRows);
@@ -65,13 +56,7 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
       setPreviewRows(parsed.rows.slice(0, 5));
       setTotalRows(parsed.totalRows);
     } catch {
-      setResult({
-        success: false,
-        message:
-          "Gagal memproses berkas. Pastikan format Excel (.xlsx, .xls) atau CSV valid.",
-        importedCount: 0,
-        errors: ["Berkas tidak dapat dibaca."],
-      });
+      handleReset();
     } finally {
       setIsParsing(false);
     }
@@ -107,50 +92,12 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
   const handleSubmit = async () => {
     if (!rawCsvText) return;
 
-    setIsSubmitting(true);
-    setResult(null);
-
-    try {
-      const res = await fetch("/api/moodle-proxy/mod_cbt_import_export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "import_students",
-          cbtid: cbtId,
-          payload: rawCsvText,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setResult({
-          success: true,
-          message:
-            data.message || `Berhasil mengimpor ${data.processed_count} siswa.`,
-          importedCount: data.processed_count || 0,
-          errors: data.errors || [],
-        });
-        if (onSuccess) {
-          onSuccess();
-        }
-      } else {
-        setResult({
-          success: false,
-          message: data.message || data.error || "Gagal mengimpor siswa.",
-          importedCount: 0,
-          errors: data.errors || [data.error || "Terjadi kesalahan."],
-        });
+    const res = await importStudents(rawCsvText, cbtId);
+    if (res.success) {
+      if (onSuccess) {
+        onSuccess();
       }
-    } catch {
-      setResult({
-        success: false,
-        message: "Gagal terhubung ke Moodle Headless Bridge.",
-        importedCount: 0,
-        errors: ["Koneksi jaringan terputus."],
-      });
-    } finally {
-      setIsSubmitting(false);
+      handleClose();
     }
   };
 
@@ -314,39 +261,6 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
           </div>
         )}
 
-        {/* Result & Feedback Banner */}
-        {result && (
-          <div
-            className={`p-4 rounded-2xl border flex flex-col gap-2 ${
-              result.success
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-rose-50 border-rose-200 text-rose-800"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {result.success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-rose-600" />
-              )}
-              <p className="text-xs font-bold">{result.message}</p>
-            </div>
-
-            {result.errors.length > 0 && (
-              <div className="mt-1 pl-6">
-                <p className="text-[11px] font-semibold text-rose-700 mb-1">
-                  Catatan / Peringatan:
-                </p>
-                <ul className="list-disc pl-4 text-[11px] text-rose-600 space-y-0.5 max-h-32 overflow-y-auto">
-                  {result.errors.map((err) => (
-                    <li key={err}>{err}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
           <Button
@@ -355,22 +269,22 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
             color="secondary"
             size="sm"
             onClick={handleClose}
-            disabled={isSubmitting}
+            disabled={isLoading}
           >
-            {result?.success ? "Selesai" : "Batal"}
+            Batal
           </Button>
 
-          {selectedFile && !result?.success && (
+          {selectedFile && (
             <Button
               type="button"
               variant="filled"
               color="primary"
               size="sm"
               onClick={handleSubmit}
-              disabled={isSubmitting || isParsing}
-              leftIcon={isSubmitting ? Loader2 : UploadCloud}
+              disabled={isLoading || isParsing}
+              leftIcon={isLoading ? Loader2 : UploadCloud}
             >
-              {isSubmitting
+              {isLoading
                 ? "Mengimpor ke Moodle..."
                 : `Proses ${totalRows} Siswa`}
             </Button>

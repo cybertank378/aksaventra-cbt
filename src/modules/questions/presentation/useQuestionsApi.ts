@@ -1,11 +1,19 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { showErrorToast, showSuccessToast } from "@/shared-ui/component/Toast";
 import type {
   CreateQuestionInputDTO,
   QuestionDTO,
   QuestionsFilterQueryDTO,
 } from "../domain/dto/QuestionDTO";
+
+export interface ImportQuestionsResultDTO {
+  success: boolean;
+  message: string;
+  processedCount: number;
+  errors?: string[];
+}
 
 export function useQuestionsApi() {
   const [questions, setQuestions] = useState<QuestionDTO[]>([]);
@@ -117,6 +125,67 @@ export function useQuestionsApi() {
     }
   }, []);
 
+  const importQuestions = useCallback(
+    async (
+      rawCsvText: string,
+      examId: number | string = 1,
+    ): Promise<ImportQuestionsResultDTO> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const numericCbtId = Number(examId) || 1;
+        const res = await fetch("/api/moodle-proxy/mod_cbt_import_export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "import_questions",
+            cbtid: numericCbtId,
+            payload: rawCsvText,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          const msg =
+            data.message ||
+            `Berhasil mengimpor ${data.processed_count || 0} butir soal.`;
+          showSuccessToast(msg);
+          await fetchQuestions();
+          return {
+            success: true,
+            message: msg,
+            processedCount: data.processed_count || 0,
+            errors: data.errors || [],
+          };
+        }
+
+        const errMsg =
+          data.message || data.error || "Gagal mengimpor butir soal.";
+        showErrorToast(errMsg);
+        setError(errMsg);
+        return {
+          success: false,
+          message: errMsg,
+          processedCount: 0,
+          errors: data.errors || [errMsg],
+        };
+      } catch {
+        const connErr = "Gagal terhubung ke Moodle Headless Bridge.";
+        showErrorToast(connErr);
+        setError(connErr);
+        return {
+          success: false,
+          message: connErr,
+          processedCount: 0,
+          errors: [connErr],
+        };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchQuestions],
+  );
+
   return {
     questions,
     selectedQuestion,
@@ -126,5 +195,6 @@ export function useQuestionsApi() {
     fetchQuestionById,
     createQuestion,
     deleteQuestion,
+    importQuestions,
   };
 }

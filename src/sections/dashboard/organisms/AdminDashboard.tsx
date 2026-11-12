@@ -12,7 +12,8 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { type FC, useEffect, useState } from "react";
+import { type FC, useEffect } from "react";
+import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
 import Button from "@/shared-ui/component/Button";
 
@@ -27,31 +28,25 @@ interface ActiveExamItem {
 }
 
 export const AdminDashboard: FC = () => {
-  const { examsList, fetchExamsList, isLoading } = useExamManagementApi();
-  const [studentCount, setStudentCount] = useState<number>(0);
-  const [classCount, setClassCount] = useState<number>(0);
+  const { examsList, fetchExamsList, isLoading: isExamsLoading } =
+    useExamManagementApi();
+  const {
+    classes,
+    students,
+    fetchClasses,
+    fetchStudents,
+    isLoading: isClassesLoading,
+  } = useClassesApi();
 
   useEffect(() => {
     fetchExamsList();
+    fetchClasses();
+    fetchStudents();
+  }, [fetchExamsList, fetchClasses, fetchStudents]);
 
-    fetch("/api/students")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          setStudentCount(res.data.length);
-        }
-      })
-      .catch(() => {});
-
-    fetch("/api/classes")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          setClassCount(res.data.length);
-        }
-      })
-      .catch(() => {});
-  }, [fetchExamsList]);
+  const studentCount = students.length;
+  const classCount = classes.length;
+  const isLoading = isExamsLoading || isClassesLoading;
 
   const activeExams: ActiveExamItem[] = examsList.map((e) => {
     return {

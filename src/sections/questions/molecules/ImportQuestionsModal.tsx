@@ -1,9 +1,7 @@
 "use client";
 
 import {
-  AlertCircle,
   BookOpen,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Download,
@@ -14,6 +12,7 @@ import {
 } from "lucide-react";
 import { type ChangeEvent, type DragEvent, type FC, useState } from "react";
 import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
+import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
 
@@ -100,6 +99,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
   onSuccess,
   examId = 1,
 }) => {
+  const { importQuestions, isLoading } = useQuestionsApi();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [rawCsvText, setRawCsvText] = useState<string>("");
   const [previewQuestions, setPreviewQuestions] = useState<
@@ -107,22 +107,14 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
   >([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isParsing, setIsParsing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [result, setResult] = useState<{
-    success: boolean;
-    message: string;
-    importedCount: number;
-    errors: string[];
-  } | null>(null);
 
   const handleReset = () => {
     setSelectedFile(null);
     setRawCsvText("");
     setPreviewQuestions([]);
     setTotalQuestions(0);
-    setResult(null);
   };
 
   const handleClose = () => {
@@ -132,7 +124,6 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
 
   const processFile = async (file: File) => {
     setIsParsing(true);
-    setResult(null);
     try {
       const parsed = await parseTabularFile(file);
       const csvString = generateExcelCsv(parsed.headers, parsed.rawRows);
@@ -141,13 +132,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
       setPreviewQuestions(parsed.rows.slice(0, 5));
       setTotalQuestions(parsed.totalRows);
     } catch {
-      setResult({
-        success: false,
-        message:
-          "Gagal memproses berkas naskah soal. Pastikan format Excel (.xlsx, .xls) atau CSV valid.",
-        importedCount: 0,
-        errors: ["Berkas tidak dapat dibaca."],
-      });
+      handleReset();
     } finally {
       setIsParsing(false);
     }
@@ -183,54 +168,12 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
   const handleSubmit = async () => {
     if (!rawCsvText) return;
 
-    setIsSubmitting(true);
-    setResult(null);
-
-    try {
-      const numericCbtId = Number(examId) || 1;
-      const res = await fetch("/api/moodle-proxy/mod_cbt_import_export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "import_questions",
-          cbtid: numericCbtId,
-          payload: rawCsvText,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setResult({
-          success: true,
-          message:
-            data.message ||
-            `Berhasil mengimpor ${data.processed_count} butir soal.`,
-          importedCount: data.processed_count || 0,
-          errors: data.errors || [],
-        });
-        if (onSuccess) {
-          onSuccess();
-        }
-      } else {
-        setResult({
-          success: false,
-          message: data.message || data.error || "Gagal mengimpor butir soal.",
-          importedCount: 0,
-          errors: data.errors || [
-            data.error || "Format kolom naskah soal tidak sesuai.",
-          ],
-        });
+    const res = await importQuestions(rawCsvText, examId);
+    if (res.success) {
+      if (onSuccess) {
+        onSuccess();
       }
-    } catch {
-      setResult({
-        success: false,
-        message: "Gagal terhubung ke Moodle Headless Bridge.",
-        importedCount: 0,
-        errors: ["Koneksi jaringan terputus."],
-      });
-    } finally {
-      setIsSubmitting(false);
+      handleClose();
     }
   };
 
@@ -480,39 +423,6 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
           </div>
         )}
 
-        {/* Result & Feedback Banner */}
-        {result && (
-          <div
-            className={`p-4 rounded-2xl border flex flex-col gap-2 ${
-              result.success
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-rose-50 border-rose-200 text-rose-800"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {result.success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-rose-600" />
-              )}
-              <p className="text-xs font-bold">{result.message}</p>
-            </div>
-
-            {result.errors.length > 0 && (
-              <div className="mt-1 pl-6">
-                <p className="text-[11px] font-semibold text-rose-700 mb-1">
-                  Catatan Kesalahan Validasi:
-                </p>
-                <ul className="list-disc pl-4 text-[11px] text-rose-600 space-y-0.5 max-h-32 overflow-y-auto">
-                  {result.errors.map((err) => (
-                    <li key={err}>{err}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
           <Button
@@ -521,22 +431,22 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
             color="secondary"
             size="sm"
             onClick={handleClose}
-            disabled={isSubmitting}
+            disabled={isLoading}
           >
-            {result?.success ? "Selesai" : "Batal"}
+            Batal
           </Button>
 
-          {selectedFile && !result?.success && (
+          {selectedFile && (
             <Button
               type="button"
               variant="filled"
               color="primary"
               size="sm"
               onClick={handleSubmit}
-              disabled={isSubmitting || isParsing}
-              leftIcon={isSubmitting ? Loader2 : UploadCloud}
+              disabled={isLoading || isParsing}
+              leftIcon={isLoading ? Loader2 : UploadCloud}
             >
-              {isSubmitting
+              {isLoading
                 ? "Memproses Naskah..."
                 : `Simpan ${totalQuestions} Butir Soal`}
             </Button>

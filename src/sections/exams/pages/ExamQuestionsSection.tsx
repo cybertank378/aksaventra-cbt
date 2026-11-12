@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { type FC, useCallback, useEffect, useState } from "react";
 import type { UserRole } from "@/libs/enums";
+import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
 import { ImportQuestionsModal } from "@/sections/questions/molecules/ImportQuestionsModal";
 import Button from "@/shared-ui/component/Button";
 
@@ -80,6 +81,7 @@ export const ExamQuestionsSection: FC<ExamQuestionsSectionProps> = ({
   examId,
   userRole: _userRole,
 }) => {
+  const { fetchExam } = useExamManagementApi(examId);
   const [questions, setQuestions] = useState<QuestionItemView[]>([]);
   const [examTitle, setExamTitle] = useState(`Ujian #${examId}`);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,12 +91,8 @@ export const ExamQuestionsSection: FC<ExamQuestionsSectionProps> = ({
   const fetchQuestions = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 1. Try snapshot endpoint
-      const snapshotRes = await fetch(`/api/exams/${examId}/snapshot`);
-      const snapshotJson = await snapshotRes.json();
-
-      if (snapshotJson.success && snapshotJson.data) {
-        const data = snapshotJson.data;
+      const data = await fetchExam(examId);
+      if (data) {
         setExamTitle(data.title || data.courseName || `Ujian #${examId}`);
         if (Array.isArray(data.questions) && data.questions.length > 0) {
           const mapped: QuestionItemView[] = data.questions.map(
@@ -110,35 +108,15 @@ export const ExamQuestionsSection: FC<ExamQuestionsSectionProps> = ({
             }),
           );
           setQuestions(mapped);
-          setIsLoading(false);
           return;
         }
-      }
-
-      // 2. Fallback to questions bank
-      const qRes = await fetch("/api/questions");
-      const qJson = await qRes.json();
-      if (qJson.success && Array.isArray(qJson.data)) {
-        const mapped: QuestionItemView[] = qJson.data.map(
-          (q: RawQuestionData, idx: number) => ({
-            id: String(q.id || q.questionId || `q-${idx + 1}`),
-            slot: q.slot || idx + 1,
-            type: q.type || "multichoice_single",
-            stem: q.questionText || q.stemHtml || q.stem || "",
-            points: q.points || 1.0,
-            optionsSummary: q.options
-              ? `${q.options.length} Pilihan Jawaban`
-              : undefined,
-          }),
-        );
-        setQuestions(mapped);
       }
     } catch {
       // Keep empty if network fails
     } finally {
       setIsLoading(false);
     }
-  }, [examId]);
+  }, [examId, fetchExam]);
 
   useEffect(() => {
     fetchQuestions();
