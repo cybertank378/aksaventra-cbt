@@ -61,6 +61,7 @@ export interface AuthRepositoryInterface {
     username: string;
     fullName: string;
     role?: UserRole;
+    rawPassword?: string;
   }): Promise<UserSessionEntity>;
   ensureExamExistsForMoodleCbt(moodleCbtId: number): Promise<ExamTokenInfo>;
 }

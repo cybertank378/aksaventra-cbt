@@ -357,94 +357,106 @@ export class AuthRepository implements AuthRepositoryInterface {
     fullName: string;
     role: UserRole;
   } | null> {
-    const moodleBaseUrl =
-      process.env.NEXT_PUBLIC_MOODLE_URL || "http://127.0.0.1:8080";
+    const candidateUrls = Array.from(
+      new Set(
+        [
+          process.env.NEXT_PUBLIC_MOODLE_URL,
+          "http://127.0.0.1:8080",
+          "http://localhost:8080",
+          "http://192.168.0.4:8080",
+        ].filter((u): u is string => Boolean(u)),
+      ),
+    );
 
-    try {
-      const res = await fetch(`${moodleBaseUrl}/login/token.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          username,
-          password,
-          service: "mod_cbt_service",
-        }).toString(),
-      });
+    for (const moodleBaseUrl of candidateUrls) {
+      try {
+        const res = await fetch(`${moodleBaseUrl}/login/token.php`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            username,
+            password,
+            service: "mod_cbt_service",
+          }).toString(),
+          signal: AbortSignal.timeout(2500),
+        });
 
-      if (res.ok) {
-        const data = await res.json();
+        if (res.ok) {
+          const data = await res.json();
 
-        // 1. Success: Web service token issued (Admin or permitted role)
-        if (data?.token && !data.error) {
-          const wstoken = data.token as string;
-          const siteInfoRes = await fetch(
-            `${moodleBaseUrl}/webservice/rest/server.php`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: new URLSearchParams({
-                wstoken,
-                wsfunction: "core_webservice_get_site_info",
-                moodlewsrestformat: "json",
-              }).toString(),
-            },
-          );
+          // 1. Success: Web service token issued (Admin or permitted role)
+          if (data?.token && !data.error) {
+            const wstoken = data.token as string;
+            const siteInfoRes = await fetch(
+              `${moodleBaseUrl}/webservice/rest/server.php`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({
+                  wstoken,
+                  wsfunction: "core_webservice_get_site_info",
+                  moodlewsrestformat: "json",
+                }).toString(),
+                signal: AbortSignal.timeout(2500),
+              },
+            );
 
-          if (siteInfoRes.ok) {
-            const siteInfo = await siteInfoRes.json();
-            if (siteInfo && !siteInfo.errorcode && siteInfo.userid) {
-              const role: UserRole = siteInfo.userissiteadmin
-                ? "ADMIN"
-                : "STUDENT";
+            if (siteInfoRes.ok) {
+              const siteInfo = await siteInfoRes.json();
+              if (siteInfo && !siteInfo.errorcode && siteInfo.userid) {
+                const role: UserRole = siteInfo.userissiteadmin
+                  ? "ADMIN"
+                  : "STUDENT";
 
-              return {
-                token: wstoken,
-                moodleUserId: Number(siteInfo.userid),
-                username: siteInfo.username,
-                fullName: siteInfo.fullname || siteInfo.username,
-                role,
-              };
+                return {
+                  token: wstoken,
+                  moodleUserId: Number(siteInfo.userid),
+                  username: siteInfo.username,
+                  fullName: siteInfo.fullname || siteInfo.username,
+                  role,
+                };
+              }
             }
           }
-        }
 
-        // 2. Student password is valid, but Moodle restricts web service token generation
-        if (data?.errorcode === "cannotcreatetoken") {
-          try {
-            const moodleUsers = (await this.db.$queryRawUnsafe(
-              "SELECT id, username, firstname, lastname FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
-              username,
-            )) as Array<{
-              id: bigint | number;
-              username: string;
-              firstname: string;
-              lastname: string;
-            }>;
+          // 2. Student password is valid, but Moodle restricts web service token generation
+          if (data?.errorcode === "cannotcreatetoken") {
+            try {
+              const moodleUsers = (await this.db.$queryRawUnsafe(
+                "SELECT id, username, firstname, lastname FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
+                username,
+              )) as Array<{
+                id: bigint | number;
+                username: string;
+                firstname: string;
+                lastname: string;
+              }>;
 
-            if (moodleUsers && moodleUsers.length > 0) {
-              const mu = moodleUsers[0];
-              const fullName =
-                `${mu.firstname || ""} ${mu.lastname || ""}`.trim() ||
-                mu.username;
-              return {
-                moodleUserId: Number(mu.id),
-                username: mu.username,
-                fullName,
-                role: "STUDENT",
-              };
+              if (moodleUsers && moodleUsers.length > 0) {
+                const mu = moodleUsers[0];
+                const fullName =
+                  `${mu.firstname || ""} ${mu.lastname || ""}`.trim() ||
+                  mu.username;
+                return {
+                  moodleUserId: Number(mu.id),
+                  username: mu.username,
+                  fullName,
+                  role: "STUDENT",
+                };
+              }
+            } catch {
+              // Database query fallback error
             }
-          } catch {
-            // Database query fallback error
+          }
+
+          // 3. Invalid credentials
+          if (data?.errorcode === "invalidlogin") {
+            return null;
           }
         }
-
-        // 3. Invalid credentials
-        if (data?.errorcode === "invalidlogin") {
-          return null;
-        }
+      } catch {
+        // Try next candidate URL
       }
-    } catch {
-      // Moodle unreachable
     }
 
     return null;
@@ -455,21 +467,32 @@ export class AuthRepository implements AuthRepositoryInterface {
     username: string;
     fullName: string;
     role?: UserRole;
+    rawPassword?: string;
   }): Promise<UserSessionEntity> {
     const role = params.role || "STUDENT";
+    let passwordHash: string | undefined;
+    if (params.rawPassword) {
+      try {
+        passwordHash = await argon2.hash(params.rawPassword);
+      } catch {
+        // ignore hash error
+      }
+    }
+
     const synced = await this.db.user.upsert({
       where: { username: params.username },
       create: {
         username: params.username,
         fullName: params.fullName,
         role,
-        passwordHash: "",
+        passwordHash: passwordHash || "",
         moodleUserId: params.moodleUserId,
         isActive: true,
       },
       update: {
         fullName: params.fullName,
         role: params.role ? role : undefined,
+        passwordHash: passwordHash || undefined,
         moodleUserId: params.moodleUserId,
         isActive: true,
       },

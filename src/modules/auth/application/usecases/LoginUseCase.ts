@@ -39,6 +39,7 @@ export class LoginUseCase
           username: moodleAuth.username,
           fullName: moodleAuth.fullName,
           role: moodleAuth.role,
+          rawPassword: password,
         });
       }
     } catch {
