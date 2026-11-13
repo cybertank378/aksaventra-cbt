@@ -1,14 +1,21 @@
 "use client";
 
-import { CreditCard, Filter, Printer, Search } from "lucide-react";
+import { CreditCard, FileDown, Loader2, Search, Settings } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
+import { generateExamCardsPdf } from "@/libs/examCardPdfGenerator";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
+import type { ExamCardSettings } from "@/modules/exam-cards/domain/dto/ExamCardDTO";
+import { DEFAULT_EXAM_CARD_SETTINGS } from "@/modules/exam-cards/domain/dto/ExamCardDTO";
 import { useExamCardsApi } from "@/modules/exam-cards/presentation/useExamCardsApi";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
 import SelectField from "@/shared-ui/component/SelectField";
 import TextField from "@/shared-ui/component/TextField";
+import { showErrorToast, showSuccessToast } from "@/shared-ui/component/Toast";
 import ExamCardItem from "../molecules/ExamCardItem";
+import ExamCardSettingsModal from "../molecules/ExamCardSettingsModal";
+
+const SETTINGS_STORAGE_KEY = "aksaventra_exam_card_settings";
 
 export const ExamCardsGrid: FC = () => {
   const { cards, isLoading, error, fetchCards } = useExamCardsApi();
@@ -16,6 +23,31 @@ export const ExamCardsGrid: FC = () => {
 
   const [selectedClassId, setSelectedClassId] = useState("ALL");
   const [search, setSearch] = useState("");
+  const [settings, setSettings] = useState<ExamCardSettings>(DEFAULT_EXAM_CARD_SETTINGS);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // Load custom settings from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSettings((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {
+      // Fallback to default
+    }
+  }, []);
+
+  const handleSaveSettings = (updated: ExamCardSettings) => {
+    setSettings(updated);
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // Storage unavailable
+    }
+  };
 
   useEffect(() => {
     fetchClasses();
@@ -25,44 +57,72 @@ export const ExamCardsGrid: FC = () => {
     fetchCards({ classGroupId: selectedClassId });
   }, [fetchCards, selectedClassId]);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const filteredCards = cards.filter(
     (c) =>
       c.fullName.toLowerCase().includes(search.toLowerCase()) ||
       c.nisn.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const handleDownloadPdf = async () => {
+    if (filteredCards.length === 0) return;
+    setIsGeneratingPdf(true);
+    try {
+      const selectedClass = classes.find((c) => c.id === selectedClassId);
+      const classSuffix = selectedClass
+        ? `_${selectedClass.name.replace(/\s+/g, "_")}`
+        : "_Semua_Kelas";
+      const filename = `Kartu_Ujian${classSuffix}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      await generateExamCardsPdf(filteredCards, settings, { filename });
+      showSuccessToast(`Berhasil mengunduh PDF untuk ${filteredCards.length} kartu peserta ujian.`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      showErrorToast("Gagal membuat berkas PDF kartu ujian. Silakan coba lagi.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5">
-      {/* Control Header (Hidden when printing) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 print:hidden">
+      {/* Control Header */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-extrabold text-[#0d2b5c]">
             Cetak Kartu Peserta Ujian
           </h2>
           <p className="text-xs text-slate-500">
-            Pratinjau dan pencetakan massal kartu peserta ujian per rombel/kelas
+            Kustomisasi kop lembaga dan unduh PDF kartu tanda peserta ujian
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="filled"
-          color="primary"
-          leftIcon={Printer}
-          onClick={handlePrint}
-          disabled={filteredCards.length === 0}
-        >
-          Cetak Kartu Ujian (Print)
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            leftIcon={Settings}
+            onClick={() => setIsSettingsOpen(true)}
+          >
+            Pengaturan Kartu
+          </Button>
+
+          <Button
+            type="button"
+            variant="filled"
+            color="primary"
+            leftIcon={isGeneratingPdf ? Loader2 : FileDown}
+            onClick={handleDownloadPdf}
+            disabled={filteredCards.length === 0 || isGeneratingPdf}
+          >
+            {isGeneratingPdf ? "Menyiapkan PDF..." : "Unduh PDF Kartu Ujian"}
+          </Button>
+        </div>
       </div>
 
-      {/* Filter Bar (Hidden when printing) - 1 Row 2 Columns CSS Grid */}
-      <Card className="p-4 print:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+      {/* Filter Bar - Strict 1 Row 2 Columns CSS Grid */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center w-full">
           <div className="w-full">
             <TextField
               leftIcon={Search}
@@ -91,14 +151,14 @@ export const ExamCardsGrid: FC = () => {
       </Card>
 
       {error && (
-        <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-700 print:hidden">
+        <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-700">
           {error}
         </div>
       )}
 
       {/* Grid of Cards */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -107,7 +167,7 @@ export const ExamCardsGrid: FC = () => {
           ))}
         </div>
       ) : filteredCards.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-slate-200 p-12 text-center bg-white print:hidden">
+        <div className="rounded-3xl border border-dashed border-slate-200 p-12 text-center bg-white">
           <CreditCard className="mx-auto h-10 w-10 text-slate-300" />
           <p className="mt-3 text-sm font-bold text-slate-700">
             Tidak ada data kartu peserta ujian
@@ -117,12 +177,24 @@ export const ExamCardsGrid: FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2 print:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredCards.map((card) => (
-            <ExamCardItem key={card.studentId} card={card} />
+            <ExamCardItem
+              key={card.studentId}
+              card={card}
+              settings={settings}
+            />
           ))}
         </div>
       )}
+
+      {/* Modal Pengaturan Kartu Ujian */}
+      <ExamCardSettingsModal
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onSave={handleSaveSettings}
+      />
     </div>
   );
 };
