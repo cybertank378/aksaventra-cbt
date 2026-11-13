@@ -19,6 +19,9 @@ const DOMPURIFY_CONFIG: DOMPurify.Config = {
     svg: true,
   },
   ADD_TAGS: [
+    "img",
+    "figure",
+    "figcaption",
     "math",
     "semantics",
     "mrow",
@@ -35,8 +38,32 @@ const DOMPURIFY_CONFIG: DOMPurify.Config = {
     "mtr",
     "mtd",
     "annotation",
+    "svg",
+    "g",
+    "path",
+    "line",
+    "polyline",
+    "polygon",
+    "rect",
+    "circle",
+    "ellipse",
+    "text",
+    "tspan",
+    "defs",
+    "marker",
+    "clipPath",
+    "linearGradient",
+    "radialGradient",
+    "stop",
+    "style",
   ],
   ADD_ATTR: [
+    "src",
+    "alt",
+    "title",
+    "width",
+    "height",
+    "loading",
     "xmlns",
     "display",
     "style",
@@ -46,8 +73,38 @@ const DOMPURIFY_CONFIG: DOMPurify.Config = {
     "viewBox",
     "preserveAspectRatio",
     "d",
+    "fill",
+    "stroke",
+    "stroke-width",
+    "stroke-dasharray",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "opacity",
+    "transform",
+    "cx",
+    "cy",
+    "r",
+    "rx",
+    "ry",
+    "x",
+    "y",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "points",
+    "marker-end",
+    "marker-start",
+    "text-anchor",
+    "font-size",
+    "font-family",
+    "font-weight",
+    "dx",
+    "dy",
     "encoding",
   ],
+  ALLOWED_URI_REGEXP:
+    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|\/uploads\/|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
   FORBID_TAGS: ["script", "iframe", "object", "embed", "form"],
   FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "javascript:"],
 };
@@ -120,7 +177,13 @@ export function renderAndSanitizeContent(content: string): string {
   }
 
   // Step 1: Render math formulas to HTML/MathML
-  const withRenderedMath = renderLatexTokens(content);
+  let withRenderedMath = renderLatexTokens(content);
+
+  // Step 1.5: Normalize markdown image syntax ![alt](url) to responsive img tags
+  withRenderedMath = withRenderedMath.replace(
+    /!\[(.*?)\]\(((?:https?:\/\/[^\s)]+|\/uploads\/[^\s)]+|data:image\/[^\s)]+))\)/g,
+    '<img src="$2" alt="$1" class="cbt-question-diagram max-w-full h-auto rounded-xl my-3 border border-slate-200 shadow-2xs" loading="lazy" />',
+  );
 
   // Step 2: Sanitize HTML output to prevent XSS
   const sanitized = DOMPurify.sanitize(

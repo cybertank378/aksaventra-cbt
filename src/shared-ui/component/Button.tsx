@@ -11,7 +11,7 @@ import {
 } from "react";
 
 export type ButtonVariant = "filled" | "outline" | "ghost" | "soft" | "text";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "xs" | "sm" | "md" | "lg";
 export type ButtonColor =
   | "primary"
   | "teal"
@@ -92,6 +92,10 @@ const colorVariantStyles: Record<
 };
 
 const sizeStyles: Record<ButtonSize, { standard: string; iconOnly: string }> = {
+  xs: {
+    standard: "px-2.5 py-1 text-xs font-medium gap-1",
+    iconOnly: "p-1 text-xs",
+  },
   sm: {
     standard: "px-3 py-1.5 text-xs font-medium gap-1.5",
     iconOnly: "p-1.5 text-xs",
@@ -133,13 +137,14 @@ export function getButtonClasses({
       ? "rounded-full"
       : shape === "square"
         ? "rounded-none"
-        : size === "sm"
+        : size === "xs" || size === "sm"
           ? "rounded-lg"
           : "rounded-xl";
 
+  const resolvedSize: ButtonSize = sizeStyles[size] ? size : "md";
   const sizeClass = iconOnly
-    ? sizeStyles[size].iconOnly
-    : sizeStyles[size].standard;
+    ? sizeStyles[resolvedSize].iconOnly
+    : sizeStyles[resolvedSize].standard;
 
   return clsx(
     "inline-flex items-center justify-center font-medium transition-all duration-150 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7] focus-visible:ring-offset-2",

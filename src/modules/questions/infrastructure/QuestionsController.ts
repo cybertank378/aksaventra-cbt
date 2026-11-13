@@ -6,6 +6,7 @@ import type { QuestionsService } from "../application/service/QuestionsService";
 import {
   createQuestionSchema,
   questionsFilterSchema,
+  updateQuestionSchema,
 } from "./questions.validator";
 
 export class QuestionsController extends BaseController {
@@ -63,6 +64,31 @@ export class QuestionsController extends BaseController {
         parseResult.data,
       );
       return this.handleResult(result, 201);
+    } catch (err) {
+      return this.handleUnexpectedError(err);
+    }
+  }
+
+  public async updateQuestion(
+    id: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const parseResult = updateQuestionSchema.safeParse(body);
+
+      if (!parseResult.success) {
+        return this.handleResult(
+          Result.fail(handleZodError(parseResult.error)),
+          400,
+        );
+      }
+
+      const result = await this.questionsService.updateQuestion(
+        id,
+        parseResult.data,
+      );
+      return this.handleResult(result, 200);
     } catch (err) {
       return this.handleUnexpectedError(err);
     }

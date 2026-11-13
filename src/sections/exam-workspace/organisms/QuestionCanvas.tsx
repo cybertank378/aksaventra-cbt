@@ -117,8 +117,20 @@ export const QuestionCanvas: FC<QuestionCanvasProps> = ({
         </div>
       </div>
 
-      {/* 2. Main Question Body (Stem & KaTeX) */}
+      {/* 2. Main Question Body (Stem, KaTeX, & Diagrams) */}
       <div className="flex-1 p-6 sm:p-8 flex flex-col gap-6">
+        {question.imageUrl && (
+          <div className="flex justify-center p-3 rounded-2xl bg-slate-50 border border-slate-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={question.imageUrl}
+              alt={`Diagram pertanyaan nomor ${currentIndex + 1}`}
+              className="max-h-80 max-w-full rounded-xl object-contain border border-slate-200 bg-white p-1 shadow-2xs"
+              loading="lazy"
+            />
+          </div>
+        )}
+
         <QuestionStemRenderer
           htmlContent={question.stemHtml}
           fontSize={fontSize}

@@ -1,5 +1,6 @@
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "@/styles/globals.css";
+import "katex/dist/katex.min.css";
 import AppToastProvider from "@/libs/providers/AppToastProvider";
 
 const plusJakartaSans = Plus_Jakarta_Sans({

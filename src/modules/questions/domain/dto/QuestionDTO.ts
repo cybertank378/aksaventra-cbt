@@ -14,6 +14,7 @@ export interface QuestionOptionDTO {
   text: string;
   isCorrect?: boolean;
   matchTarget?: string; // for matching questions
+  imageUrl?: string;
 }
 
 export interface QuestionDTO {
@@ -23,6 +24,7 @@ export interface QuestionDTO {
   gradeLevel: string;
   type: CBTQuestionType;
   stem: string;
+  imageUrl?: string;
   points: number;
   tolerance?: number; // for numerical questions
   options: QuestionOptionDTO[];
@@ -36,6 +38,7 @@ export interface CreateQuestionInputDTO {
   gradeLevel: string;
   type: CBTQuestionType;
   stem: string;
+  imageUrl?: string;
   points: number;
   tolerance?: number;
   options: QuestionOptionDTO[];

@@ -4,31 +4,53 @@ import {
   Award,
   BookOpen,
   Download,
+  Edit3,
+  Eye,
+  HelpCircle,
+  Image as ImageIcon,
+  LineChart,
   Plus,
   Trash2,
   UploadCloud,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
-import type { CBTQuestionType } from "@/modules/questions/domain/dto/QuestionDTO";
+import type {
+  CBTQuestionType,
+  CreateQuestionInputDTO,
+  QuestionDTO,
+} from "@/modules/questions/domain/dto/QuestionDTO";
 import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
+import MathRenderer from "@/shared-ui/component/MathRenderer";
 import QuestionTypeBadge from "../atoms/QuestionTypeBadge";
+import EditQuestionModal from "../molecules/EditQuestionModal";
 import ImportQuestionsModal from "../molecules/ImportQuestionsModal";
+import QuestionEditorHelpModal from "../molecules/QuestionEditorHelpModal";
 import QuestionFilterBar from "../molecules/QuestionFilterBar";
+import ViewQuestionModal from "../molecules/ViewQuestionModal";
 
 export const QuestionsListGrid: FC = () => {
   const router = useRouter();
-  const { questions, isLoading, error, fetchQuestions, deleteQuestion } =
-    useQuestionsApi();
+  const {
+    questions,
+    isLoading,
+    error,
+    fetchQuestions,
+    updateQuestion,
+    deleteQuestion,
+  } = useQuestionsApi();
 
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("ALL");
   const [type, setType] = useState("ALL");
   const [grade, setGrade] = useState("ALL");
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [viewingQuestion, setViewingQuestion] = useState<QuestionDTO | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<QuestionDTO | null>(null);
 
   useEffect(() => {
     fetchQuestions({
@@ -43,6 +65,22 @@ export const QuestionsListGrid: FC = () => {
     if (confirm(`Apakah Anda yakin ingin menghapus butir soal ${code}?`)) {
       await deleteQuestion(id);
     }
+  };
+
+  const handleView = (q: QuestionDTO) => {
+    setViewingQuestion(q);
+  };
+
+  const handleEdit = (q: QuestionDTO) => {
+    setEditingQuestion(q);
+  };
+
+  const handleSaveEdit = async (
+    id: string,
+    data: Partial<CreateQuestionInputDTO>,
+  ): Promise<boolean> => {
+    const updated = await updateQuestion(id, data);
+    return Boolean(updated);
   };
 
   const handleProcessDownload = (url: string, filename: string) => {
@@ -108,12 +146,24 @@ export const QuestionsListGrid: FC = () => {
           <Button
             type="button"
             variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={HelpCircle}
+            onClick={() => setHelpModalOpen(true)}
+            title="Bantuan Penulisan KaTeX & Impor Soal Word"
+          >
+            Bantuan Editor & Word
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
             color="primary"
             size="sm"
             leftIcon={UploadCloud}
             onClick={() => setImportModalOpen(true)}
           >
-            Import Soal (8 Jenis)
+            Import Soal (Word & Excel)
           </Button>
 
           <Button
@@ -182,15 +232,34 @@ export const QuestionsListGrid: FC = () => {
                       {q.code}
                     </Badge>
                     <QuestionTypeBadge type={q.type} />
+                    {(q.imageUrl || q.stem.includes("<svg") || q.stem.includes("<img")) && (
+                      <Badge color="teal" size="sm" className="flex items-center gap-1 font-bold">
+                        <ImageIcon className="w-3 h-3 text-[#0097a7]" />
+                        Diagram / Kurva
+                      </Badge>
+                    )}
                   </div>
                   <Badge color="neutral" size="sm" className="text-slate-500">
                     {q.subject} • Kelas {q.gradeLevel}
                   </Badge>
                 </div>
 
-                <div className="text-xs font-medium text-slate-800 leading-relaxed line-clamp-3">
-                  {q.stem}
-                </div>
+                {q.imageUrl && (
+                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 max-h-32 flex items-center justify-center p-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={q.imageUrl}
+                      alt={`Diagram soal ${q.code}`}
+                      className="max-h-28 object-contain rounded-lg"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+
+                <MathRenderer
+                  content={q.stem}
+                  className="text-xs font-medium text-slate-800 leading-relaxed line-clamp-3"
+                />
 
                 {q.options && q.options.length > 0 && (
                   <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
@@ -206,6 +275,28 @@ export const QuestionsListGrid: FC = () => {
               <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-slate-100">
                 <Button
                   type="button"
+                  variant="outline"
+                  color="secondary"
+                  size="sm"
+                  leftIcon={Eye}
+                  onClick={() => handleView(q)}
+                  title="Lihat Detail Butir Soal"
+                >
+                  Lihat
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  color="primary"
+                  size="sm"
+                  leftIcon={Edit3}
+                  onClick={() => handleEdit(q)}
+                  title="Edit Butir Soal"
+                >
+                  Edit
+                </Button>
+                <Button
+                  type="button"
                   variant="ghost"
                   color="error"
                   size="sm"
@@ -218,6 +309,26 @@ export const QuestionsListGrid: FC = () => {
           ))}
         </div>
       )}
+
+      {/* View Question Detail Modal */}
+      <ViewQuestionModal
+        open={Boolean(viewingQuestion)}
+        question={viewingQuestion}
+        onClose={() => setViewingQuestion(null)}
+        onEdit={(q) => {
+          setViewingQuestion(null);
+          setEditingQuestion(q);
+        }}
+      />
+
+      {/* Edit Question Modal */}
+      <EditQuestionModal
+        open={Boolean(editingQuestion)}
+        question={editingQuestion}
+        onClose={() => setEditingQuestion(null)}
+        onSave={handleSaveEdit}
+      />
+
       {/* Import Questions Modal */}
       <ImportQuestionsModal
         open={importModalOpen}
@@ -230,6 +341,12 @@ export const QuestionsListGrid: FC = () => {
             search: search.trim() || undefined,
           });
         }}
+      />
+
+      {/* Editor & Word Help Modal */}
+      <QuestionEditorHelpModal
+        open={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
       />
     </div>
   );

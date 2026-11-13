@@ -8,6 +8,7 @@ export interface QuestionItemDTO {
   questionId: number;
   type: string; // "multichoice", "truefalse", "shortanswer", "essay"
   stemHtml: string;
+  imageUrl?: string;
   options?: QuestionOptionDTO[];
 }
 

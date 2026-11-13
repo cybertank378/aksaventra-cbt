@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowLeft, Check, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC, useState } from "react";
 import type {
@@ -10,8 +18,13 @@ import type {
 import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
+import ImageUploader from "@/shared-ui/component/ImageUploader";
+import MathRenderer from "@/shared-ui/component/MathRenderer";
 import SelectField from "@/shared-ui/component/SelectField";
 import TextField from "@/shared-ui/component/TextField";
+import MathDiagramModal from "../molecules/MathDiagramModal";
+import MathFormulaToolbar from "../molecules/MathFormulaToolbar";
+import QuestionEditorHelpModal from "../molecules/QuestionEditorHelpModal";
 
 export const CreateQuestionForm: FC = () => {
   const router = useRouter();
@@ -21,9 +34,13 @@ export const CreateQuestionForm: FC = () => {
   const [gradeLevel, setGradeLevel] = useState("XII");
   const [type, setType] = useState<CBTQuestionType>("multichoice");
   const [stem, setStem] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [points, setPoints] = useState(2.5);
   const [tolerance, setTolerance] = useState<number | undefined>(undefined);
   const [explanation, setExplanation] = useState("");
+  const [previewMode, setPreviewMode] = useState(false);
+  const [diagramModalOpen, setDiagramModalOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
 
   const [options, setOptions] = useState<QuestionOptionDTO[]>([
     { id: "opt-1", label: "A", text: "", isCorrect: true },
@@ -67,6 +84,14 @@ export const CreateQuestionForm: FC = () => {
     }
   };
 
+  const handleInsertMath = (snippet: string) => {
+    setStem((prev) => (prev ? `${prev} ${snippet}` : snippet));
+  };
+
+  const handleInsertSvg = (svgCode: string) => {
+    setStem((prev) => (prev ? `${prev}\n\n${svgCode}\n\n` : `${svgCode}\n\n`));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stem.trim()) return;
@@ -76,6 +101,7 @@ export const CreateQuestionForm: FC = () => {
       gradeLevel,
       type,
       stem,
+      imageUrl,
       points,
       tolerance: type === "numerical" ? tolerance : undefined,
       options: type === "essay" ? [] : options,
@@ -116,14 +142,26 @@ export const CreateQuestionForm: FC = () => {
           </div>
         </div>
 
-        <Button
-          type="submit"
-          variant="filled"
-          color="primary"
-          loading={isLoading}
-        >
-          Simpan ke Bank Soal
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={HelpCircle}
+            onClick={() => setHelpModalOpen(true)}
+          >
+            Bantuan Editor
+          </Button>
+          <Button
+            type="submit"
+            variant="filled"
+            color="primary"
+            loading={isLoading}
+          >
+            Simpan ke Bank Soal
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -181,27 +219,65 @@ export const CreateQuestionForm: FC = () => {
         </SelectField>
       </Card>
 
-      {/* Stem & Points Card */}
+      {/* Stem, Diagram & Image Upload Card */}
       <Card className="flex flex-col gap-4 p-5">
-        <div>
+        <div className="flex items-center justify-between">
           <label
             htmlFor="stem-textarea"
-            className="block text-xs font-bold text-slate-700 mb-1.5"
+            className="block text-xs font-bold text-slate-700"
           >
-            Teks Pertanyaan / Soal (Mendukung KaTeX LaTeX $...$):
+            Teks Pertanyaan / Soal (Mendukung KaTeX $...$, Diagram & Kurva Vektor SVG):
           </label>
+          <Button
+            type="button"
+            variant="ghost"
+            color="primary"
+            size="xs"
+            leftIcon={previewMode ? EyeOff : Eye}
+            onClick={() => setPreviewMode(!previewMode)}
+          >
+            {previewMode ? "Tutup Pratinjau" : "Lihat Pratinjau KaTeX / Kurva"}
+          </Button>
+        </div>
+
+        {/* Math Quick Toolbar */}
+        <MathFormulaToolbar
+          onInsertMath={handleInsertMath}
+          onOpenDiagramGenerator={() => setDiagramModalOpen(true)}
+        />
+
+        {previewMode ? (
+          <div className="p-4 rounded-xl border border-[#0097a7]/30 bg-white min-h-[120px]">
+            <span className="text-[10px] font-bold text-[#0097a7] uppercase tracking-wider block mb-2">
+              Pratinjau Tampilan Siswa:
+            </span>
+            <MathRenderer
+              content={stem || "(Teks pertanyaan masih kosong)"}
+              className="text-xs leading-relaxed text-slate-800"
+            />
+          </div>
+        ) : (
           <textarea
             id="stem-textarea"
-            rows={4}
+            rows={5}
             value={stem}
             onChange={(e) => setStem(e.target.value)}
-            placeholder="Tuliskan pertanyaan soal di sini. Contoh: Nilai dari $\lim_{x \to 0} \frac{\sin x}{x}$ adalah..."
-            className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            placeholder="Tuliskan pertanyaan soal di sini. Contoh: Nilai dari $\lim_{x \to 0} \frac{\sin x}{x}$ adalah... atau sisipkan kurva grafik dan formula matematika."
+            className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7] font-mono"
             required
+          />
+        )}
+
+        {/* Image / Diagram / Curve Uploader */}
+        <div className="pt-2 border-t border-slate-100">
+          <ImageUploader
+            value={imageUrl}
+            onChange={setImageUrl}
+            label="Unggah Gambar / Diagram / Kurva Soal (PNG, JPG, SVG, WebP):"
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <TextField
             id="points-input"
             label="Bobot Skor Poin:"
@@ -227,6 +303,14 @@ export const CreateQuestionForm: FC = () => {
           )}
         </div>
       </Card>
+
+      {/* Math Diagram Modal Generator */}
+      <MathDiagramModal
+        open={diagramModalOpen}
+        onClose={() => setDiagramModalOpen(false)}
+        onInsertSvg={handleInsertSvg}
+        onSetAsImageUrl={(url) => setImageUrl(url)}
+      />
 
       {/* Options Matrix (if not essay) */}
       {type !== "essay" && (
@@ -322,6 +406,12 @@ export const CreateQuestionForm: FC = () => {
           className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
         />
       </div>
+
+      {/* Editor Guide Modal */}
+      <QuestionEditorHelpModal
+        open={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+      />
     </form>
   );
 };
