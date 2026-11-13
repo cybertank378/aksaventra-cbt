@@ -23,7 +23,7 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
 }
 
 /**
- * Generates an official, print-ready PDF matching the official Indonesian school card design.
+ * Generates an official, print-ready PDF in 2 Columns x 2 Rows (4 cards per A4 page).
  */
 export async function generateExamCardsPdf(
   cards: ExamCardItemDTO[],
@@ -50,14 +50,19 @@ export async function generateExamCardsPdf(
   }
 
   const pageWidth = 210;
-  const marginX = 12;
-  const marginY = 10;
+  const pageHeight = 297;
+  const marginX = 8;
+  const marginY = 8;
+  const gapX = 6;
+  const gapY = 6;
 
-  // 2 cards per page (top and bottom) - standard Indonesian school card size
-  const cardWidth = pageWidth - marginX * 2; // 186 mm
-  const cardHeight = 132; // 132 mm
-  const gapY = 8;
-  const cardsPerPage = settings.cardsPerPage || 2;
+  // 2 Columns x 2 Rows Layout (4 cards per A4 page)
+  const cols = 2;
+  const rows = 2;
+  const cardsPerPage = cols * rows;
+
+  const cardWidth = (pageWidth - marginX * 2 - gapX) / cols; // 94 mm
+  const cardHeight = (pageHeight - marginY * 2 - gapY) / rows; // 137.5 mm
 
   // Schedule from settings or default blank rows
   const schedule =
@@ -69,32 +74,34 @@ export async function generateExamCardsPdf(
     const card = cards[i];
     const indexOnPage = i % cardsPerPage;
 
-    // Add new page after filling current page
+    // Add new page after filling current page (every 4 cards)
     if (i > 0 && indexOnPage === 0) {
       doc.addPage();
     }
 
-    const x = marginX;
-    const y = marginY + indexOnPage * (cardHeight + gapY);
+    const colIndex = indexOnPage % cols;
+    const rowIndex = Math.floor(indexOnPage / cols);
 
-    // 1. Double Outer Frame (Authentic official card border)
+    const x = marginX + colIndex * (cardWidth + gapX);
+    const y = marginY + rowIndex * (cardHeight + gapY);
+
+    // 1. Double Outer Frame
     doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.6);
+    doc.setLineWidth(0.5);
     doc.rect(x, y, cardWidth, cardHeight);
 
     // Inner thin border
-    doc.setLineWidth(0.25);
-    doc.rect(x + 1.2, y + 1.2, cardWidth - 2.4, cardHeight - 2.4);
+    doc.setLineWidth(0.2);
+    doc.rect(x + 1, y + 1, cardWidth - 2, cardHeight - 2);
 
     // 2. KOP SURAT (HEADER)
-    const kopCenter = x + cardWidth / 2;
-    const kopTop = y + 4;
+    const kopTop = y + 2.5;
 
     // Logo on Left
-    const logoX = x + 4;
+    const logoX = x + 2.5;
     const logoY = kopTop;
-    const logoW = 15;
-    const logoH = 18;
+    const logoW = 10;
+    const logoH = 12;
 
     if (logoImg) {
       try {
@@ -105,103 +112,111 @@ export async function generateExamCardsPdf(
     } else {
       // Draw clean formal crest outline
       doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(logoX + 1, logoY, 13, 16, 1, 1);
+      doc.setLineWidth(0.25);
+      doc.roundedRect(logoX + 0.5, logoY, 9, 11, 1, 1);
       doc.setFont("times", "bold");
-      doc.setFontSize(5);
-      doc.text("CBT", logoX + 7.5, logoY + 4, { align: "center" });
-      doc.circle(logoX + 7.5, logoY + 8.5, 3);
       doc.setFontSize(4);
-      const abbr = settings.institutionName ? settings.institutionName.slice(0, 8) : "AKSA";
-      doc.text(abbr, logoX + 7.5, logoY + 14, { align: "center" });
+      doc.text("CBT", logoX + 5, logoY + 3.5, { align: "center" });
+      doc.circle(logoX + 5, logoY + 6.5, 2);
+      doc.setFontSize(3.2);
+      const abbr = settings.institutionName ? settings.institutionName.slice(0, 6) : "AKSA";
+      doc.text(abbr, logoX + 5, logoY + 10, { align: "center" });
     }
 
-    // Kop Text Lines (strictly from settings)
+    // Kop Text Lines (Centered)
+    const kopCenter = x + 2.5 + logoW + (cardWidth - 5 - logoW) / 2;
+
     doc.setTextColor(0, 0, 0);
     doc.setFont("times", "normal");
-    doc.setFontSize(8.5);
+    doc.setFontSize(5.2);
     if (settings.governmentText) {
-      doc.text(settings.governmentText, kopCenter + 5, kopTop + 2.5, {
+      doc.text(settings.governmentText, kopCenter, kopTop + 2, {
         align: "center",
       });
     }
 
     doc.setFont("times", "bold");
-    doc.setFontSize(9.5);
+    doc.setFontSize(5.8);
     if (settings.departmentText) {
-      doc.text(settings.departmentText, kopCenter + 5, kopTop + 6.5, {
+      doc.text(settings.departmentText, kopCenter, kopTop + 4.8, {
         align: "center",
       });
     }
 
-    doc.setFontSize(10.5);
-    doc.text(settings.institutionName, kopCenter + 5, kopTop + 10.5, {
+    doc.setFontSize(6.5);
+    doc.text(settings.institutionName, kopCenter, kopTop + 7.8, {
       align: "center",
     });
 
     doc.setFont("times", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(4.8);
     if (settings.address) {
-      doc.text(settings.address, kopCenter + 5, kopTop + 14, {
+      doc.text(settings.address, kopCenter, kopTop + 10.5, {
         align: "center",
       });
     }
 
-    doc.setFontSize(7);
+    doc.setFontSize(4.3);
     if (settings.contactText) {
-      doc.text(settings.contactText, kopCenter + 5, kopTop + 17, {
+      doc.text(settings.contactText, kopCenter, kopTop + 12.8, {
         align: "center",
       });
     }
 
     // Kode Pos (Centered)
     if (settings.postalCode) {
-      doc.setFontSize(7);
-      doc.text(`Kode Pos : ${settings.postalCode}`, kopCenter + 5, kopTop + 19.8, {
+      doc.setFontSize(4.3);
+      doc.text(`Kode Pos : ${settings.postalCode}`, kopCenter, kopTop + 15, {
         align: "center",
       });
     }
 
     // Divider: Thick top line + thin bottom line
-    const dividerY = kopTop + (settings.postalCode ? 22.2 : 20);
-    doc.setLineWidth(0.6);
+    const dividerY = kopTop + 16.8;
+    doc.setLineWidth(0.5);
     doc.line(x + 2, dividerY, x + cardWidth - 2, dividerY);
     doc.setLineWidth(0.2);
-    doc.line(x + 2, dividerY + 0.7, x + cardWidth - 2, dividerY + 0.7);
+    doc.line(x + 2, dividerY + 0.5, x + cardWidth - 2, dividerY + 0.5);
 
-    // 3. JUDUL KARTU
-    const titleY = dividerY + 4.5;
+    // 3. JUDUL KARTU (Centered)
+    const cardCenter = x + cardWidth / 2;
+    const titleY = dividerY + 3.2;
+
     doc.setFont("times", "bold");
-    doc.setFontSize(10.5);
-    doc.text(settings.cardHeaderTitle || "KARTU PESERTA", kopCenter, titleY, {
+    doc.setFontSize(7.2);
+    doc.text(settings.cardHeaderTitle || "KARTU PESERTA", cardCenter, titleY, {
       align: "center",
     });
 
-    doc.setFontSize(9.5);
-    doc.text(settings.examTitle || card.examTitle, kopCenter, titleY + 4, {
+    doc.setFontSize(6.2);
+    doc.text(settings.examTitle || card.examTitle, cardCenter, titleY + 3.2, {
       align: "center",
     });
 
     if (settings.academicYear) {
-      doc.setFontSize(8.5);
-      doc.text(`TAHUN PELAJARAN ${settings.academicYear}`, kopCenter, titleY + 7.5, {
+      doc.setFontSize(5.5);
+      doc.text(`TAHUN PELAJARAN ${settings.academicYear}`, cardCenter, titleY + 6, {
         align: "center",
       });
     }
 
     // 4. DATA SISWA
-    const dataStartY = titleY + 11.5;
-    const labelX = x + 5;
-    const colonX = x + 34;
-    const valX = x + 36;
-    const lineSpacing = 3.6;
+    const dataStartY = titleY + 9.5;
+    const labelX = x + 3.5;
+    const colonX = x + 23;
+    const valX = x + 24.5;
+    const lineSpacing = 2.8;
 
     const participantNo =
       card.seatNumber || (card.nisn ? `P${card.nisn}` : "-");
-    const password = card.password || card.verificationCode?.slice(0, 8) || "-";
+    const password =
+      card.password ||
+      (card.verificationCode?.length > 10
+        ? card.verificationCode.slice(0, 8)
+        : card.verificationCode || "-");
 
     doc.setFont("times", "normal");
-    doc.setFontSize(8.5);
+    doc.setFontSize(5.8);
 
     // Row 1: Nomor Peserta
     doc.text("Nomor Peserta", labelX, dataStartY);
@@ -219,7 +234,9 @@ export async function generateExamCardsPdf(
     doc.text("Nama Siswa", labelX, dataStartY + lineSpacing * 2);
     doc.text(":", colonX, dataStartY + lineSpacing * 2);
     doc.setFont("times", "bold");
-    doc.text(card.fullName.toUpperCase(), valX, dataStartY + lineSpacing * 2);
+    doc.text(card.fullName.toUpperCase(), valX, dataStartY + lineSpacing * 2, {
+      maxWidth: cardWidth - valX - 3,
+    });
 
     // Row 4: Kelas / Ruang
     doc.setFont("times", "normal");
@@ -228,22 +245,22 @@ export async function generateExamCardsPdf(
     doc.text(`${card.className} / ${card.roomCode}`, valX, dataStartY + lineSpacing * 3);
 
     // 5. TABEL JADWAL UJIAN
-    const tableTitleY = dataStartY + lineSpacing * 4 + 1.5;
+    const tableTitleY = dataStartY + lineSpacing * 4 + 1.2;
     doc.setFont("times", "bold");
-    doc.setFontSize(8.5);
-    doc.text(`JADWAL ${settings.examTitle || card.examTitle}`, kopCenter, tableTitleY, {
+    doc.setFontSize(5.8);
+    doc.text(`JADWAL ${settings.examTitle || card.examTitle}`, cardCenter, tableTitleY, {
       align: "center",
     });
 
     // Table Layout
-    const tableX = x + 4;
-    const tableW = cardWidth - 8; // 178 mm
-    const tableTop = tableTitleY + 1.8;
+    const tableX = x + 2.5;
+    const tableW = cardWidth - 5; // 89 mm
+    const tableTop = tableTitleY + 1.5;
 
-    const colW1 = 38; // Hari/Tanggal
-    const colW2 = 62; // Mata Pelajaran
-    const colW3 = 46; // Waktu
-    const colW4 = tableW - (colW1 + colW2 + colW3); // 32 mm TTD Pengawas
+    const colW1 = 20; // Hari/Tanggal
+    const colW2 = 32; // Mata Pelajaran
+    const colW3 = 23; // Waktu
+    const colW4 = tableW - (colW1 + colW2 + colW3); // 14 mm TTD Pengawas
 
     const colX1 = tableX;
     const colX2 = colX1 + colW1;
@@ -251,16 +268,16 @@ export async function generateExamCardsPdf(
     const colX4 = colX3 + colW3;
 
     // Table Header Row
-    const headerHeight = 5.2;
+    const headerHeight = 3.6;
     doc.setFillColor(220, 225, 230);
     doc.rect(tableX, tableTop, tableW, headerHeight, "FD");
 
     doc.setFont("times", "bold");
-    doc.setFontSize(7.5);
-    doc.text("Hari/Tanggal", colX1 + colW1 / 2, tableTop + 3.5, { align: "center" });
-    doc.text("Mata Pelajaran", colX2 + colW2 / 2, tableTop + 3.5, { align: "center" });
-    doc.text("Waktu", colX3 + colW3 / 2, tableTop + 3.5, { align: "center" });
-    doc.text("TTD Pengawas", colX4 + colW4 / 2, tableTop + 3.5, { align: "center" });
+    doc.setFontSize(5.2);
+    doc.text("Hari/Tanggal", colX1 + colW1 / 2, tableTop + 2.5, { align: "center" });
+    doc.text("Mata Pelajaran", colX2 + colW2 / 2, tableTop + 2.5, { align: "center" });
+    doc.text("Waktu", colX3 + colW3 / 2, tableTop + 2.5, { align: "center" });
+    doc.text("TTD", colX4 + colW4 / 2, tableTop + 2.5, { align: "center" });
 
     // Table Header Vertical Lines
     doc.setDrawColor(0, 0, 0);
@@ -269,10 +286,10 @@ export async function generateExamCardsPdf(
     doc.line(colX3, tableTop, colX3, tableTop + headerHeight);
     doc.line(colX4, tableTop, colX4, tableTop + headerHeight);
 
-    // Table Data Rows
+    // Table Data Rows (5 days, 2 subrows each)
     let currentY = tableTop + headerHeight;
-    const subRowH = 4.4;
-    const rowH = subRowH * 2; // 8.8 mm per day (2 subjects)
+    const subRowH = 2.8;
+    const rowH = subRowH * 2; // 5.6 mm per day
 
     for (let r = 0; r < schedule.length; r++) {
       const item = schedule[r];
@@ -290,54 +307,54 @@ export async function generateExamCardsPdf(
       // Horizontal Middle Divider for Subj1 and Subj2
       doc.line(colX2, currentY + subRowH, tableX + tableW, currentY + subRowH);
 
-      // Col 1: Hari/Tanggal (Blank if empty)
+      // Col 1: Hari/Tanggal
       if (item.dayDate) {
         doc.setFont("times", "normal");
-        doc.setFontSize(7);
+        doc.setFontSize(4.8);
         const lines = item.dayDate.split("\n");
         if (lines.length > 1) {
-          doc.text(lines[0], colX1 + colW1 / 2, currentY + 3.5, { align: "center" });
-          doc.text(lines[1], colX1 + colW1 / 2, currentY + 6.8, { align: "center" });
+          doc.text(lines[0], colX1 + colW1 / 2, currentY + 2.2, { align: "center" });
+          doc.text(lines[1], colX1 + colW1 / 2, currentY + 4.5, { align: "center" });
         } else {
-          doc.text(item.dayDate, colX1 + colW1 / 2, currentY + 5.2, { align: "center" });
+          doc.text(item.dayDate, colX1 + colW1 / 2, currentY + 3.4, { align: "center" });
         }
       }
 
       // Col 2: Mata Pelajaran (Blank if empty)
       doc.setFont("times", "normal");
-      doc.setFontSize(7);
+      doc.setFontSize(4.8);
       if (subj1?.name) {
-        doc.text(subj1.name, colX2 + 3, currentY + 3.2);
+        doc.text(subj1.name, colX2 + 1.5, currentY + 2.1, { maxWidth: colW2 - 2 });
       }
       if (subj2?.name) {
-        doc.text(subj2.name, colX2 + 3, currentY + subRowH + 3.2);
+        doc.text(subj2.name, colX2 + 1.5, currentY + subRowH + 2.1, { maxWidth: colW2 - 2 });
       }
 
       // Col 3: Waktu (Blank if empty)
       if (subj1?.time) {
-        doc.text(subj1.time, colX3 + colW3 / 2, currentY + 3.2, { align: "center" });
+        doc.text(subj1.time, colX3 + colW3 / 2, currentY + 2.1, { align: "center" });
       }
       if (subj2?.time) {
-        doc.text(subj2.time, colX3 + colW3 / 2, currentY + subRowH + 3.2, { align: "center" });
+        doc.text(subj2.time, colX3 + colW3 / 2, currentY + subRowH + 2.1, { align: "center" });
       }
 
       currentY += rowH;
     }
 
     // 6. TANDA TANGAN & PENGESAHAN (BOTTOM RIGHT)
-    const sigX = x + cardWidth - 62;
-    const sigY = currentY + 2.5;
+    const sigX = x + cardWidth - 38;
+    const sigY = currentY + 2.2;
 
     doc.setFont("times", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(5.2);
     doc.text(settings.signerTitle, sigX, sigY);
 
     // Stempel jika ada gambar stempel yang diunggah
     if (settings.showStamp && stampImg) {
-      const stampX = sigX - 7;
-      const stampY = sigY - 2;
+      const stampX = sigX - 5;
+      const stampY = sigY - 1;
       try {
-        doc.addImage(stampImg, "PNG", stampX, stampY, 18, 18);
+        doc.addImage(stampImg, "PNG", stampX, stampY, 11, 11);
       } catch (_e) {
         // Fallback
       }
@@ -346,32 +363,41 @@ export async function generateExamCardsPdf(
     // Signer Name
     doc.setTextColor(0, 0, 0);
     doc.setFont("times", "bold");
-    doc.setFontSize(8);
-    const signerNameY = sigY + 11.5;
+    doc.setFontSize(5.8);
+    const signerNameY = sigY + 8.5;
     doc.text(settings.signerName, sigX, signerNameY);
     // Underline signer name
     const nameWidth = doc.getTextWidth(settings.signerName);
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.2);
-    doc.line(sigX, signerNameY + 0.4, sigX + nameWidth, signerNameY + 0.4);
+    doc.line(sigX, signerNameY + 0.3, sigX + nameWidth, signerNameY + 0.3);
 
     // NIP
     if (settings.signerNip) {
       doc.setFont("times", "normal");
-      doc.setFontSize(7);
-      doc.text(`NIP. ${settings.signerNip}`, sigX, signerNameY + 3.2);
+      doc.setFontSize(5);
+      doc.text(`NIP. ${settings.signerNip}`, sigX, signerNameY + 2.6);
     }
 
-    // Dotted cutting guide line between Card 1 and Card 2
-    if (cardsPerPage > 1 && indexOnPage === 0 && i + 1 < cards.length) {
-      const cutY = y + cardHeight + gapY / 2;
-      doc.setDrawColor(150, 150, 150);
+    // Dotted cutting guide line between columns (vertical) and rows (horizontal)
+    if (indexOnPage === 3 || i === cards.length - 1) {
+      doc.setDrawColor(160, 160, 160);
       doc.setLineDashPattern([2, 2], 0);
-      doc.line(marginX - 4, cutY, pageWidth - marginX + 4, cutY);
+
+      // Vertical center cut line (at x = 105 mm)
+      const cutX = pageWidth / 2;
+      doc.line(cutX, marginY - 2, cutX, pageHeight - marginY + 2);
+
+      // Horizontal center cut line (at y = 148.5 mm)
+      const cutY = pageHeight / 2;
+      doc.line(marginX - 2, cutY, pageWidth - marginX + 2, cutY);
+
       doc.setFont("helvetica", "italic");
-      doc.setFontSize(6);
-      doc.setTextColor(130, 130, 130);
-      doc.text("✂ Gunting di sini", marginX + 4, cutY - 1);
+      doc.setFontSize(5.5);
+      doc.setTextColor(140, 140, 140);
+      doc.text("✂ Gunting", cutX + 1.5, 6);
+      doc.text("✂ Gunting", 3, cutY - 1);
+
       doc.setLineDashPattern([], 0); // reset dash
     }
   }

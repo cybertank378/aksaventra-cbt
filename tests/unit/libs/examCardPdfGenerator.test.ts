@@ -57,7 +57,7 @@ describe("ExamCardPdfGenerator & Settings", () => {
 
   it("should provide valid default exam card settings without hardcoded subjects", () => {
     expect(DEFAULT_EXAM_CARD_SETTINGS.institutionName).toBe("SMA NEGERI 1 AKSAVENTRA");
-    expect(DEFAULT_EXAM_CARD_SETTINGS.cardsPerPage).toBe(2);
+    expect(DEFAULT_EXAM_CARD_SETTINGS.cardsPerPage).toBe(4);
     expect(DEFAULT_EXAM_CARD_SETTINGS.signerTitle).toBe("Kepala Sekolah,");
     expect(DEFAULT_EXAM_CARD_SETTINGS.signerName).toBe("Drs. H. Mulyadi, M.Pd");
     // Ensure schedule subjects and times are empty by default (no hardcoded fake subjects)

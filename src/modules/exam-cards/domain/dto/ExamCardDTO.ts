@@ -49,7 +49,7 @@ export interface ExamCardSettings {
   signerNip: string;
 
   schedule: ExamScheduleItem[];
-  cardsPerPage: 1 | 2;
+  cardsPerPage: 2 | 4;
 }
 
 export const DEFAULT_EXAM_CARD_SETTINGS: ExamCardSettings = {
@@ -110,5 +110,5 @@ export const DEFAULT_EXAM_CARD_SETTINGS: ExamCardSettings = {
     },
   ],
 
-  cardsPerPage: 2,
+  cardsPerPage: 4, // 2 columns x 2 rows (4 kartu per lembar A4)
 };

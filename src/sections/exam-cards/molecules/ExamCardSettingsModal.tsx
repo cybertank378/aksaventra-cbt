@@ -578,12 +578,12 @@ export const ExamCardSettingsModal: FC<Props> = ({
               label="Format Cetak per Lembar A4"
               value={formData.cardsPerPage}
               onChange={(e) =>
-                handleChange("cardsPerPage", Number(e.target.value) as 1 | 2)
+                handleChange("cardsPerPage", Number(e.target.value) as 2 | 4)
               }
               size="sm"
             >
-              <option value={2}>2 Kartu per Halaman (Standar Resmi Atas-Bawah)</option>
-              <option value={1}>1 Kartu per Halaman (Ukuran Penuh)</option>
+              <option value={4}>4 Kartu per Halaman (2 Kolom x 2 Baris - Standar)</option>
+              <option value={2}>2 Kartu per Halaman (Atas-Bawah)</option>
             </SelectField>
 
             <div className="flex justify-end pt-5">
