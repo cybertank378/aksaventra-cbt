@@ -25,46 +25,48 @@ export const ExamCardItem: FC<Props> = ({
       : card.verificationCode || "-");
 
   return (
-    <div className="relative bg-white p-6 border-2 border-black shadow-sm font-serif text-black leading-snug w-full transition hover:shadow-md">
+    <div className="relative bg-white p-5 border-2 border-black shadow-xs font-serif text-black leading-snug w-full transition hover:shadow-md">
       {/* Judul Kartu Peserta (Centered) */}
-      <div className="text-center mb-6 space-y-1">
-        <h2 className="text-base sm:text-lg font-bold uppercase tracking-wider">
+      <div className="text-center mb-4 space-y-0.5">
+        <h2 className="text-sm font-bold uppercase tracking-wider">
           {settings.cardHeaderTitle || "KARTU PESERTA"}
         </h2>
-        <h3 className="text-sm sm:text-base font-bold uppercase tracking-wide">
+        <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wide">
           {settings.examTitle || card.examTitle || "ASESMEN SUMATIF AKHIR TAHUN"}
         </h3>
         {settings.academicYear && (
-          <p className="text-xs sm:text-sm font-bold uppercase tracking-wide">
+          <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">
             TAHUN PELAJARAN {settings.academicYear}
           </p>
         )}
       </div>
 
       {/* Data Siswa (Left aligned with aligned colons) */}
-      <div className="text-xs sm:text-sm space-y-2.5 max-w-md mx-auto">
-        <div className="grid grid-cols-[130px_16px_1fr] items-baseline">
-          <span className="font-normal">Nomor Peserta</span>
+      <div className="text-xs space-y-2">
+        <div className="grid grid-cols-[105px_12px_1fr] items-baseline">
+          <span className="font-normal text-slate-800">Nomor Peserta</span>
           <span>:</span>
           <span className="font-bold">{participantNo}</span>
         </div>
 
-        <div className="grid grid-cols-[130px_16px_1fr] items-baseline">
-          <span className="font-normal">Password</span>
+        <div className="grid grid-cols-[105px_12px_1fr] items-baseline">
+          <span className="font-normal text-slate-800">Password</span>
           <span>:</span>
           <span className="font-medium font-mono">{password}</span>
         </div>
 
-        <div className="grid grid-cols-[130px_16px_1fr] items-baseline">
-          <span className="font-normal">Nama Siswa</span>
+        <div className="grid grid-cols-[105px_12px_1fr] items-baseline">
+          <span className="font-normal text-slate-800">Nama Siswa</span>
           <span>:</span>
-          <span className="font-bold uppercase">{card.fullName}</span>
+          <span className="font-bold uppercase truncate" title={card.fullName}>
+            {card.fullName}
+          </span>
         </div>
 
-        <div className="grid grid-cols-[130px_16px_1fr] items-baseline">
-          <span className="font-normal">Kelas / Ruang</span>
+        <div className="grid grid-cols-[105px_12px_1fr] items-baseline">
+          <span className="font-normal text-slate-800">Kelas / Ruang</span>
           <span>:</span>
-          <span className="font-medium">
+          <span className="font-medium truncate" title={`${card.className} / ${card.roomCode}`}>
             {card.className} / {card.roomCode}
           </span>
         </div>

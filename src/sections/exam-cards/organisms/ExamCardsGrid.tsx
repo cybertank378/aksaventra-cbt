@@ -156,13 +156,13 @@ export const ExamCardsGrid: FC = () => {
         </div>
       )}
 
-      {/* Grid of Cards */}
+      {/* Grid of Cards - 3 Columns Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="h-44 rounded-3xl bg-slate-100 animate-pulse border border-slate-200"
+              className="h-44 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
             />
           ))}
         </div>
@@ -177,7 +177,7 @@ export const ExamCardsGrid: FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCards.map((card) => (
             <ExamCardItem
               key={card.studentId}
