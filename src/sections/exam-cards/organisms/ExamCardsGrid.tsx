@@ -1,6 +1,15 @@
 "use client";
 
-import { CreditCard, FileDown, Loader2, Search, Settings } from "lucide-react";
+import clsx from "clsx";
+import {
+  CreditCard,
+  FileDown,
+  LayoutGrid,
+  List,
+  Loader2,
+  Search,
+  Settings,
+} from "lucide-react";
 import { type FC, useEffect, useState } from "react";
 import { generateExamCardsPdf } from "@/libs/examCardPdfGenerator";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
@@ -9,6 +18,7 @@ import { DEFAULT_EXAM_CARD_SETTINGS } from "@/modules/exam-cards/domain/dto/Exam
 import { useExamCardsApi } from "@/modules/exam-cards/presentation/useExamCardsApi";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
+import Pagination from "@/shared-ui/component/Pagination";
 import SelectField from "@/shared-ui/component/SelectField";
 import TextField from "@/shared-ui/component/TextField";
 import { showErrorToast, showSuccessToast } from "@/shared-ui/component/Toast";
@@ -16,6 +26,7 @@ import ExamCardItem from "../molecules/ExamCardItem";
 import ExamCardSettingsModal from "../molecules/ExamCardSettingsModal";
 
 const SETTINGS_STORAGE_KEY = "aksaventra_exam_card_settings";
+const ITEMS_PER_PAGE = 9;
 
 export const ExamCardsGrid: FC = () => {
   const { cards, isLoading, error, fetchCards } = useExamCardsApi();
@@ -26,6 +37,10 @@ export const ExamCardsGrid: FC = () => {
   const [settings, setSettings] = useState<ExamCardSettings>(DEFAULT_EXAM_CARD_SETTINGS);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // View mode and pagination state
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Load custom settings from localStorage on mount
   useEffect(() => {
@@ -55,12 +70,24 @@ export const ExamCardsGrid: FC = () => {
 
   useEffect(() => {
     fetchCards({ classGroupId: selectedClassId });
+    setCurrentPage(1);
   }, [fetchCards, selectedClassId]);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
 
   const filteredCards = cards.filter(
     (c) =>
       c.fullName.toLowerCase().includes(search.toLowerCase()) ||
       c.nisn.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const totalItems = filteredCards.length;
+  const paginatedCards = filteredCards.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
   );
 
   const handleDownloadPdf = async () => {
@@ -127,7 +154,7 @@ export const ExamCardsGrid: FC = () => {
             <TextField
               leftIcon={Search}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Cari siswa atau NISN..."
               size="sm"
             />
@@ -150,19 +177,76 @@ export const ExamCardsGrid: FC = () => {
         </div>
       </Card>
 
+      {/* Sub-bar: Item Stats & View Mode Switcher */}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs font-medium text-slate-500">
+          Menampilkan{" "}
+          <strong className="text-slate-700">
+            {totalItems === 0
+              ? 0
+              : `${(currentPage - 1) * ITEMS_PER_PAGE + 1} - ${Math.min(
+                  currentPage * ITEMS_PER_PAGE,
+                  totalItems,
+                )}`}
+          </strong>{" "}
+          dari <strong className="text-slate-700">{totalItems}</strong> kartu peserta
+        </span>
+
+        {/* View Switcher Toggle */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setViewMode("grid")}
+            className={clsx(
+              "p-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer",
+              viewMode === "grid"
+                ? "bg-white text-[#0d2b5c] shadow-xs"
+                : "text-slate-500 hover:text-slate-900",
+            )}
+            title="Grid View (3 Kolom)"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Grid</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={clsx(
+              "p-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer",
+              viewMode === "list"
+                ? "bg-white text-[#0d2b5c] shadow-xs"
+                : "text-slate-500 hover:text-slate-900",
+            )}
+            title="List View"
+          >
+            <List className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">List</span>
+          </button>
+        </div>
+      </div>
+
       {error && (
         <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-700">
           {error}
         </div>
       )}
 
-      {/* Grid of Cards - 3 Columns Grid */}
+      {/* Display Cards based on View Mode */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          className={
+            viewMode === "grid"
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+              : "flex flex-col gap-3"
+          }
+        >
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="h-44 rounded-2xl bg-slate-100 animate-pulse border border-slate-200"
+              className={clsx(
+                "rounded-2xl bg-slate-100 animate-pulse border border-slate-200",
+                viewMode === "grid" ? "h-44" : "h-24",
+              )}
             />
           ))}
         </div>
@@ -177,15 +261,43 @@ export const ExamCardsGrid: FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCards.map((card) => (
-            <ExamCardItem
-              key={card.studentId}
-              card={card}
-              settings={settings}
-            />
-          ))}
-        </div>
+        <>
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedCards.map((card) => (
+                <ExamCardItem
+                  key={card.studentId}
+                  card={card}
+                  settings={settings}
+                  viewMode="grid"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {paginatedCards.map((card) => (
+                <ExamCardItem
+                  key={card.studentId}
+                  card={card}
+                  settings={settings}
+                  viewMode="list"
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalItems > ITEMS_PER_PAGE && (
+            <div className="mt-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+              <Pagination
+                currentPage={currentPage}
+                totalItems={totalItems}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChangeAction={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal Pengaturan Kartu Ujian */}

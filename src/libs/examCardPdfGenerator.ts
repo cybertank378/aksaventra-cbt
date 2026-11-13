@@ -118,14 +118,14 @@ export async function generateExamCardsPdf(
     const x = colIndex * quadrantW + 5;
     const y = rowIndex * quadrantH + 5;
 
-    // 1. Double Outer Frame
+    // 1. Double Outer Frame (Rounded Corner)
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.5);
-    doc.rect(x, y, cardWidth, cardHeight);
+    doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3);
 
     // Inner thin border
     doc.setLineWidth(0.2);
-    doc.rect(x + 1, y + 1, cardWidth - 2, cardHeight - 2);
+    doc.roundedRect(x + 1, y + 1, cardWidth - 2, cardHeight - 2, 2.5, 2.5);
 
     // 2. KOP SURAT (HEADER)
     const kopTop = y + 2.5;
