@@ -23,6 +23,34 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
 }
 
 /**
+ * Draws precision center cut lines separating the 4 quadrants of an A4 page (2x2 grid).
+ */
+function drawCutLines(doc: jsPDF, pageWidth: number, pageHeight: number) {
+  doc.saveGraphicsState?.();
+  doc.setDrawColor(160, 160, 160);
+  doc.setLineWidth(0.25);
+  doc.setLineDashPattern([2, 2], 0);
+
+  // Vertical center cut line (at x = 105 mm)
+  const cutX = pageWidth / 2; // 105 mm
+  doc.line(cutX, 3, cutX, pageHeight - 3);
+
+  // Horizontal center cut line (at y = 148.5 mm)
+  const cutY = pageHeight / 2; // 148.5 mm
+  doc.line(3, cutY, pageWidth - 3, cutY);
+
+  // Scissors cutting guide label
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6);
+  doc.setTextColor(130, 130, 130);
+  doc.text("✂ Gunting di sini", cutX + 1.5, 5);
+  doc.text("✂ Gunting di sini", 4, cutY - 1);
+
+  doc.setLineDashPattern([], 0); // reset dash
+  doc.restoreGraphicsState?.();
+}
+
+/**
  * Generates an official, print-ready PDF in 2 Columns x 2 Rows (4 cards per A4 page).
  */
 export async function generateExamCardsPdf(
@@ -51,24 +79,27 @@ export async function generateExamCardsPdf(
 
   const pageWidth = 210;
   const pageHeight = 297;
-  const marginX = 8;
-  const marginY = 8;
-  const gapX = 6;
-  const gapY = 6;
 
   // 2 Columns x 2 Rows Layout (4 cards per A4 page)
   const cols = 2;
   const rows = 2;
   const cardsPerPage = cols * rows;
 
-  const cardWidth = (pageWidth - marginX * 2 - gapX) / cols; // 94 mm
-  const cardHeight = (pageHeight - marginY * 2 - gapY) / rows; // 137.5 mm
+  // Quadrant dimensions: 105 mm x 148.5 mm
+  // Inside each quadrant, card is 95 mm x 138.5 mm with 5 mm padding to cut lines and paper borders
+  const cardWidth = 95;
+  const cardHeight = 138.5;
+  const quadrantW = pageWidth / cols; // 105 mm
+  const quadrantH = pageHeight / rows; // 148.5 mm
 
   // Schedule from settings or default blank rows
   const schedule =
     settings.schedule && settings.schedule.length > 0
       ? settings.schedule
       : DEFAULT_EXAM_CARD_SETTINGS.schedule;
+
+  // Draw cut lines on the first page
+  drawCutLines(doc, pageWidth, pageHeight);
 
   for (let i = 0; i < cards.length; i++) {
     const card = cards[i];
@@ -77,13 +108,15 @@ export async function generateExamCardsPdf(
     // Add new page after filling current page (every 4 cards)
     if (i > 0 && indexOnPage === 0) {
       doc.addPage();
+      drawCutLines(doc, pageWidth, pageHeight);
     }
 
     const colIndex = indexOnPage % cols;
     const rowIndex = Math.floor(indexOnPage / cols);
 
-    const x = marginX + colIndex * (cardWidth + gapX);
-    const y = marginY + rowIndex * (cardHeight + gapY);
+    // Exact 5 mm offset from quadrant boundaries
+    const x = colIndex * quadrantW + 5;
+    const y = rowIndex * quadrantH + 5;
 
     // 1. Double Outer Frame
     doc.setDrawColor(0, 0, 0);
@@ -254,11 +287,11 @@ export async function generateExamCardsPdf(
 
     // Table Layout
     const tableX = x + 2.5;
-    const tableW = cardWidth - 5; // 89 mm
+    const tableW = cardWidth - 5; // 90 mm
     const tableTop = tableTitleY + 1.5;
 
     const colW1 = 20; // Hari/Tanggal
-    const colW2 = 32; // Mata Pelajaran
+    const colW2 = 33; // Mata Pelajaran
     const colW3 = 23; // Waktu
     const colW4 = tableW - (colW1 + colW2 + colW3); // 14 mm TTD Pengawas
 
@@ -377,28 +410,6 @@ export async function generateExamCardsPdf(
       doc.setFont("times", "normal");
       doc.setFontSize(5);
       doc.text(`NIP. ${settings.signerNip}`, sigX, signerNameY + 2.6);
-    }
-
-    // Dotted cutting guide line between columns (vertical) and rows (horizontal)
-    if (indexOnPage === 3 || i === cards.length - 1) {
-      doc.setDrawColor(160, 160, 160);
-      doc.setLineDashPattern([2, 2], 0);
-
-      // Vertical center cut line (at x = 105 mm)
-      const cutX = pageWidth / 2;
-      doc.line(cutX, marginY - 2, cutX, pageHeight - marginY + 2);
-
-      // Horizontal center cut line (at y = 148.5 mm)
-      const cutY = pageHeight / 2;
-      doc.line(marginX - 2, cutY, pageWidth - marginX + 2, cutY);
-
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(5.5);
-      doc.setTextColor(140, 140, 140);
-      doc.text("✂ Gunting", cutX + 1.5, 6);
-      doc.text("✂ Gunting", 3, cutY - 1);
-
-      doc.setLineDashPattern([], 0); // reset dash
     }
   }
 
