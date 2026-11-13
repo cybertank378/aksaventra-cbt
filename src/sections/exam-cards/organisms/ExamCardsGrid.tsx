@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Filter, Printer } from "lucide-react";
+import { CreditCard, Filter, Printer, Search } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import { useExamCardsApi } from "@/modules/exam-cards/presentation/useExamCardsApi";
@@ -60,31 +60,33 @@ export const ExamCardsGrid: FC = () => {
         </Button>
       </div>
 
-      {/* Filter Bar (Hidden when printing) */}
-      <Card className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 print:hidden">
-        <div className="flex-1 max-w-sm">
-          <TextField
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari siswa atau NISN..."
-            size="sm"
-          />
-        </div>
+      {/* Filter Bar (Hidden when printing) - 1 Row 2 Columns CSS Grid */}
+      <Card className="p-4 print:hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+          <div className="w-full">
+            <TextField
+              leftIcon={Search}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari siswa atau NISN..."
+              size="sm"
+            />
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <SelectField
-            value={selectedClassId}
-            onChange={(e) => setSelectedClassId(e.target.value)}
-            size="sm"
-          >
-            <option value="ALL">Semua Kelas</option>
-            {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>
-                {cls.name}
-              </option>
-            ))}
-          </SelectField>
+          <div className="w-full">
+            <SelectField
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              size="sm"
+            >
+              <option value="ALL">Semua Kelas</option>
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}
+                </option>
+              ))}
+            </SelectField>
+          </div>
         </div>
       </Card>
 
