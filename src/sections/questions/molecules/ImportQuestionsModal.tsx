@@ -4,6 +4,8 @@ import {
   BookOpen,
   Download,
   FileQuestion,
+  FileText,
+  HelpCircle,
   Loader2,
   UploadCloud,
   X,
@@ -24,6 +26,7 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@/shared-ui/component/Table";
+import QuestionEditorHelpModal from "./QuestionEditorHelpModal";
 
 interface ImportQuestionsModalProps {
   open: boolean;
@@ -118,6 +121,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
   const [isParsing, setIsParsing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
 
   const handleReset = () => {
     setSelectedFile(null);
@@ -229,9 +233,29 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
+                variant="filled"
+                color="primary"
+                size="xs"
+                leftIcon={HelpCircle}
+                onClick={() => setHelpModalOpen(true)}
+              >
+                Panduan Format Word & KaTeX
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                color="secondary"
+                size="xs"
+                leftIcon={FileText}
+                onClick={() => setHelpModalOpen(true)}
+              >
+                Contoh Word (.docx)
+              </Button>
+              <Button
+                type="button"
                 variant="outline"
                 color="success"
-                size="sm"
+                size="xs"
                 leftIcon={Download}
                 onClick={() =>
                   handleProcessDownload(
@@ -246,7 +270,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                 type="button"
                 variant="outline"
                 color="teal"
-                size="sm"
+                size="xs"
                 leftIcon={Download}
                 onClick={() =>
                   handleProcessDownload(
@@ -261,7 +285,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                 type="button"
                 variant="outline"
                 color="secondary"
-                size="sm"
+                size="xs"
                 leftIcon={Download}
                 onClick={() =>
                   handleProcessDownload(
@@ -347,7 +371,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
             <input
               id="question-file-upload"
               type="file"
-              accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+              accept=".docx,.doc,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -359,11 +383,10 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                 <UploadCloud className="w-7 h-7 text-indigo-600" />
               </div>
               <p className="text-xs font-bold text-slate-800">
-                Pilih atau seret berkas naskah soal (.xlsx, .xls, .csv)
+                Pilih atau seret berkas naskah soal Word (.docx) atau Excel (.xlsx)
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Mendukung Microsoft Excel (.xlsx / .xls) dan CSV berpemisah
-                titik-koma (;)
+              <p className="text-[11px] text-slate-500 mt-1 text-center max-w-md">
+                Mendukung <strong>Microsoft Word (.docx / .doc)</strong> dengan formula KaTeX & gambar otomatis, serta Microsoft Excel (.xlsx / .xls) & CSV
               </p>
             </label>
           </div>
@@ -376,11 +399,26 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <FileQuestion className="w-5 h-5 text-indigo-600" />
+                  {/\.(docx|doc)$/i.test(selectedFile.name) ? (
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <FileQuestion className="w-5 h-5 text-indigo-600" />
+                  )}
                   <div>
-                    <p className="text-xs font-bold text-slate-900">
-                      {selectedFile.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-slate-900">
+                        {selectedFile.name}
+                      </p>
+                      {/\.(docx|doc)$/i.test(selectedFile.name) ? (
+                        <Badge color="primary" size="sm" className="font-bold">
+                          Dokumen Word (.docx)
+                        </Badge>
+                      ) : (
+                        <Badge color="success" size="sm" className="font-bold">
+                          Excel / Spreadsheet
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-[11px] text-slate-500">
                       {totalQuestions} butir soal teridentifikasi
                     </p>
@@ -498,6 +536,13 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Editor & Word Help Modal */}
+      <QuestionEditorHelpModal
+        open={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+        defaultTab="word"
+      />
     </Modal>
   );
 };

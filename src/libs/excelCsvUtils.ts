@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { parseWordDocxFile } from "./wordDocxUtils";
 
 /**
  * Utility functions for Excel (.xlsx, .xls) and CSV parsing and export.
@@ -163,9 +164,14 @@ export function downloadCsvBlob(csvContent: string, filename: string): void {
 }
 
 /**
- * Universal tabular file parser supporting .xlsx, .xls, and .csv.
+ * Universal tabular & document file parser supporting .docx, .xlsx, .xls, and .csv.
  */
 export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
+  const isWord = /\.(docx|doc)$/i.test(file.name);
+  if (isWord) {
+    return parseWordDocxFile(file);
+  }
+
   const isExcel = /\.(xlsx|xls)$/i.test(file.name);
   if (!isExcel) {
     return parseCsvFile(file);

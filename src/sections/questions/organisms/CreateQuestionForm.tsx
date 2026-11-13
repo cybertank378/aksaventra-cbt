@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowLeft, Check, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC, useState } from "react";
 import type {
@@ -16,6 +24,7 @@ import SelectField from "@/shared-ui/component/SelectField";
 import TextField from "@/shared-ui/component/TextField";
 import MathDiagramModal from "../molecules/MathDiagramModal";
 import MathFormulaToolbar from "../molecules/MathFormulaToolbar";
+import QuestionEditorHelpModal from "../molecules/QuestionEditorHelpModal";
 
 export const CreateQuestionForm: FC = () => {
   const router = useRouter();
@@ -31,6 +40,7 @@ export const CreateQuestionForm: FC = () => {
   const [explanation, setExplanation] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
   const [diagramModalOpen, setDiagramModalOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
 
   const [options, setOptions] = useState<QuestionOptionDTO[]>([
     { id: "opt-1", label: "A", text: "", isCorrect: true },
@@ -132,14 +142,26 @@ export const CreateQuestionForm: FC = () => {
           </div>
         </div>
 
-        <Button
-          type="submit"
-          variant="filled"
-          color="primary"
-          loading={isLoading}
-        >
-          Simpan ke Bank Soal
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={HelpCircle}
+            onClick={() => setHelpModalOpen(true)}
+          >
+            Bantuan Editor
+          </Button>
+          <Button
+            type="submit"
+            variant="filled"
+            color="primary"
+            loading={isLoading}
+          >
+            Simpan ke Bank Soal
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -384,6 +406,12 @@ export const CreateQuestionForm: FC = () => {
           className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
         />
       </div>
+
+      {/* Editor Guide Modal */}
+      <QuestionEditorHelpModal
+        open={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+      />
     </form>
   );
 };

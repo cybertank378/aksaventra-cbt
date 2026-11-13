@@ -6,6 +6,7 @@ import {
   Download,
   Edit3,
   Eye,
+  HelpCircle,
   Image as ImageIcon,
   LineChart,
   Plus,
@@ -27,6 +28,7 @@ import MathRenderer from "@/shared-ui/component/MathRenderer";
 import QuestionTypeBadge from "../atoms/QuestionTypeBadge";
 import EditQuestionModal from "../molecules/EditQuestionModal";
 import ImportQuestionsModal from "../molecules/ImportQuestionsModal";
+import QuestionEditorHelpModal from "../molecules/QuestionEditorHelpModal";
 import QuestionFilterBar from "../molecules/QuestionFilterBar";
 import ViewQuestionModal from "../molecules/ViewQuestionModal";
 
@@ -46,6 +48,7 @@ export const QuestionsListGrid: FC = () => {
   const [type, setType] = useState("ALL");
   const [grade, setGrade] = useState("ALL");
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
   const [viewingQuestion, setViewingQuestion] = useState<QuestionDTO | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<QuestionDTO | null>(null);
 
@@ -143,12 +146,24 @@ export const QuestionsListGrid: FC = () => {
           <Button
             type="button"
             variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={HelpCircle}
+            onClick={() => setHelpModalOpen(true)}
+            title="Bantuan Penulisan KaTeX & Impor Soal Word"
+          >
+            Bantuan Editor & Word
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
             color="primary"
             size="sm"
             leftIcon={UploadCloud}
             onClick={() => setImportModalOpen(true)}
           >
-            Import Soal (8 Jenis)
+            Import Soal (Word & Excel)
           </Button>
 
           <Button
@@ -326,6 +341,12 @@ export const QuestionsListGrid: FC = () => {
             search: search.trim() || undefined,
           });
         }}
+      />
+
+      {/* Editor & Word Help Modal */}
+      <QuestionEditorHelpModal
+        open={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
       />
     </div>
   );
