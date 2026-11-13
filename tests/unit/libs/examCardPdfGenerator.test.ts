@@ -10,6 +10,7 @@ vi.mock("jspdf", () => {
       roundedRect = vi.fn();
       rect = vi.fn();
       line = vi.fn();
+      circle = vi.fn();
       text = vi.fn();
       addImage = vi.fn();
       setFont = vi.fn();
@@ -22,6 +23,8 @@ vi.mock("jspdf", () => {
       getTextWidth = vi.fn().mockReturnValue(30);
       addPage = vi.fn();
       save = vi.fn();
+      saveGraphicsState = vi.fn();
+      restoreGraphicsState = vi.fn();
     },
   };
 });
@@ -30,33 +33,34 @@ describe("ExamCardPdfGenerator & Settings", () => {
   const mockCards: ExamCardItemDTO[] = [
     {
       studentId: "std-1",
-      nisn: "0012345678",
-      fullName: "Budi Pratama",
-      className: "XII-MIPA-1",
-      roomCode: "LAB-01",
-      seatNumber: "M-01",
-      examTitle: "Penilaian Akhir Semester (PAS) CBT",
-      sessionTime: "07:30 - 09:30",
+      nisn: "P72324001",
+      fullName: "ACHMAD BAIHAQI",
+      className: "VII.1",
+      roomCode: "VII.1",
+      seatNumber: "P72324001",
+      examTitle: "ASESMEN SUMATIF AKHIR TAHUN",
+      sessionTime: "07.00 - 09.00",
       verificationCode: "AKSA-9912-7711",
     },
     {
       studentId: "std-2",
-      nisn: "0087654321",
-      fullName: "Siti Rahma",
-      className: "XII-MIPA-1",
-      roomCode: "LAB-01",
-      seatNumber: "M-02",
-      examTitle: "Penilaian Akhir Semester (PAS) CBT",
-      sessionTime: "07:30 - 09:30",
+      nisn: "P72324002",
+      fullName: "SITI AMALIA",
+      className: "VII.1",
+      roomCode: "VII.1",
+      seatNumber: "P72324002",
+      examTitle: "ASESMEN SUMATIF AKHIR TAHUN",
+      sessionTime: "07.00 - 09.00",
       verificationCode: "AKSA-8821-4422",
     },
   ];
 
-  it("should provide valid default exam card settings", () => {
-    expect(DEFAULT_EXAM_CARD_SETTINGS.institutionName).toBeDefined();
-    expect(DEFAULT_EXAM_CARD_SETTINGS.cardsPerPage).toBe(4);
-    expect(DEFAULT_EXAM_CARD_SETTINGS.city).toBe("Jakarta");
-    expect(DEFAULT_EXAM_CARD_SETTINGS.signerTitle).toBe("Kepala Sekolah");
+  it("should provide valid default exam card settings matching official school card", () => {
+    expect(DEFAULT_EXAM_CARD_SETTINGS.institutionName).toBe("SEKOLAH MENENGAH PERTAMA NEGERI 29");
+    expect(DEFAULT_EXAM_CARD_SETTINGS.cardsPerPage).toBe(2);
+    expect(DEFAULT_EXAM_CARD_SETTINGS.signerTitle).toBe("Kepala SMP Negeri 29 Jakarta,");
+    expect(DEFAULT_EXAM_CARD_SETTINGS.signerName).toBe("Abdul Malik, M.Si");
+    expect(DEFAULT_EXAM_CARD_SETTINGS.schedule.length).toBeGreaterThan(0);
   });
 
   it("should do nothing if cards array is empty", async () => {
@@ -68,14 +72,13 @@ describe("ExamCardPdfGenerator & Settings", () => {
   it("should generate PDF without errors with custom settings and cards", async () => {
     const customSettings: ExamCardSettings = {
       ...DEFAULT_EXAM_CARD_SETTINGS,
-      institutionName: "SMA LABSCHOOL JAKARTA",
-      subHeader: "ASESMEN SUMATIF TAHAP 1",
+      institutionName: "SMP NEGERI 29 JAKARTA",
       cardsPerPage: 2,
     };
 
     await expect(
       generateExamCardsPdf(mockCards, customSettings, {
-        filename: "Kartu_Ujian_XII_MIPA_1.pdf",
+        filename: "Kartu_Peserta_VII_1.pdf",
       }),
     ).resolves.toBeUndefined();
   });
