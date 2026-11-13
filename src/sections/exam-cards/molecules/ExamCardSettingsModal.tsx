@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  CalendarDays,
   FileCheck2,
   Image as ImageIcon,
   RotateCcw,
@@ -10,7 +11,10 @@ import {
   Upload,
 } from "lucide-react";
 import React, { type ChangeEvent, type FC, useState } from "react";
-import type { ExamCardSettings } from "@/modules/exam-cards/domain/dto/ExamCardDTO";
+import type {
+  ExamCardSettings,
+  ExamScheduleItem,
+} from "@/modules/exam-cards/domain/dto/ExamCardDTO";
 import { DEFAULT_EXAM_CARD_SETTINGS } from "@/modules/exam-cards/domain/dto/ExamCardDTO";
 import Button from "@/shared-ui/component/Button";
 import { Modal } from "@/shared-ui/component/Modal";
@@ -34,6 +38,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
   const [formData, setFormData] = useState<ExamCardSettings>({ ...settings });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingStamp, setIsUploadingStamp] = useState(false);
+  const [showScheduleEditor, setShowScheduleEditor] = useState(false);
 
   // Sync state whenever modal is opened
   React.useEffect(() => {
@@ -94,7 +99,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
       if (typeof reader.result === "string") {
         handleChange("stampUrl", reader.result);
         handleChange("showStamp", true);
-        showSuccessToast("Stempel / cap instansi berhasil dimuat.");
+        showSuccessToast("Stempel instansi berhasil dimuat.");
       }
       setIsUploadingStamp(false);
     };
@@ -105,9 +110,59 @@ export const ExamCardSettingsModal: FC<Props> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleScheduleChange = (
+    index: number,
+    field: "dayDate" | "sub1Name" | "sub1Time" | "sub2Name" | "sub2Time",
+    value: string,
+  ) => {
+    setFormData((prev) => {
+      const currentList: ExamScheduleItem[] = [...(prev.schedule || [])];
+      while (currentList.length <= index) {
+        currentList.push({
+          dayDate: "",
+          subjects: [
+            { name: "", time: "" },
+            { name: "", time: "" },
+          ],
+        });
+      }
+
+      const row = { ...currentList[index] };
+      const subjects = [...(row.subjects || [{ name: "", time: "" }, { name: "", time: "" }])];
+
+      if (field === "dayDate") {
+        row.dayDate = value;
+      } else if (field === "sub1Name") {
+        subjects[0] = { ...subjects[0], name: value };
+      } else if (field === "sub1Time") {
+        subjects[0] = { ...subjects[0], time: value };
+      } else if (field === "sub2Name") {
+        subjects[1] = { ...subjects[1], name: value };
+      } else if (field === "sub2Time") {
+        subjects[1] = { ...subjects[1], time: value };
+      }
+
+      row.subjects = subjects;
+      currentList[index] = row;
+      return { ...prev, schedule: currentList };
+    });
+  };
+
+  const handleClearSchedule = () => {
+    const blankSchedule: ExamScheduleItem[] = [
+      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+    ];
+    handleChange("schedule", blankSchedule);
+    showSuccessToast("Data jadwal mapel dan waktu telah dikosongkan.");
+  };
+
   const handleResetToDefault = () => {
     setFormData({ ...DEFAULT_EXAM_CARD_SETTINGS });
-    showSuccessToast("Pengaturan dikembalikan ke template standar resmi.");
+    showSuccessToast("Pengaturan dikembalikan ke konfigurasi standar.");
   };
 
   const handleSubmit = () => {
@@ -116,7 +171,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
       return;
     }
     onSave(formData);
-    showSuccessToast("Format kartu ujian berhasil disimpan.");
+    showSuccessToast("Pengaturan kartu ujian berhasil disimpan.");
     onClose();
   };
 
@@ -124,8 +179,8 @@ export const ExamCardSettingsModal: FC<Props> = ({
     <Modal
       open={open}
       onClose={onClose}
-      title="Pengaturan Format Kartu Ujian Resmi"
-      subtitle="Sesuaikan kop surat dinas, nama sekolah, logo, stempel, dan penandatangan kartu ujian"
+      title="Pengaturan Format Kartu Ujian"
+      subtitle="Kustomisasi nama instansi, alamat, kepala sekolah, logo, stempel, dan jadwal ujian"
       size="lg"
       onSubmit={handleSubmit}
       submitText="Simpan Pengaturan"
@@ -138,7 +193,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
           <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5">
             <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
               <Building2 className="w-4 h-4 text-[#0097a7]" />
-              Logo Instansi / Daerah
+              Logo Instansi / Sekolah
             </label>
             <div className="flex items-center gap-3">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white overflow-hidden p-1 shadow-xs">
@@ -153,7 +208,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
                   <div className="flex flex-col items-center justify-center text-slate-400 text-center">
                     <ImageIcon className="h-5 w-5 mb-0.5 text-slate-300" />
                     <span className="text-[8px] font-medium leading-none">
-                      Logo Standar
+                      Belum Ada
                     </span>
                   </div>
                 )}
@@ -192,7 +247,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
           <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5">
             <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
               <Stamp className="w-4 h-4 text-indigo-600" />
-              Stempel / Cap Resmi
+              Stempel / Cap Resmi (Opsional)
             </label>
             <div className="flex items-center gap-3">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white overflow-hidden p-1 shadow-xs">
@@ -207,7 +262,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
                   <div className="flex flex-col items-center justify-center text-indigo-400 text-center">
                     <Stamp className="h-5 w-5 mb-0.5 opacity-60" />
                     <span className="text-[8px] font-medium leading-none">
-                      Cap Standar
+                      Cap Manual
                     </span>
                   </div>
                 )}
@@ -231,7 +286,10 @@ export const ExamCardSettingsModal: FC<Props> = ({
                   <div>
                     <button
                       type="button"
-                      onClick={() => handleChange("stampUrl", undefined)}
+                      onClick={() => {
+                        handleChange("stampUrl", undefined);
+                        handleChange("showStamp", false);
+                      }}
                       className="text-[11px] font-medium text-rose-600 hover:underline flex items-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" /> Hapus Cap
@@ -243,17 +301,17 @@ export const ExamCardSettingsModal: FC<Props> = ({
           </div>
         </div>
 
-        {/* Section 2: KOP SURAT RESMI */}
+        {/* Section 2: KOP SURAT INSTANSI */}
         <div className="space-y-3 border-t border-slate-200 pt-3">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            1. Kop Surat Resmi Instansi
+            1. Kop Surat & Identitas Instansi
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <TextField
-              label="Pemerintah Provinsi / Yayasan (Baris 1)"
+              label="Pemerintah Daerah / Yayasan (Baris 1)"
               value={formData.governmentText}
               onChange={(e) => handleChange("governmentText", e.target.value)}
-              placeholder="Contoh: PEMERINTAH PROVINSI DAERAH KHUSUS IBUKOTA JAKARTA"
+              placeholder="Contoh: PEMERINTAH DAERAH PROVINSI"
               size="sm"
             />
             <TextField
@@ -266,10 +324,10 @@ export const ExamCardSettingsModal: FC<Props> = ({
           </div>
 
           <TextField
-            label="Nama Sekolah / Madrasah (Baris 3 - Huruf Besar)"
+            label="Nama Sekolah / Lembaga (Baris 3 - Huruf Besar)"
             value={formData.institutionName}
             onChange={(e) => handleChange("institutionName", e.target.value)}
-            placeholder="Contoh: SEKOLAH MENENGAH PERTAMA NEGERI 29"
+            placeholder="Contoh: SMA NEGERI 1 AKSAVENTRA"
             size="sm"
           />
 
@@ -279,7 +337,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
                 label="Alamat Sekolah (Baris 4)"
                 value={formData.address}
                 onChange={(e) => handleChange("address", e.target.value)}
-                placeholder="Contoh: Jl. Bumi Blok E Kebayoran Baru Jakarta Selatan"
+                placeholder="Contoh: Jl. Pendidikan Nasional No. 45"
                 size="sm"
               />
             </div>
@@ -288,7 +346,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
                 label="Kode Pos"
                 value={formData.postalCode}
                 onChange={(e) => handleChange("postalCode", e.target.value)}
-                placeholder="12120"
+                placeholder="Contoh: 12345"
                 size="sm"
               />
             </div>
@@ -298,16 +356,16 @@ export const ExamCardSettingsModal: FC<Props> = ({
             label="Kontak Telepon, Fax & Email (Baris 5)"
             value={formData.contactText}
             onChange={(e) => handleChange("contactText", e.target.value)}
-            placeholder="Telepon (021) 7247493 Fax. (021) 7206336 E-mail : smpn29jkt@yahoo.com"
+            placeholder="Contoh: Telepon (021) 7890123 • E-mail : info@aksaventra.sch.id"
             size="sm"
           />
         </div>
 
-        {/* Section 3: Judul Asesmen / Ujian */}
+        {/* Section 3: Judul Ujian & Tahun Pelajaran */}
         <div className="space-y-3 border-t border-slate-200 pt-3">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <FileCheck2 className="w-4 h-4 text-slate-500" />
-            2. Judul Asesmen & Tahun Pelajaran
+            2. Judul Ujian & Tahun Pelajaran
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <TextField
@@ -318,53 +376,147 @@ export const ExamCardSettingsModal: FC<Props> = ({
               size="sm"
             />
             <TextField
-              label="Nama Asesmen / Ujian"
+              label="Nama Ujian / Asesmen"
               value={formData.examTitle}
               onChange={(e) => handleChange("examTitle", e.target.value)}
-              placeholder="ASESMEN SUMATIF AKHIR TAHUN"
+              placeholder="ASESMEN SUMATIF AKHIR SEMESTER (ASAS)"
               size="sm"
             />
             <TextField
               label="Tahun Pelajaran"
               value={formData.academicYear}
               onChange={(e) => handleChange("academicYear", e.target.value)}
-              placeholder="2023/2024"
+              placeholder="2026/2027"
               size="sm"
             />
           </div>
         </div>
 
-        {/* Section 4: Penandatangan & Pengesahan */}
+        {/* Section 4: Penandatangan (Kepala Sekolah) */}
         <div className="space-y-3 border-t border-slate-200 pt-3">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
             3. Penandatangan & Pengesahan
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <TextField
-              label="Jabatan & Sekolah"
+              label="Jabatan Pengesah"
               value={formData.signerTitle}
               onChange={(e) => handleChange("signerTitle", e.target.value)}
-              placeholder="Kepala SMP Negeri 29 Jakarta,"
+              placeholder="Contoh: Kepala Sekolah,"
               size="sm"
             />
             <TextField
-              label="Nama Lengkap & Gelar"
+              label="Nama Kepala Sekolah / Pengesah"
               value={formData.signerName}
               onChange={(e) => handleChange("signerName", e.target.value)}
-              placeholder="Abdul Malik, M.Si"
+              placeholder="Contoh: Drs. H. Mulyadi, M.Pd"
               size="sm"
             />
             <TextField
-              label="NIP"
+              label="NIP (Opsional)"
               value={formData.signerNip}
               onChange={(e) => handleChange("signerNip", e.target.value)}
-              placeholder="196505141989032005"
+              placeholder="Contoh: 19750812 200003 1 002"
               size="sm"
             />
           </div>
         </div>
 
-        {/* Section 5: Opsi Cetak PDF */}
+        {/* Section 5: Pengaturan Jadwal Ujian (Tanpa Hardcode, Kosong jika belum ada) */}
+        <div className="space-y-3 border-t border-slate-200 pt-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <CalendarDays className="w-4 h-4 text-slate-500" />
+              4. Jadwal Mata Pelajaran & Waktu
+            </h4>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClearSchedule}
+                className="text-[11px] font-semibold text-rose-600 hover:underline"
+              >
+                Kosongkan Jadwal
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowScheduleEditor(!showScheduleEditor)}
+                className="text-[11px] font-semibold text-[#0097a7] hover:underline"
+              >
+                {showScheduleEditor ? "Sembunyikan Editor" : "Kelola Jadwal"}
+              </button>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-500">
+            Jika mata pelajaran dan waktu belum diatur, tabel jadwal pada kartu ujian akan dibiarkan <strong>kosong (bersih tanpa teks tiruan)</strong>.
+          </p>
+
+          {showScheduleEditor && (
+            <div className="space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+              {[0, 1, 2, 3, 4].map((idx) => {
+                const item = formData.schedule?.[idx] || {
+                  dayDate: "",
+                  subjects: [{ name: "", time: "" }, { name: "", time: "" }],
+                };
+                return (
+                  <div
+                    key={idx}
+                    className="p-2.5 bg-white rounded-xl border border-slate-200 space-y-2 text-xs"
+                  >
+                    <span className="font-bold text-slate-700">Hari ke-{idx + 1}</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <TextField
+                        placeholder="Hari, Tanggal (misal: Senin, 4 Maret 2026)"
+                        value={item.dayDate || ""}
+                        onChange={(e) =>
+                          handleScheduleChange(idx, "dayDate", e.target.value)
+                        }
+                        size="sm"
+                      />
+                      <TextField
+                        placeholder="Mapel Sesi 1"
+                        value={item.subjects?.[0]?.name || ""}
+                        onChange={(e) =>
+                          handleScheduleChange(idx, "sub1Name", e.target.value)
+                        }
+                        size="sm"
+                      />
+                      <TextField
+                        placeholder="Waktu Sesi 1 (misal: 07.30 - 09.30)"
+                        value={item.subjects?.[0]?.time || ""}
+                        onChange={(e) =>
+                          handleScheduleChange(idx, "sub1Time", e.target.value)
+                        }
+                        size="sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="hidden sm:block" />
+                      <TextField
+                        placeholder="Mapel Sesi 2 (Opsional)"
+                        value={item.subjects?.[1]?.name || ""}
+                        onChange={(e) =>
+                          handleScheduleChange(idx, "sub2Name", e.target.value)
+                        }
+                        size="sm"
+                      />
+                      <TextField
+                        placeholder="Waktu Sesi 2 (Opsional)"
+                        value={item.subjects?.[1]?.time || ""}
+                        onChange={(e) =>
+                          handleScheduleChange(idx, "sub2Time", e.target.value)
+                        }
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Section 6: Format Cetak PDF */}
         <div className="space-y-3 border-t border-slate-200 pt-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
             <SelectField
@@ -388,7 +540,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
                 leftIcon={RotateCcw}
                 onClick={handleResetToDefault}
               >
-                Reset ke Format Standar
+                Reset ke Pengaturan Awal
               </Button>
             </div>
           </div>

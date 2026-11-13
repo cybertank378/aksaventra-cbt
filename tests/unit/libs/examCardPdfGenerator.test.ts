@@ -33,34 +33,37 @@ describe("ExamCardPdfGenerator & Settings", () => {
   const mockCards: ExamCardItemDTO[] = [
     {
       studentId: "std-1",
-      nisn: "P72324001",
+      nisn: "0012345678",
       fullName: "ACHMAD BAIHAQI",
       className: "VII.1",
       roomCode: "VII.1",
       seatNumber: "P72324001",
-      examTitle: "ASESMEN SUMATIF AKHIR TAHUN",
-      sessionTime: "07.00 - 09.00",
+      examTitle: "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)",
+      sessionTime: "07.30 - 09.30",
       verificationCode: "AKSA-9912-7711",
     },
     {
       studentId: "std-2",
-      nisn: "P72324002",
+      nisn: "0087654321",
       fullName: "SITI AMALIA",
       className: "VII.1",
       roomCode: "VII.1",
       seatNumber: "P72324002",
-      examTitle: "ASESMEN SUMATIF AKHIR TAHUN",
-      sessionTime: "07.00 - 09.00",
+      examTitle: "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)",
+      sessionTime: "07.30 - 09.30",
       verificationCode: "AKSA-8821-4422",
     },
   ];
 
-  it("should provide valid default exam card settings matching official school card", () => {
-    expect(DEFAULT_EXAM_CARD_SETTINGS.institutionName).toBe("SEKOLAH MENENGAH PERTAMA NEGERI 29");
+  it("should provide valid default exam card settings without hardcoded subjects", () => {
+    expect(DEFAULT_EXAM_CARD_SETTINGS.institutionName).toBe("SMA NEGERI 1 AKSAVENTRA");
     expect(DEFAULT_EXAM_CARD_SETTINGS.cardsPerPage).toBe(2);
-    expect(DEFAULT_EXAM_CARD_SETTINGS.signerTitle).toBe("Kepala SMP Negeri 29 Jakarta,");
-    expect(DEFAULT_EXAM_CARD_SETTINGS.signerName).toBe("Abdul Malik, M.Si");
+    expect(DEFAULT_EXAM_CARD_SETTINGS.signerTitle).toBe("Kepala Sekolah,");
+    expect(DEFAULT_EXAM_CARD_SETTINGS.signerName).toBe("Drs. H. Mulyadi, M.Pd");
+    // Ensure schedule subjects and times are empty by default (no hardcoded fake subjects)
     expect(DEFAULT_EXAM_CARD_SETTINGS.schedule.length).toBeGreaterThan(0);
+    expect(DEFAULT_EXAM_CARD_SETTINGS.schedule[0].subjects[0].name).toBe("");
+    expect(DEFAULT_EXAM_CARD_SETTINGS.schedule[0].subjects[0].time).toBe("");
   });
 
   it("should do nothing if cards array is empty", async () => {
@@ -69,10 +72,10 @@ describe("ExamCardPdfGenerator & Settings", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("should generate PDF without errors with custom settings and cards", async () => {
+  it("should generate PDF without errors with custom settings and empty/non-empty schedule", async () => {
     const customSettings: ExamCardSettings = {
       ...DEFAULT_EXAM_CARD_SETTINGS,
-      institutionName: "SMP NEGERI 29 JAKARTA",
+      institutionName: "SMA NEGERI 1 AKSAVENTRA",
       cardsPerPage: 2,
     };
 

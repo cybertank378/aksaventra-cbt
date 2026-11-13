@@ -50,7 +50,6 @@ export async function generateExamCardsPdf(
   }
 
   const pageWidth = 210;
-  const pageHeight = 297;
   const marginX = 12;
   const marginY = 10;
 
@@ -60,7 +59,11 @@ export async function generateExamCardsPdf(
   const gapY = 8;
   const cardsPerPage = settings.cardsPerPage || 2;
 
-  const schedule = settings.schedule || DEFAULT_EXAM_CARD_SETTINGS.schedule;
+  // Schedule from settings or default blank rows
+  const schedule =
+    settings.schedule && settings.schedule.length > 0
+      ? settings.schedule
+      : DEFAULT_EXAM_CARD_SETTINGS.schedule;
 
   for (let i = 0; i < cards.length; i++) {
     const card = cards[i];
@@ -100,31 +103,36 @@ export async function generateExamCardsPdf(
         // Fallback without logo
       }
     } else {
-      // Draw official shield placeholder matching DKI Jakarta / Jaya Raya
+      // Draw clean formal crest outline
       doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(0.3);
       doc.roundedRect(logoX + 1, logoY, 13, 16, 1, 1);
       doc.setFont("times", "bold");
       doc.setFontSize(5);
-      doc.text("JAYA RAYA", logoX + 7.5, logoY + 3.5, { align: "center" });
-      doc.circle(logoX + 7.5, logoY + 8.5, 3.5);
-      doc.setFontSize(4.5);
-      doc.text("DKI", logoX + 7.5, logoY + 14, { align: "center" });
+      doc.text("CBT", logoX + 7.5, logoY + 4, { align: "center" });
+      doc.circle(logoX + 7.5, logoY + 8.5, 3);
+      doc.setFontSize(4);
+      const abbr = settings.institutionName ? settings.institutionName.slice(0, 8) : "AKSA";
+      doc.text(abbr, logoX + 7.5, logoY + 14, { align: "center" });
     }
 
-    // Kop Text Lines
+    // Kop Text Lines (strictly from settings)
     doc.setTextColor(0, 0, 0);
     doc.setFont("times", "normal");
     doc.setFontSize(8.5);
-    doc.text(settings.governmentText, kopCenter + 5, kopTop + 2.5, {
-      align: "center",
-    });
+    if (settings.governmentText) {
+      doc.text(settings.governmentText, kopCenter + 5, kopTop + 2.5, {
+        align: "center",
+      });
+    }
 
     doc.setFont("times", "bold");
     doc.setFontSize(9.5);
-    doc.text(settings.departmentText, kopCenter + 5, kopTop + 6.5, {
-      align: "center",
-    });
+    if (settings.departmentText) {
+      doc.text(settings.departmentText, kopCenter + 5, kopTop + 6.5, {
+        align: "center",
+      });
+    }
 
     doc.setFontSize(10.5);
     doc.text(settings.institutionName, kopCenter + 5, kopTop + 10.5, {
@@ -133,20 +141,26 @@ export async function generateExamCardsPdf(
 
     doc.setFont("times", "normal");
     doc.setFontSize(7.5);
-    doc.text(settings.address, kopCenter + 5, kopTop + 14, {
-      align: "center",
-    });
+    if (settings.address) {
+      doc.text(settings.address, kopCenter + 5, kopTop + 14, {
+        align: "center",
+      });
+    }
 
     doc.setFontSize(7);
-    doc.text(settings.contactText, kopCenter + 5, kopTop + 17, {
-      align: "center",
-    });
+    if (settings.contactText) {
+      doc.text(settings.contactText, kopCenter + 5, kopTop + 17, {
+        align: "center",
+      });
+    }
 
     // Kode Pos (Right aligned)
-    doc.setFontSize(7);
-    doc.text(`Kode Pos : ${settings.postalCode}`, x + cardWidth - 5, kopTop + 18.5, {
-      align: "right",
-    });
+    if (settings.postalCode) {
+      doc.setFontSize(7);
+      doc.text(`Kode Pos : ${settings.postalCode}`, x + cardWidth - 5, kopTop + 18.5, {
+        align: "right",
+      });
+    }
 
     // Divider: Thick top line + thin bottom line
     const dividerY = kopTop + 20;
@@ -159,15 +173,21 @@ export async function generateExamCardsPdf(
     const titleY = dividerY + 4.5;
     doc.setFont("times", "bold");
     doc.setFontSize(10.5);
-    doc.text(settings.cardHeaderTitle, kopCenter, titleY, { align: "center" });
-
-    doc.setFontSize(9.5);
-    doc.text(settings.examTitle, kopCenter, titleY + 4, { align: "center" });
-
-    doc.setFontSize(8.5);
-    doc.text(`TAHUN PELAJARAN ${settings.academicYear}`, kopCenter, titleY + 7.5, {
+    doc.text(settings.cardHeaderTitle || "KARTU PESERTA", kopCenter, titleY, {
       align: "center",
     });
+
+    doc.setFontSize(9.5);
+    doc.text(settings.examTitle || card.examTitle, kopCenter, titleY + 4, {
+      align: "center",
+    });
+
+    if (settings.academicYear) {
+      doc.setFontSize(8.5);
+      doc.text(`TAHUN PELAJARAN ${settings.academicYear}`, kopCenter, titleY + 7.5, {
+        align: "center",
+      });
+    }
 
     // 4. DATA SISWA
     const dataStartY = titleY + 11.5;
@@ -176,11 +196,8 @@ export async function generateExamCardsPdf(
     const valX = x + 36;
     const lineSpacing = 3.6;
 
-    const participantNo = card.seatNumber?.startsWith("P")
-      ? card.seatNumber
-      : card.nisn
-        ? `P${card.nisn}`
-        : card.seatNumber || "P72324001";
+    const participantNo =
+      card.seatNumber || (card.nisn ? `P${card.nisn}` : "-");
     const password = card.password || card.verificationCode?.slice(0, 8) || "-";
 
     doc.setFont("times", "normal");
@@ -214,7 +231,7 @@ export async function generateExamCardsPdf(
     const tableTitleY = dataStartY + lineSpacing * 4 + 1.5;
     doc.setFont("times", "bold");
     doc.setFontSize(8.5);
-    doc.text(`JADWAL ${settings.examTitle}`, kopCenter, tableTitleY, {
+    doc.text(`JADWAL ${settings.examTitle || card.examTitle}`, kopCenter, tableTitleY, {
       align: "center",
     });
 
@@ -259,8 +276,8 @@ export async function generateExamCardsPdf(
 
     for (let r = 0; r < schedule.length; r++) {
       const item = schedule[r];
-      const subj1 = item.subjects[0];
-      const subj2 = item.subjects[1];
+      const subj1 = item.subjects?.[0];
+      const subj2 = item.subjects?.[1];
 
       // Row outer box
       doc.rect(tableX, currentY, tableW, rowH);
@@ -273,29 +290,41 @@ export async function generateExamCardsPdf(
       // Horizontal Middle Divider for Subj1 and Subj2
       doc.line(colX2, currentY + subRowH, tableX + tableW, currentY + subRowH);
 
-      // Col 1: Hari/Tanggal (Centered across both sub-rows)
-      doc.setFont("times", "normal");
-      doc.setFontSize(7);
-      const lines = item.dayDate.split("\n");
-      if (lines.length > 1) {
-        doc.text(lines[0], colX1 + colW1 / 2, currentY + 3.5, { align: "center" });
-        doc.text(lines[1], colX1 + colW1 / 2, currentY + 6.8, { align: "center" });
-      } else {
-        doc.text(item.dayDate, colX1 + colW1 / 2, currentY + 5.2, { align: "center" });
+      // Col 1: Hari/Tanggal (Blank if empty)
+      if (item.dayDate) {
+        doc.setFont("times", "normal");
+        doc.setFontSize(7);
+        const lines = item.dayDate.split("\n");
+        if (lines.length > 1) {
+          doc.text(lines[0], colX1 + colW1 / 2, currentY + 3.5, { align: "center" });
+          doc.text(lines[1], colX1 + colW1 / 2, currentY + 6.8, { align: "center" });
+        } else {
+          doc.text(item.dayDate, colX1 + colW1 / 2, currentY + 5.2, { align: "center" });
+        }
       }
 
-      // Col 2: Mata Pelajaran
-      doc.text(subj1?.name || "-", colX2 + 3, currentY + 3.2);
-      doc.text(subj2?.name || "-", colX2 + 3, currentY + subRowH + 3.2);
+      // Col 2: Mata Pelajaran (Blank if empty)
+      doc.setFont("times", "normal");
+      doc.setFontSize(7);
+      if (subj1?.name) {
+        doc.text(subj1.name, colX2 + 3, currentY + 3.2);
+      }
+      if (subj2?.name) {
+        doc.text(subj2.name, colX2 + 3, currentY + subRowH + 3.2);
+      }
 
-      // Col 3: Waktu (Centered)
-      doc.text(subj1?.time || "-", colX3 + colW3 / 2, currentY + 3.2, { align: "center" });
-      doc.text(subj2?.time || "-", colX3 + colW3 / 2, currentY + subRowH + 3.2, { align: "center" });
+      // Col 3: Waktu (Blank if empty)
+      if (subj1?.time) {
+        doc.text(subj1.time, colX3 + colW3 / 2, currentY + 3.2, { align: "center" });
+      }
+      if (subj2?.time) {
+        doc.text(subj2.time, colX3 + colW3 / 2, currentY + subRowH + 3.2, { align: "center" });
+      }
 
       currentY += rowH;
     }
 
-    // 6. TANDA TANGAN & STEMPEL (BOTTOM RIGHT)
+    // 6. TANDA TANGAN & PENGESAHAN (BOTTOM RIGHT)
     const sigX = x + cardWidth - 62;
     const sigY = currentY + 2.5;
 
@@ -303,47 +332,16 @@ export async function generateExamCardsPdf(
     doc.setFontSize(7.5);
     doc.text(settings.signerTitle, sigX, sigY);
 
-    // Signature Area (~11 mm)
-    // Render circular official stamp if requested
-    if (settings.showStamp) {
+    // Stempel jika ada gambar stempel yang diunggah
+    if (settings.showStamp && stampImg) {
       const stampX = sigX - 7;
       const stampY = sigY - 2;
-
-      if (stampImg) {
-        try {
-          doc.addImage(stampImg, "PNG", stampX, stampY, 18, 18);
-        } catch (_e) {
-          // Fallback
-        }
-      } else {
-        // Vector Circular School Stamp in official purple/blue
-        doc.saveGraphicsState?.();
-        doc.setDrawColor(67, 56, 202); // Indigo/Purple #4338ca
-        doc.setTextColor(67, 56, 202);
-        doc.setLineWidth(0.35);
-        doc.circle(stampX + 9, stampY + 9, 8.5);
-        doc.setLineWidth(0.15);
-        doc.circle(stampX + 9, stampY + 9, 8.0);
-        doc.circle(stampX + 9, stampY + 9, 5.8);
-
-        doc.setFont("times", "bold");
-        doc.setFontSize(3.6);
-        doc.text("PEMERINTAH PROVINSI", stampX + 9, stampY + 3.2, { align: "center" });
-        doc.text("DINAS PENDIDIKAN", stampX + 9, stampY + 15.5, { align: "center" });
-        doc.setFontSize(4.2);
-        doc.text("SMPN 29", stampX + 9, stampY + 8.5, { align: "center" });
-        doc.setFontSize(3.4);
-        doc.text("JAKARTA", stampX + 9, stampY + 10.5, { align: "center" });
-        doc.restoreGraphicsState?.();
+      try {
+        doc.addImage(stampImg, "PNG", stampX, stampY, 18, 18);
+      } catch (_e) {
+        // Fallback
       }
     }
-
-    // Hand Signature simulation stroke
-    doc.setDrawColor(30, 58, 138); // Dark blue
-    doc.setLineWidth(0.35);
-    doc.line(sigX + 10, sigY + 6, sigX + 22, sigY + 3);
-    doc.line(sigX + 22, sigY + 3, sigX + 32, sigY + 7);
-    doc.line(sigX + 32, sigY + 7, sigX + 44, sigY + 4);
 
     // Signer Name
     doc.setTextColor(0, 0, 0);
@@ -358,9 +356,11 @@ export async function generateExamCardsPdf(
     doc.line(sigX, signerNameY + 0.4, sigX + nameWidth, signerNameY + 0.4);
 
     // NIP
-    doc.setFont("times", "normal");
-    doc.setFontSize(7);
-    doc.text(`NIP. ${settings.signerNip}`, sigX, signerNameY + 3.2);
+    if (settings.signerNip) {
+      doc.setFont("times", "normal");
+      doc.setFontSize(7);
+      doc.text(`NIP. ${settings.signerNip}`, sigX, signerNameY + 3.2);
+    }
 
     // Dotted cutting guide line between Card 1 and Card 2
     if (cardsPerPage > 1 && indexOnPage === 0 && i + 1 < cards.length) {

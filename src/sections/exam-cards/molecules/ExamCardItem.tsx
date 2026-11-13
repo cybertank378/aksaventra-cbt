@@ -14,14 +14,14 @@ export const ExamCardItem: FC<Props> = ({
   card,
   settings = DEFAULT_EXAM_CARD_SETTINGS,
 }) => {
-  const schedule = settings.schedule || DEFAULT_EXAM_CARD_SETTINGS.schedule;
+  // Use schedule from settings or default blank rows
+  const schedule =
+    settings.schedule && settings.schedule.length > 0
+      ? settings.schedule
+      : DEFAULT_EXAM_CARD_SETTINGS.schedule;
 
-  // Format participant number: prefer seatNumber if set, else NISN
-  const participantNo = card.seatNumber?.startsWith("P")
-    ? card.seatNumber
-    : card.nisn
-      ? `P${card.nisn}`
-      : card.seatNumber || "P72324001";
+  // Participant number: seatNumber or NISN
+  const participantNo = card.seatNumber || (card.nisn ? `P${card.nisn}` : "-");
 
   // Password / Token
   const password = card.password || card.verificationCode?.slice(0, 8) || "-";
@@ -42,41 +42,53 @@ export const ExamCardItem: FC<Props> = ({
                 className="max-h-full max-w-full object-contain"
               />
             ) : (
-              /* Authentic Emblem / Logo Placeholder matching Jaya Raya / School crest */
+              /* Clean formal emblem placeholder when logo is not yet uploaded */
               <div className="w-14 h-16 border-2 border-black rounded-t-sm rounded-b-xl flex flex-col items-center justify-center p-1 text-[7px] text-center font-bold">
-                <span className="text-[6px] tracking-wider uppercase">JAYA RAYA</span>
-                <div className="w-6 h-6 border border-black rounded-full my-0.5 flex items-center justify-center text-[7px]">
-                  🏛️
+                <span className="text-[6px] tracking-wider uppercase">CBT</span>
+                <div className="w-6 h-6 border border-black rounded-full my-0.5 flex items-center justify-center text-[8px]">
+                  🎓
                 </div>
-                <span className="text-[5px]">DKI JAKARTA</span>
+                <span className="text-[5.5px] uppercase truncate max-w-full">
+                  {settings.institutionName ? settings.institutionName.slice(0, 10) : "AKSA"}
+                </span>
               </div>
             )}
           </div>
 
-          {/* Centered Kop Details */}
+          {/* Centered Kop Details (strictly follows settings) */}
           <div className="flex-1 text-center">
-            <h5 className="text-[10px] sm:text-[11px] font-normal tracking-wide uppercase">
-              {settings.governmentText}
-            </h5>
-            <h4 className="text-[12px] sm:text-[13px] font-bold uppercase tracking-wider">
-              {settings.departmentText}
-            </h4>
+            {settings.governmentText && (
+              <h5 className="text-[10px] sm:text-[11px] font-normal tracking-wide uppercase">
+                {settings.governmentText}
+              </h5>
+            )}
+            {settings.departmentText && (
+              <h4 className="text-[12px] sm:text-[13px] font-bold uppercase tracking-wider">
+                {settings.departmentText}
+              </h4>
+            )}
             <h3 className="text-[13px] sm:text-[14px] font-bold uppercase tracking-tight">
               {settings.institutionName}
             </h3>
-            <p className="text-[9px] sm:text-[9.5px]">
-              {settings.address}
-            </p>
-            <p className="text-[8.5px] sm:text-[9px]">
-              {settings.contactText}
-            </p>
+            {settings.address && (
+              <p className="text-[9px] sm:text-[9.5px]">
+                {settings.address}
+              </p>
+            )}
+            {settings.contactText && (
+              <p className="text-[8.5px] sm:text-[9px]">
+                {settings.contactText}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Kode Pos (Right aligned) */}
-        <div className="text-right text-[8.5px] sm:text-[9px] font-normal mt-0.5">
-          Kode Pos : {settings.postalCode}
-        </div>
+        {settings.postalCode && (
+          <div className="text-right text-[8.5px] sm:text-[9px] font-normal mt-0.5">
+            Kode Pos : {settings.postalCode}
+          </div>
+        )}
 
         {/* Divider: Thick top line + thin bottom line */}
         <div className="my-1.5">
@@ -87,14 +99,16 @@ export const ExamCardItem: FC<Props> = ({
         {/* 2. JUDUL KARTU PESERTA */}
         <div className="text-center my-2 space-y-0.5">
           <h2 className="text-[13px] sm:text-[14px] font-bold uppercase tracking-wide">
-            {settings.cardHeaderTitle}
+            {settings.cardHeaderTitle || "KARTU PESERTA"}
           </h2>
           <h3 className="text-[12px] sm:text-[13px] font-bold uppercase tracking-wide">
-            {settings.examTitle}
+            {settings.examTitle || card.examTitle}
           </h3>
-          <p className="text-[11px] sm:text-[12px] font-bold uppercase tracking-wide">
-            TAHUN PELAJARAN {settings.academicYear}
-          </p>
+          {settings.academicYear && (
+            <p className="text-[11px] sm:text-[12px] font-bold uppercase tracking-wide">
+              TAHUN PELAJARAN {settings.academicYear}
+            </p>
+          )}
         </div>
 
         {/* 3. DATA SISWA */}
@@ -123,10 +137,10 @@ export const ExamCardItem: FC<Props> = ({
           </div>
         </div>
 
-        {/* 4. TABEL JADWAL ASESMEN */}
+        {/* 4. TABEL JADWAL ASESMEN (Kosong jika belum diisi, tanpa hardcode) */}
         <div className="mt-2.5">
           <h4 className="text-center font-bold text-[11px] sm:text-[11.5px] mb-1 uppercase tracking-wide">
-            JADWAL {settings.examTitle}
+            JADWAL {settings.examTitle || card.examTitle}
           </h4>
 
           <div className="border-2 border-black overflow-hidden">
@@ -149,43 +163,43 @@ export const ExamCardItem: FC<Props> = ({
               </thead>
               <tbody>
                 {schedule.map((item, idx) => {
-                  const subject1 = item.subjects[0];
-                  const subject2 = item.subjects[1];
+                  const subject1 = item.subjects?.[0];
+                  const subject2 = item.subjects?.[1];
 
                   return (
                     <tr
                       key={idx}
                       className={idx !== schedule.length - 1 ? "border-b border-black" : ""}
                     >
-                      {/* Hari/Tanggal (Spans both subjects) */}
-                      <td className="border-r border-black p-1 text-center font-normal align-middle leading-tight whitespace-pre-line">
-                        {item.dayDate}
+                      {/* Hari/Tanggal */}
+                      <td className="border-r border-black p-1 text-center font-normal align-middle leading-tight whitespace-pre-line min-h-[38px]">
+                        {item.dayDate || "\u00A0"}
                       </td>
 
-                      {/* Mata Pelajaran (2 lines) */}
+                      {/* Mata Pelajaran (2 lines - kosong jika belum ada data) */}
                       <td className="border-r border-black p-0 align-top">
-                        <div className="p-1 border-b border-black font-normal">
-                          {subject1?.name || "-"}
+                        <div className="p-1 border-b border-black font-normal min-h-[22px]">
+                          {subject1?.name || "\u00A0"}
                         </div>
-                        <div className="p-1 font-normal">
-                          {subject2?.name || "-"}
+                        <div className="p-1 font-normal min-h-[22px]">
+                          {subject2?.name || "\u00A0"}
                         </div>
                       </td>
 
-                      {/* Waktu (2 lines) */}
+                      {/* Waktu (2 lines - kosong jika belum ada data) */}
                       <td className="border-r border-black p-0 text-center align-top">
-                        <div className="p-1 border-b border-black font-normal">
-                          {subject1?.time || "-"}
+                        <div className="p-1 border-b border-black font-normal min-h-[22px]">
+                          {subject1?.time || "\u00A0"}
                         </div>
-                        <div className="p-1 font-normal">
-                          {subject2?.time || "-"}
+                        <div className="p-1 font-normal min-h-[22px]">
+                          {subject2?.time || "\u00A0"}
                         </div>
                       </td>
 
-                      {/* TTD Pengawas (2 blank cells for proctor signature) */}
+                      {/* TTD Pengawas (2 blank cells untuk paraf pengawas ruang) */}
                       <td className="p-0 text-center align-top">
-                        <div className="h-[23px] border-b border-black" />
-                        <div className="h-[23px]" />
+                        <div className="h-[22px] border-b border-black" />
+                        <div className="h-[22px]" />
                       </td>
                     </tr>
                   );
@@ -195,89 +209,24 @@ export const ExamCardItem: FC<Props> = ({
           </div>
         </div>
 
-        {/* 5. TANDA TANGAN & STEMPEL (BOTTOM RIGHT) */}
+        {/* 5. TANDA TANGAN & PENGESAHAN (BOTTOM RIGHT) */}
         <div className="mt-3 flex justify-end">
           <div className="relative w-56 text-left pr-2 text-[10px] sm:text-[10.5px]">
             <p className="font-normal">{settings.signerTitle}</p>
 
             {/* Signature & Stamp Area */}
             <div className="relative h-14 my-1 flex items-center">
-              {/* Authentic Circular School Stamp */}
-              {settings.showStamp && (
+              {/* Render stempel jika pengguna mengunggah stempel resmi */}
+              {settings.showStamp && settings.stampUrl && (
                 <div className="absolute -left-5 top-0 w-20 h-20 pointer-events-none opacity-85 select-none">
-                  {settings.stampUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={settings.stampUrl}
-                      alt="Stempel Instansi"
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    /* Circular Official Stamp SVG */
-                    <svg
-                      viewBox="0 0 100 100"
-                      className="w-full h-full text-indigo-700/80 stroke-current fill-none"
-                    >
-                      {/* Outer double circle */}
-                      <circle cx="50" cy="50" r="47" strokeWidth="1.5" />
-                      <circle cx="50" cy="50" r="44" strokeWidth="0.8" />
-                      <circle cx="50" cy="50" r="31" strokeWidth="0.8" />
-
-                      {/* Stars */}
-                      <text x="14" y="53" fontSize="8" fill="currentColor" stroke="none">★</text>
-                      <text x="80" y="53" fontSize="8" fill="currentColor" stroke="none">★</text>
-
-                      {/* Top curved text */}
-                      <path
-                        id="stampTextPathTop"
-                        d="M 12 50 A 38 38 0 0 1 88 50"
-                        stroke="none"
-                      />
-                      <text fontSize="6.5" fontWeight="bold" fill="currentColor" stroke="none">
-                        <textPath href="#stampTextPathTop" startOffset="50%" textAnchor="middle">
-                          PEMERINTAH PROVINSI DKI
-                        </textPath>
-                      </text>
-
-                      {/* Bottom curved text */}
-                      <path
-                        id="stampTextPathBottom"
-                        d="M 88 50 A 38 38 0 0 1 12 50"
-                        stroke="none"
-                      />
-                      <text fontSize="6.2" fontWeight="bold" fill="currentColor" stroke="none">
-                        <textPath href="#stampTextPathBottom" startOffset="50%" textAnchor="middle">
-                          DINAS PENDIDIKAN
-                        </textPath>
-                      </text>
-
-                      {/* Center school emblem symbol */}
-                      <text x="50" y="47" fontSize="5.5" fontWeight="bold" textAnchor="middle" fill="currentColor" stroke="none">
-                        SMPN 29
-                      </text>
-                      <text x="50" y="55" fontSize="4.8" textAnchor="middle" fill="currentColor" stroke="none">
-                        JAKARTA
-                      </text>
-                    </svg>
-                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={settings.stampUrl}
+                    alt="Stempel Instansi"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
               )}
-
-              {/* Realistic Hand Signature Line */}
-              <div className="absolute left-6 top-4 w-28 h-8 pointer-events-none opacity-75">
-                <svg viewBox="0 0 100 30" className="w-full h-full stroke-blue-900 fill-none">
-                  <path
-                    d="M 5 22 Q 20 5 35 18 T 55 12 T 75 22 Q 85 8 95 18"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 30 18 L 85 18"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
             </div>
 
             {/* Signer Name & NIP */}
@@ -285,9 +234,11 @@ export const ExamCardItem: FC<Props> = ({
               <p className="font-bold underline tracking-wide">
                 {settings.signerName}
               </p>
-              <p className="text-[9px] sm:text-[9.5px]">
-                NIP. {settings.signerNip}
-              </p>
+              {settings.signerNip && (
+                <p className="text-[9px] sm:text-[9.5px]">
+                  NIP. {settings.signerNip}
+                </p>
+              )}
             </div>
           </div>
         </div>
