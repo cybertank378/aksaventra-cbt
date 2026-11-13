@@ -9,10 +9,13 @@ import type {
   QuestionOptionDTO,
 } from "@/modules/questions/domain/dto/QuestionDTO";
 import Button from "@/shared-ui/component/Button";
+import ImageUploader from "@/shared-ui/component/ImageUploader";
 import Modal from "@/shared-ui/component/Modal";
 import SelectField from "@/shared-ui/component/SelectField";
 import TextAreaField from "@/shared-ui/component/TextAreaField";
 import TextField from "@/shared-ui/component/TextField";
+import MathDiagramModal from "./MathDiagramModal";
+import MathFormulaToolbar from "./MathFormulaToolbar";
 
 interface EditQuestionModalProps {
   open: boolean;
@@ -31,12 +34,14 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
   const [gradeLevel, setGradeLevel] = useState("");
   const [type, setType] = useState<CBTQuestionType>("multichoice");
   const [stem, setStem] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [points, setPoints] = useState<number>(2.5);
   const [tolerance, setTolerance] = useState<number | undefined>(undefined);
   const [options, setOptions] = useState<QuestionOptionDTO[]>([]);
   const [explanation, setExplanation] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [diagramModalOpen, setDiagramModalOpen] = useState(false);
 
   useEffect(() => {
     if (question) {
@@ -44,6 +49,7 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
       setGradeLevel(question.gradeLevel);
       setType(question.type);
       setStem(question.stem);
+      setImageUrl(question.imageUrl);
       setPoints(question.points);
       setTolerance(question.tolerance);
       setOptions(question.options || []);
@@ -114,6 +120,7 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
         gradeLevel,
         type,
         stem,
+        imageUrl,
         points: Number(points) || 1,
         tolerance: type === "numerical" ? tolerance : undefined,
         options: type === "essay" ? [] : options,
@@ -227,15 +234,42 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
         )}
 
         {/* Stem Pertanyaan */}
-        <div>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-800">
+              Stem Pertanyaan / Teks Soal
+            </label>
+            <span className="text-[11px] text-slate-400">
+              Mendukung KaTeX $...$, Kurva & Diagram SVG
+            </span>
+          </div>
+
+          <MathFormulaToolbar
+            onInsertMath={(snip) => setStem((prev) => (prev ? `${prev} ${snip}` : snip))}
+            onOpenDiagramGenerator={() => setDiagramModalOpen(true)}
+          />
+
           <TextAreaField
-            label="Stem Pertanyaan / Teks Soal"
             rows={4}
             value={stem}
             onChange={(e) => setStem(e.target.value)}
-            placeholder="Tuliskan stem pertanyaan soal... (Mendukung rumus LaTeX math seperti $E=mc^2$)"
+            placeholder="Tuliskan stem pertanyaan soal... (Mendukung rumus LaTeX math seperti $E=mc^2$ atau kurva SVG)"
+          />
+
+          <ImageUploader
+            value={imageUrl}
+            onChange={setImageUrl}
+            label="Lampiran Gambar / Diagram / Kurva Soal (Opsional)"
           />
         </div>
+
+        {/* Math Diagram Modal */}
+        <MathDiagramModal
+          open={diagramModalOpen}
+          onClose={() => setDiagramModalOpen(false)}
+          onInsertSvg={(svg) => setStem((prev) => (prev ? `${prev}\n\n${svg}\n\n` : `${svg}\n\n`))}
+          onSetAsImageUrl={(url) => setImageUrl(url)}
+        />
 
         {/* Options Editor */}
         {type !== "essay" && (

@@ -84,6 +84,22 @@ export const ViewQuestionModal: FC<ViewQuestionModalProps> = ({
           <div className="p-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-800 leading-relaxed shadow-2xs">
             <MathRenderer content={question.stem} />
           </div>
+
+          {/* Attached Image or Curve Diagram if available */}
+          {question.imageUrl && (
+            <div className="mt-2 p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center">
+              <span className="text-[11px] font-bold text-slate-500 mb-2 self-start">
+                Lampiran Gambar / Kurva / Diagram:
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={question.imageUrl}
+                alt={`Lampiran soal ${question.code}`}
+                className="max-h-72 max-w-full rounded-xl object-contain border border-slate-200 bg-white p-1"
+                loading="lazy"
+              />
+            </div>
+          )}
         </div>
 
         {/* Options / Answer Keys */}

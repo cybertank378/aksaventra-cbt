@@ -48,6 +48,7 @@ export function extractTokenFromRequest(request: NextRequest): string | null {
 export async function verifyAuthToken(
   token: string,
 ): Promise<AuthJwtPayload | null> {
+  "use cache";
   try {
     const { payload } = await jwtVerify(token, encodedSecret);
     if (!payload || typeof payload !== "object") {

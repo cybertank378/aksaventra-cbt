@@ -19,6 +19,7 @@ export class QuestionEntity {
     public readonly explanation: string | undefined,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
+    public readonly imageUrl?: string,
   ) {}
 
   public update(data: Partial<CreateQuestionInputDTO>): QuestionEntity {
@@ -35,6 +36,7 @@ export class QuestionEntity {
       data.explanation !== undefined ? data.explanation : this.explanation,
       this.createdAt,
       new Date(),
+      data.imageUrl !== undefined ? data.imageUrl : this.imageUrl,
     );
   }
 
@@ -46,6 +48,7 @@ export class QuestionEntity {
       gradeLevel: this.gradeLevel,
       type: this.type,
       stem: this.stem,
+      imageUrl: this.imageUrl,
       points: this.points,
       tolerance: this.tolerance,
       options: this.options,

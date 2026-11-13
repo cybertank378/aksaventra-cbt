@@ -6,6 +6,8 @@ import {
   Download,
   Edit3,
   Eye,
+  Image as ImageIcon,
+  LineChart,
   Plus,
   Trash2,
   UploadCloud,
@@ -215,11 +217,29 @@ export const QuestionsListGrid: FC = () => {
                       {q.code}
                     </Badge>
                     <QuestionTypeBadge type={q.type} />
+                    {(q.imageUrl || q.stem.includes("<svg") || q.stem.includes("<img")) && (
+                      <Badge color="teal" size="sm" className="flex items-center gap-1 font-bold">
+                        <ImageIcon className="w-3 h-3 text-[#0097a7]" />
+                        Diagram / Kurva
+                      </Badge>
+                    )}
                   </div>
                   <Badge color="neutral" size="sm" className="text-slate-500">
                     {q.subject} • Kelas {q.gradeLevel}
                   </Badge>
                 </div>
+
+                {q.imageUrl && (
+                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 max-h-32 flex items-center justify-center p-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={q.imageUrl}
+                      alt={`Diagram soal ${q.code}`}
+                      className="max-h-28 object-contain rounded-lg"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
 
                 <MathRenderer
                   content={q.stem}

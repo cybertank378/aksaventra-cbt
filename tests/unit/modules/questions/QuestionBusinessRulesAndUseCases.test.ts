@@ -131,5 +131,32 @@ describe("Questions UseCases with Business Process", () => {
       }),
     ).rejects.toThrow("tepat 1 kunci jawaban yang benar");
   });
+
+  it("should support creating and updating questions with imageUrl and diagrams", async () => {
+    const repo = new QuestionsRepository();
+    const createUseCase = new CreateQuestionUseCase(repo);
+    const manageUseCase = new ManageQuestionsUseCase(repo);
+
+    const question = await createUseCase.execute({
+      subject: "Matematika",
+      gradeLevel: "XII",
+      type: "multichoice",
+      stem: "Perhatikan kurva $y = x^2 - 4x + 3$ di bawah:",
+      imageUrl: "/uploads/questions/parabola.png",
+      points: 4.0,
+      options: [
+        { id: "1", label: "A", text: "(2, -1)", isCorrect: true },
+        { id: "2", label: "B", text: "(-2, 1)", isCorrect: false },
+      ],
+    });
+
+    expect(question.imageUrl).toBe("/uploads/questions/parabola.png");
+
+    const updated = await manageUseCase.updateQuestion(question.id, {
+      imageUrl: "/uploads/questions/parabola_v2.png",
+    });
+
+    expect(updated?.imageUrl).toBe("/uploads/questions/parabola_v2.png");
+  });
 });
 

@@ -61,4 +61,23 @@ describe("katexSanitizer (Render-Math-First, Sanitize-Second)", () => {
   it("handles empty or blank content gracefully", () => {
     expect(renderAndSanitizeContent("")).toBe("");
   });
+
+  it("safely preserves SVG mathematical curves and coordinate diagrams", () => {
+    const svgCurve = `<svg viewBox="0 0 400 300"><line x1="0" y1="150" x2="400" y2="150" stroke="#000" /><polyline points="10,20 30,50 80,120" stroke="#0097a7" /><text x="20" y="20">Kurva y = f(x)</text></svg>`;
+    const content = `Perhatikan grafik berikut: ${svgCurve}`;
+    const result = renderAndSanitizeContent(content);
+
+    expect(result).toContain("<svg");
+    expect(result).toContain("<polyline");
+    expect(result).toContain("Kurva y = f(x)");
+  });
+
+  it("converts markdown image syntax into responsive sanitized img elements", () => {
+    const raw = "Perhatikan kurva di bawah: ![Grafik Parabola](/uploads/questions/parabola.png)";
+    const result = renderAndSanitizeContent(raw);
+
+    expect(result).toContain("<img");
+    expect(result).toContain('src="/uploads/questions/parabola.png"');
+    expect(result).toContain('alt="Grafik Parabola"');
+  });
 });

@@ -242,6 +242,7 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
       data.explanation,
       now,
       now,
+      data.imageUrl,
     );
 
     this.questions.unshift(entity);

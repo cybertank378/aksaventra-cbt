@@ -60,6 +60,10 @@ export class ManageQuestionsUseCase {
       gradeLevel: (data.gradeLevel ?? existing.gradeLevel).trim(),
       type: data.type ?? existing.type,
       stem: (data.stem ?? existing.stem).trim(),
+      imageUrl:
+        data.imageUrl !== undefined
+          ? data.imageUrl?.trim() || undefined
+          : existing.imageUrl,
       points: Number(data.points ?? existing.points) || 1,
       tolerance:
         (data.type ?? existing.type) === "numerical"

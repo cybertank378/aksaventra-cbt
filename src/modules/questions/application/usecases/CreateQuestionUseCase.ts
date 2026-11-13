@@ -32,6 +32,7 @@ export class CreateQuestionUseCase {
       gradeLevel: input.gradeLevel.trim(),
       type: input.type,
       stem: input.stem.trim(),
+      imageUrl: input.imageUrl?.trim() || undefined,
       points: Number(input.points) || 1,
       tolerance:
         input.type === "numerical" && input.tolerance !== undefined
