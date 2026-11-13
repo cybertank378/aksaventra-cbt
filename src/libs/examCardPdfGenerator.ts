@@ -154,16 +154,16 @@ export async function generateExamCardsPdf(
       });
     }
 
-    // Kode Pos (Right aligned)
+    // Kode Pos (Centered)
     if (settings.postalCode) {
       doc.setFontSize(7);
-      doc.text(`Kode Pos : ${settings.postalCode}`, x + cardWidth - 5, kopTop + 18.5, {
-        align: "right",
+      doc.text(`Kode Pos : ${settings.postalCode}`, kopCenter + 5, kopTop + 19.8, {
+        align: "center",
       });
     }
 
     // Divider: Thick top line + thin bottom line
-    const dividerY = kopTop + 20;
+    const dividerY = kopTop + (settings.postalCode ? 22.2 : 20);
     doc.setLineWidth(0.6);
     doc.line(x + 2, dividerY, x + cardWidth - 2, dividerY);
     doc.setLineWidth(0.2);

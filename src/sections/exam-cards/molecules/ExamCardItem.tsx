@@ -55,7 +55,7 @@ export const ExamCardItem: FC<Props> = ({
             )}
           </div>
 
-          {/* Centered Kop Details (strictly follows settings) */}
+          {/* Centered Kop Details (strictly follows settings, Kode Pos centered) */}
           <div className="flex-1 text-center">
             {settings.governmentText && (
               <h5 className="text-[10px] sm:text-[11px] font-normal tracking-wide uppercase">
@@ -80,15 +80,14 @@ export const ExamCardItem: FC<Props> = ({
                 {settings.contactText}
               </p>
             )}
+            {/* Kode Pos Centered */}
+            {settings.postalCode && (
+              <p className="text-[8.5px] sm:text-[9px] font-normal">
+                Kode Pos : {settings.postalCode}
+              </p>
+            )}
           </div>
         </div>
-
-        {/* Kode Pos (Right aligned) */}
-        {settings.postalCode && (
-          <div className="text-right text-[8.5px] sm:text-[9px] font-normal mt-0.5">
-            Kode Pos : {settings.postalCode}
-          </div>
-        )}
 
         {/* Divider: Thick top line + thin bottom line */}
         <div className="my-1.5">

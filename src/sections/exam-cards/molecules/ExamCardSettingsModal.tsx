@@ -5,6 +5,7 @@ import {
   CalendarDays,
   FileCheck2,
   Image as ImageIcon,
+  Plus,
   RotateCcw,
   Stamp,
   Trash2,
@@ -38,12 +39,23 @@ export const ExamCardSettingsModal: FC<Props> = ({
   const [formData, setFormData] = useState<ExamCardSettings>({ ...settings });
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingStamp, setIsUploadingStamp] = useState(false);
-  const [showScheduleEditor, setShowScheduleEditor] = useState(false);
 
   // Sync state whenever modal is opened
   React.useEffect(() => {
     if (open) {
-      setFormData({ ...settings });
+      setFormData({
+        ...settings,
+        schedule:
+          settings.schedule && settings.schedule.length > 0
+            ? settings.schedule
+            : [
+                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+              ],
+      });
     }
   }, [open, settings]);
 
@@ -148,6 +160,30 @@ export const ExamCardSettingsModal: FC<Props> = ({
     });
   };
 
+  const handleAddScheduleRow = () => {
+    setFormData((prev) => ({
+      ...prev,
+      schedule: [
+        ...(prev.schedule || []),
+        {
+          dayDate: "",
+          subjects: [
+            { name: "", time: "" },
+            { name: "", time: "" },
+          ],
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveScheduleRow = (index: number) => {
+    setFormData((prev) => {
+      const updated = [...(prev.schedule || [])];
+      updated.splice(index, 1);
+      return { ...prev, schedule: updated };
+    });
+  };
+
   const handleClearSchedule = () => {
     const blankSchedule: ExamScheduleItem[] = [
       { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
@@ -157,7 +193,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
       { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
     ];
     handleChange("schedule", blankSchedule);
-    showSuccessToast("Data jadwal mapel dan waktu telah dikosongkan.");
+    showSuccessToast("Data jadwal mapel dan waktu berhasil dikosongkan.");
   };
 
   const handleResetToDefault = () => {
@@ -180,13 +216,13 @@ export const ExamCardSettingsModal: FC<Props> = ({
       open={open}
       onClose={onClose}
       title="Pengaturan Format Kartu Ujian"
-      subtitle="Kustomisasi nama instansi, alamat, kepala sekolah, logo, stempel, dan jadwal ujian"
+      subtitle="Kustomisasi kop surat, logo, jadwal ujian, dan penandatangan kartu ujian"
       size="lg"
       onSubmit={handleSubmit}
       submitText="Simpan Pengaturan"
       cancelText="Batal"
     >
-      <div className="space-y-5 py-2 max-h-[70vh] overflow-y-auto pr-1">
+      <div className="space-y-5 py-2 max-h-[72vh] overflow-y-auto pr-1">
         {/* Section 1: Upload Logo & Stempel */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Logo Instansi */}
@@ -422,98 +458,117 @@ export const ExamCardSettingsModal: FC<Props> = ({
           </div>
         </div>
 
-        {/* Section 5: Pengaturan Jadwal Ujian (Tanpa Hardcode, Kosong jika belum ada) */}
+        {/* Section 5: Pengaturan Jadwal Ujian (Langsung dari Pengaturan Kartu) */}
         <div className="space-y-3 border-t border-slate-200 pt-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <CalendarDays className="w-4 h-4 text-slate-500" />
-              4. Jadwal Mata Pelajaran & Waktu
-            </h4>
-            <div className="flex items-center gap-2">
-              <button
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <CalendarDays className="w-4 h-4 text-slate-500" />
+                4. Jadwal Mata Pelajaran & Waktu Ujian
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Isi jadwal di bawah ini sesuai jadwal sekolah. Jika dikosongkan, tabel jadwal pada kartu ujian akan dicetak dengan sel kosong.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
                 type="button"
+                variant="outline"
+                color="secondary"
+                size="sm"
+                leftIcon={Trash2}
                 onClick={handleClearSchedule}
-                className="text-[11px] font-semibold text-rose-600 hover:underline"
               >
-                Kosongkan Jadwal
-              </button>
-              <button
+                Kosongkan
+              </Button>
+              <Button
                 type="button"
-                onClick={() => setShowScheduleEditor(!showScheduleEditor)}
-                className="text-[11px] font-semibold text-[#0097a7] hover:underline"
+                variant="filled"
+                color="primary"
+                size="sm"
+                leftIcon={Plus}
+                onClick={handleAddScheduleRow}
               >
-                {showScheduleEditor ? "Sembunyikan Editor" : "Kelola Jadwal"}
-              </button>
+                Tambah Hari
+              </Button>
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-500">
-            Jika mata pelajaran dan waktu belum diatur, tabel jadwal pada kartu ujian akan dibiarkan <strong>kosong (bersih tanpa teks tiruan)</strong>.
-          </p>
+          <div className="space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+            {(formData.schedule || []).map((item, idx) => (
+              <div
+                key={idx}
+                className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs shadow-xs"
+              >
+                <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                  <span className="font-bold text-slate-800">
+                    Hari ke-{idx + 1}
+                  </span>
+                  {(formData.schedule || []).length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveScheduleRow(idx)}
+                      className="text-[11px] text-rose-600 hover:underline flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" /> Hapus Hari
+                    </button>
+                  )}
+                </div>
 
-          {showScheduleEditor && (
-            <div className="space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-              {[0, 1, 2, 3, 4].map((idx) => {
-                const item = formData.schedule?.[idx] || {
-                  dayDate: "",
-                  subjects: [{ name: "", time: "" }, { name: "", time: "" }],
-                };
-                return (
-                  <div
-                    key={idx}
-                    className="p-2.5 bg-white rounded-xl border border-slate-200 space-y-2 text-xs"
-                  >
-                    <span className="font-bold text-slate-700">Hari ke-{idx + 1}</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <TextField
-                        placeholder="Hari, Tanggal (misal: Senin, 4 Maret 2026)"
-                        value={item.dayDate || ""}
-                        onChange={(e) =>
-                          handleScheduleChange(idx, "dayDate", e.target.value)
-                        }
-                        size="sm"
-                      />
-                      <TextField
-                        placeholder="Mapel Sesi 1"
-                        value={item.subjects?.[0]?.name || ""}
-                        onChange={(e) =>
-                          handleScheduleChange(idx, "sub1Name", e.target.value)
-                        }
-                        size="sm"
-                      />
-                      <TextField
-                        placeholder="Waktu Sesi 1 (misal: 07.30 - 09.30)"
-                        value={item.subjects?.[0]?.time || ""}
-                        onChange={(e) =>
-                          handleScheduleChange(idx, "sub1Time", e.target.value)
-                        }
-                        size="sm"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <div className="hidden sm:block" />
-                      <TextField
-                        placeholder="Mapel Sesi 2 (Opsional)"
-                        value={item.subjects?.[1]?.name || ""}
-                        onChange={(e) =>
-                          handleScheduleChange(idx, "sub2Name", e.target.value)
-                        }
-                        size="sm"
-                      />
-                      <TextField
-                        placeholder="Waktu Sesi 2 (Opsional)"
-                        value={item.subjects?.[1]?.time || ""}
-                        onChange={(e) =>
-                          handleScheduleChange(idx, "sub2Time", e.target.value)
-                        }
-                        size="sm"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <TextField
+                    label="Hari, Tanggal"
+                    placeholder="Contoh: Senin, 4 Maret 2026"
+                    value={item.dayDate || ""}
+                    onChange={(e) =>
+                      handleScheduleChange(idx, "dayDate", e.target.value)
+                    }
+                    size="sm"
+                  />
+                  <TextField
+                    label="Mapel Sesi 1"
+                    placeholder="Contoh: PEND. PANCASILA"
+                    value={item.subjects?.[0]?.name || ""}
+                    onChange={(e) =>
+                      handleScheduleChange(idx, "sub1Name", e.target.value)
+                    }
+                    size="sm"
+                  />
+                  <TextField
+                    label="Waktu Sesi 1"
+                    placeholder="Contoh: 07.30 – 09.30"
+                    value={item.subjects?.[0]?.time || ""}
+                    onChange={(e) =>
+                      handleScheduleChange(idx, "sub1Time", e.target.value)
+                    }
+                    size="sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-slate-50">
+                  <div className="hidden sm:block" />
+                  <TextField
+                    label="Mapel Sesi 2 (Opsional)"
+                    placeholder="Contoh: INFORMATIKA"
+                    value={item.subjects?.[1]?.name || ""}
+                    onChange={(e) =>
+                      handleScheduleChange(idx, "sub2Name", e.target.value)
+                    }
+                    size="sm"
+                  />
+                  <TextField
+                    label="Waktu Sesi 2 (Opsional)"
+                    placeholder="Contoh: 09.30 – 11.30"
+                    value={item.subjects?.[1]?.time || ""}
+                    onChange={(e) =>
+                      handleScheduleChange(idx, "sub2Time", e.target.value)
+                    }
+                    size="sm"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Section 6: Format Cetak PDF */}
