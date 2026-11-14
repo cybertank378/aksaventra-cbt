@@ -37,7 +37,6 @@ export const CreateExamForm: FC<CreateExamFormProps> = ({
   const [activeToken, setActiveToken] = useState("");
   const [timeOpen, setTimeOpen] = useState("");
   const [timeClose, setTimeClose] = useState("");
-  const [sebRequired, setSebRequired] = useState(false);
 
   useEffect(() => {
     setTimeOpen(new Date().toISOString().slice(0, 16));
@@ -54,7 +53,7 @@ export const CreateExamForm: FC<CreateExamFormProps> = ({
       activeToken,
       timeOpen: new Date(timeOpen).toISOString(),
       timeClose: new Date(timeClose).toISOString(),
-      sebRequired,
+      sebRequired: false,
     });
   };
 
@@ -164,22 +163,6 @@ export const CreateExamForm: FC<CreateExamFormProps> = ({
             onChange={(e) => setTimeClose(e.target.value)}
             size="sm"
           />
-        </div>
-
-        <div className="flex items-center gap-2 mt-4 pt-2">
-          <input
-            id="seb-chk"
-            type="checkbox"
-            checked={sebRequired}
-            onChange={(e) => setSebRequired(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-[#0097a7] focus:ring-[#0097a7]"
-          />
-          <label
-            htmlFor="seb-chk"
-            className="text-xs text-slate-700 font-semibold cursor-pointer"
-          >
-            Wajibkan Safe Exam Browser (SEB Mode)
-          </label>
         </div>
       </div>
 

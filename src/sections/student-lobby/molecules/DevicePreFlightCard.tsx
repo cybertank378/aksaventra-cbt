@@ -35,13 +35,11 @@ export interface PreFlightItem {
 }
 
 export interface DevicePreFlightCardProps {
-  requireSeb?: boolean;
   onReadyChange?: (isReady: boolean) => void;
   className?: string;
 }
 
 export const DevicePreFlightCard: FC<DevicePreFlightCardProps> = ({
-  requireSeb = false,
   onReadyChange,
   className,
 }) => {
@@ -60,15 +58,6 @@ export const DevicePreFlightCard: FC<DevicePreFlightCardProps> = ({
       description: "Memeriksa stabilitas jaringan dan latensi server",
       status: "PENDING",
       isCritical: true,
-    },
-    seb: {
-      id: "seb",
-      name: "Safe Exam Browser (SEB)",
-      description: requireSeb
-        ? "Wajib menggunakan peramban Safe Exam Browser"
-        : "Browser standar diizinkan",
-      status: "PENDING",
-      isCritical: requireSeb,
     },
     screen: {
       id: "screen",
@@ -160,45 +149,7 @@ export const DevicePreFlightCard: FC<DevicePreFlightCardProps> = ({
       },
     }));
 
-    // 3. Safe Exam Browser (SEB) Check
-    setChecks((prev) => ({
-      ...prev,
-      seb: { ...prev.seb, status: "CHECKING" },
-    }));
-
-    const userAgent =
-      typeof navigator !== "undefined" ? navigator.userAgent : "";
-    const isSebDetected =
-      userAgent.includes("SEB") || userAgent.includes("SafeExamBrowser");
-
-    let sebStatus: CheckStatus = "SUCCESS";
-    let sebDetail = "";
-
-    if (requireSeb) {
-      if (isSebDetected) {
-        sebStatus = "SUCCESS";
-        sebDetail = "Safe Exam Browser Terdeteksi";
-      } else {
-        sebStatus = "ERROR";
-        sebDetail = "Browser bukan SEB. Silakan buka file konfigurasi .seb";
-      }
-    } else {
-      sebStatus = "SUCCESS";
-      sebDetail = isSebDetected
-        ? "Safe Exam Browser Terdeteksi"
-        : "Browser standar siap digunakan";
-    }
-
-    setChecks((prev) => ({
-      ...prev,
-      seb: {
-        ...prev.seb,
-        status: sebStatus,
-        detailMessage: sebDetail,
-      },
-    }));
-
-    // 4. Screen Check
+    // 3. Screen Check
     const screenWidth =
       typeof window !== "undefined" ? window.screen.width : 1280;
     const screenHeight =
@@ -215,7 +166,7 @@ export const DevicePreFlightCard: FC<DevicePreFlightCardProps> = ({
     }));
 
     setIsRunning(false);
-  }, [requireSeb]);
+  }, []);
 
   useEffect(() => {
     runAllChecks();
@@ -265,8 +216,6 @@ export const DevicePreFlightCard: FC<DevicePreFlightCardProps> = ({
         return <HardDrive size={18} className="text-[#0d2b5c]" />;
       case "network":
         return <Wifi size={18} className="text-[#0097a7]" />;
-      case "seb":
-        return <ShieldCheck size={18} className="text-[#eab308]" />;
       case "screen":
         return <Monitor size={18} className="text-slate-600" />;
       default:

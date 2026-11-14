@@ -28,7 +28,6 @@ export interface StudentExamMeta {
   durationMinutes: number;
   totalQuestions?: number;
   maxStrikes?: number;
-  requireSeb?: boolean;
 }
 
 export interface StudentProfileSummary {
@@ -94,7 +93,6 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
             ),
             totalQuestions: examData.questions?.length ?? 0,
             maxStrikes: examData.maxStrikes ?? 3,
-            requireSeb: Boolean(examData.sebRequired),
           });
         } else if (!initialExam) {
           setLoadError("Informasi ujian tidak ditemukan dari server atau telah ditutup.");
@@ -204,11 +202,6 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {exam.requireSeb && (
-              <Badge color="warning" variant="filled" size="sm">
-                Wajib Safe Exam Browser
-              </Badge>
-            )}
             <Badge color="teal" variant="soft" size="sm">
               Sesi Ujian Resmi
             </Badge>
@@ -324,10 +317,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
       </Card>
 
       {/* 3. Device Pre-Flight Check Card (Molecule) */}
-      <DevicePreFlightCard
-        requireSeb={exam.requireSeb}
-        onReadyChange={setIsDeviceReady}
-      />
+      <DevicePreFlightCard onReadyChange={setIsDeviceReady} />
 
       {/* 4. Token Entry & Fullscreen Trigger Card (Molecule) */}
       <TokenVerificationCard
