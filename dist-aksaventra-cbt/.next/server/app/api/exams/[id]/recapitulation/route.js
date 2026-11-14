@@ -1,0 +1,10 @@
+var R=require("../../../../../chunks/[turbopack]_runtime.js")("server/app/api/exams/[id]/recapitulation/route.js")
+R.c("server/chunks/[externals]__0rhdm7py4a7nl._.js")
+R.c("server/chunks/_1zm6px5rj6pja._.js")
+R.c("server/chunks/_1kzsp760vh9-h._.js")
+R.c("server/chunks/[root-of-the-server]__1v1-l-83czzsr._.js")
+R.c("server/chunks/[root-of-the-server]__0onitn93xhbrp._.js")
+R.c("server/chunks/node_modules_zod_v4_classic_external_0bdr4losuarlx.js")
+R.c("server/chunks/1oeh_server_app_api_exams_[id]_recapitulation_route_actions_1oau4byyh5nzn.js")
+R.m(90006)
+module.exports=R.m(90006).exports

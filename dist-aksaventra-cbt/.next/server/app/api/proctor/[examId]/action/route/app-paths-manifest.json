@@ -1,0 +1,3 @@
+{
+  "/api/proctor/[examId]/action/route": "app/api/proctor/[examId]/action/route.js"
+}
