@@ -1,0 +1,10 @@
+var R=require("../../../chunks/[turbopack]_runtime.js")("server/app/api/exam-cards/route.js")
+R.c("server/chunks/[root-of-the-server]__0z9wg_zhov142._.js")
+R.c("server/chunks/_1h8-cmfdrh3wq._.js")
+R.c("server/chunks/_0ybwq6i_r2t-4._.js")
+R.c("server/chunks/node_modules_zod_v4_classic_external_0bdr4losuarlx.js")
+R.c("server/chunks/[root-of-the-server]__0onitn93xhbrp._.js")
+R.c("server/chunks/[root-of-the-server]__1v1-l-83czzsr._.js")
+R.c("server/chunks/_next-internal_server_app_api_exam-cards_route_actions_0cdduexsv9oyw.js")
+R.m(90741)
+module.exports=R.m(90741).exports

@@ -1,0 +1,3 @@
+{
+  "/(protected)/dashboard/questions/page": "app/(protected)/dashboard/questions/page.js"
+}

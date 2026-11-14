@@ -1,0 +1,22 @@
+{
+  "devFiles": [],
+  "ampDevFiles": [],
+  "polyfillFiles": [
+    "static/chunks/0cz1d0mv5g_q7.js"
+  ],
+  "lowPriorityFiles": [],
+  "rootMainFiles": [
+    "static/chunks/0om590q-tq0l9.js",
+    "static/chunks/3oou8raeyuv9d.js",
+    "static/chunks/2kxesnptr7vv8.js",
+    "static/chunks/2u_t_4i2wt_f_.js",
+    "static/chunks/turbopack-2c3mg3r-05n1w.js"
+  ],
+  "pages": {},
+  "ampFirstPages": [],
+  "rootMainFilesTree": {},
+  "pagesChunkGroupBootstrapParams": {
+    "/(protected)/dashboard/questions/new/page": {"otherChunks":["static/chunks/0om590q-tq0l9.js","static/chunks/3oou8raeyuv9d.js","static/chunks/2kxesnptr7vv8.js","static/chunks/2u_t_4i2wt_f_.js"],"runtimeModuleIds":[94553]}
+  },
+  "chunkLoadingGlobal": "TURBOPACK"
+}

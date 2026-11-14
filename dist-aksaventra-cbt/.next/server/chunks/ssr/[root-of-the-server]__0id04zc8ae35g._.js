@@ -1,0 +1,9 @@
+module.exports=[[24951,(a,b,c)=>{b.exports=a.r(18622)},7997,(a,b,c)=>{b.exports=a.r(24951).vendored["react-rsc"].ReactJsxRuntime},11857,(a,b,c)=>{b.exports=a.r(24951).vendored["react-rsc"].ReactServerDOMTurbopackServer},27572,a=>{var b=a.i(7997),c=a.i(43038);let d={className:c.default.className,style:{fontFamily:"'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback'",fontStyle:"normal"}};null!=c.default.variable&&(d.variable=c.default.variable);var e=a.i(53237);let f={className:e.default.className,style:{fontFamily:"'JetBrains Mono', 'JetBrains Mono Fallback'",fontStyle:"normal"}};null!=e.default.variable&&(f.variable=e.default.variable);var g=a.i(30196);a.s(["default",0,function({children:a}){return(0,b.jsx)("html",{lang:"id",suppressHydrationWarning:!0,children:(0,b.jsx)("body",{className:`
+          ${d.variable}
+          ${f.variable}
+          bg-background
+          text-foreground
+          antialiased
+        `,children:(0,b.jsx)(g.default,{children:a})})})}],27572)},1881,a=>{let b=(0,a.i(11857).registerClientReference)(function(){throw Error("Attempted to call the default export of [project]/src/libs/providers/AppToastProvider.tsx from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.")},"[project]/src/libs/providers/AppToastProvider.tsx","default");a.s(["default",0,b])},30196,a=>{var b=a.i(1881);a.n(b)}],18622,(a,b,c)=>{b.exports=a.x("next/dist/compiled/next-server/app-page-turbo.runtime.prod.js",()=>require("next/dist/compiled/next-server/app-page-turbo.runtime.prod.js"))},53237,a=>{a.v({className:"V6cRDq_className",variable:"V6cRDq_variable"})},43038,a=>{a.v({className:"Mq9HVG_className",variable:"Mq9HVG_variable"})},50645,function(a){a.n(a.i(27572))}];
+
+//# sourceMappingURL=%5Broot-of-the-server%5D__0id04zc8ae35g._.js.map

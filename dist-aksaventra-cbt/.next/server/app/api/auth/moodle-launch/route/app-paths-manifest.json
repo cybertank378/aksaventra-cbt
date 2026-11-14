@@ -1,0 +1,3 @@
+{
+  "/api/auth/moodle-launch/route": "app/api/auth/moodle-launch/route.js"
+}

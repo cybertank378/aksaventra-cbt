@@ -1,0 +1,3 @@
+{
+  "/(protected)/dashboard/exams/[id]/recapitulation/page": "app/(protected)/dashboard/exams/[id]/recapitulation/page.js"
+}

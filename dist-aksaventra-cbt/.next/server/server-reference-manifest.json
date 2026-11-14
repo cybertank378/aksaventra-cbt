@@ -1,0 +1,92 @@
+{
+  "node": {
+    "c0175ef36fc0b251ad57241727ce5e7f18851624b6": {
+      "workers": {
+        "app/(protected)/dashboard/announcements/page": {
+          "moduleId": 8420,
+          "async": false
+        },
+        "app/(protected)/dashboard/classes/page": {
+          "moduleId": 63199,
+          "async": false
+        },
+        "app/(protected)/dashboard/exam-cards/page": {
+          "moduleId": 35266,
+          "async": false
+        },
+        "app/(protected)/dashboard/exams/[id]/assign-groups/page": {
+          "moduleId": 96840,
+          "async": false
+        },
+        "app/(protected)/dashboard/exams/[id]/participants/page": {
+          "moduleId": 93766,
+          "async": false
+        },
+        "app/(protected)/dashboard/exams/[id]/questions/page": {
+          "moduleId": 17806,
+          "async": false
+        },
+        "app/(protected)/dashboard/exams/[id]/recapitulation/page": {
+          "moduleId": 9456,
+          "async": false
+        },
+        "app/(protected)/dashboard/exams/new/page": {
+          "moduleId": 58607,
+          "async": false
+        },
+        "app/(protected)/dashboard/exams/page": {
+          "moduleId": 2028,
+          "async": false
+        },
+        "app/(protected)/dashboard/page": {
+          "moduleId": 89332,
+          "async": false
+        },
+        "app/(protected)/dashboard/proctor/[examId]/page": {
+          "moduleId": 60225,
+          "async": false
+        },
+        "app/(protected)/dashboard/proctor/page": {
+          "moduleId": 87319,
+          "async": false
+        },
+        "app/(protected)/dashboard/questions/new/page": {
+          "moduleId": 98160,
+          "async": false
+        },
+        "app/(protected)/dashboard/questions/page": {
+          "moduleId": 28833,
+          "async": false
+        },
+        "app/(protected)/dashboard/results/[examId]/page": {
+          "moduleId": 49558,
+          "async": false
+        },
+        "app/(protected)/dashboard/results/page": {
+          "moduleId": 8529,
+          "async": false
+        },
+        "app/(protected)/dashboard/students/page": {
+          "moduleId": 62805,
+          "async": false
+        },
+        "app/(protected)/student/exam/[attemptId]/page": {
+          "moduleId": 8447,
+          "async": false
+        },
+        "app/(protected)/student/lobby/[examId]/page": {
+          "moduleId": 3517,
+          "async": false
+        },
+        "app/page": {
+          "moduleId": 31878,
+          "async": false
+        }
+      },
+      "filename": "src/proxy.ts",
+      "exportedName": "$$RSC_SERVER_CACHE_0"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "DGZH9d7uq6jcVK2KZSIEWrTnejrSqdgtqdszR0vU3cE="
+}
