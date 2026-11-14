@@ -6,7 +6,6 @@ import {
   isRouteAuthorized,
   type UserRole,
 } from "./security/rbacConfig";
-import { validateSebHeaders } from "./security/sebHeaderValidator";
 
 export interface AuthJwtPayload {
   userId: number | string;
@@ -149,48 +148,7 @@ export async function proxyMiddleware(
     return NextResponse.redirect(targetUrl);
   }
 
-  // 4. Optional Safe Exam Browser validation for student exam routes
-  const requireSebHeader = request.headers.get("x-require-seb") === "true";
-  const isExamWorkspaceRoute = pathname.startsWith("/student/exam/");
-
-  if (
-    requireSebHeader ||
-    (isExamWorkspaceRoute && process.env.ENFORCE_SEB_GLOBAL === "true")
-  ) {
-    const requestHash = request.headers.get("x-safeexambrowser-requesthash");
-    const configKeyHash = request.headers.get(
-      "x-safeexambrowser-configkeyhash",
-    );
-    const userAgent = request.headers.get("user-agent");
-    const expectedBek = process.env.SEB_BROWSER_EXAM_KEY;
-
-    if (expectedBek) {
-      const sebResult = validateSebHeaders({
-        requestUrl: request.url,
-        requestHashHeader: requestHash,
-        configKeyHashHeader: configKeyHash,
-        expectedBrowserExamKey: expectedBek,
-        userAgent,
-        requireSebUserAgent: true,
-      });
-
-      if (!sebResult.isValid) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: "SEB_VERIFICATION_FAILED",
-              message:
-                sebResult.reason || "Safe Exam Browser verification failed",
-            },
-          },
-          { status: 403 },
-        );
-      }
-    }
-  }
-
-  // 5. Inject authenticated user context into request headers for downstream handlers
+  // 4. Inject authenticated user context into request headers for downstream handlers
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-user-id", String(authUser.userId));
   requestHeaders.set("x-user-username", authUser.username);
