@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { downloadCsvBlob, generateExcelCsv } from "@/libs/excelCsvUtils";
+import {
+  downloadCsvBlob,
+  downloadExcelBlob,
+  generateExcelCsv,
+} from "@/libs/excelCsvUtils";
 import type { ExamRecapitulationDTO } from "../domain/dto/RecapitulationDTO";
 
 export function useRecapitulationApi(examId?: string) {
@@ -99,6 +103,64 @@ export function useRecapitulationApi(examId?: string) {
     setIsExporting(false);
   }, [data]);
 
+  const exportToExcel = useCallback(
+    (format: "xlsx" | "xls" = "xlsx") => {
+      if (!data || data.records.length === 0) return;
+
+      setIsExporting(true);
+      try {
+        const filename = `rekap_nilai_${data.examTitle.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+        const headers = [
+          "No",
+          "Nomor Meja",
+          "Ruang Ujian",
+          "NIS / Username",
+          "Nama Siswa",
+          "Kelas",
+          "Status Ujian",
+          "Waktu Mulai",
+          "Waktu Selesai",
+          "Durasi (Menit)",
+          "Pelanggaran",
+          "Nilai Akhir",
+          "Nilai Maksimal",
+          "Status KKM",
+        ];
+
+        const rows = data.records.map((r, index) => {
+          let kelulusan = r.isPassed ? "Tuntas" : "Remedial";
+          if (r.status === "LOCKED") {
+            kelulusan = "Diskualifikasi / Terkunci";
+          }
+
+          return [
+            index + 1,
+            r.seatNumber || "-",
+            r.roomCode || "-",
+            r.username,
+            r.fullName,
+            r.className || "-",
+            r.status,
+            r.startedAt ? new Date(r.startedAt).toLocaleString("id-ID") : "-",
+            r.submittedAt
+              ? new Date(r.submittedAt).toLocaleString("id-ID")
+              : "-",
+            r.durationSpentMinutes,
+            r.violationCount,
+            r.finalScore !== null ? Number(r.finalScore.toFixed(2)) : 0,
+            Number((data.maxScore ?? 100).toFixed(2)),
+            kelulusan,
+          ];
+        });
+
+        downloadExcelBlob(headers, rows, filename, "Rekap Nilai", format);
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [data],
+  );
+
   return {
     data,
     isLoading,
@@ -106,5 +168,6 @@ export function useRecapitulationApi(examId?: string) {
     error,
     fetchRecapitulation,
     exportToCSV,
+    exportToExcel,
   };
 }

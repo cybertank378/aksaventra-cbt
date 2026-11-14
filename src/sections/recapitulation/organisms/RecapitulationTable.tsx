@@ -32,6 +32,7 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
     error,
     fetchRecapitulation,
     exportToCSV,
+    exportToExcel,
   } = useRecapitulationApi(examId);
 
   const [search, setSearch] = useState("");
@@ -84,15 +85,6 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
     );
   }
 
-  const handleProcessDownload = (url: string, filename: string) => {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Overview Stats */}
@@ -110,7 +102,7 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
             {(["ALL", "PASSED", "FAILED"] as const).map((s) => (
               <Button
@@ -133,31 +125,11 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
             color="secondary"
             size="sm"
             leftIcon={Download}
-            onClick={() =>
-              handleProcessDownload(
-                "/templates/sample_rekap_nilai.xlsx",
-                "sample_rekap_nilai.xlsx"
-              )
-            }
-            title="Unduh Template Format Excel (.xlsx)"
+            onClick={exportToCSV}
+            disabled={isExporting || data.records.length === 0}
+            title="Ekspor Rekapitulasi Nilai ke CSV"
           >
-            Template Excel (.xlsx)
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            color="secondary"
-            size="sm"
-            leftIcon={Download}
-            onClick={() =>
-              handleProcessDownload(
-                "/templates/sample_rekap_nilai.xls",
-                "sample_rekap_nilai.xls"
-              )
-            }
-            title="Unduh Template Format Excel (.xls)"
-          >
-            .xls
+            Export CSV
           </Button>
 
           <Button
@@ -166,10 +138,11 @@ export const RecapitulationTable: FC<RecapitulationTableProps> = ({
             color="primary"
             size="sm"
             leftIcon={Download}
-            onClick={exportToCSV}
-            disabled={isExporting}
+            onClick={() => exportToExcel("xlsx")}
+            disabled={isExporting || data.records.length === 0}
+            title="Ekspor Rekapitulasi Nilai ke Excel (.xlsx)"
           >
-            {isExporting ? "Mengekspor..." : "Export Rekap Nilai (Excel)"}
+            {isExporting ? "Mengekspor..." : "Export Excel (.xlsx)"}
           </Button>
         </div>
       </div>

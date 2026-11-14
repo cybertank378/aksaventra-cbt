@@ -10,7 +10,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type FC, useState } from "react";
+import { type FC, useEffect, useState } from "react";
+import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import type {
   CBTQuestionType,
   QuestionOptionDTO,
@@ -28,11 +29,30 @@ import QuestionEditorHelpModal from "../molecules/QuestionEditorHelpModal";
 
 export const CreateQuestionForm: FC = () => {
   const router = useRouter();
-  const { createQuestion, isLoading, error } = useQuestionsApi();
+  const { createQuestion, subjects, fetchSubjects, isLoading, error } =
+    useQuestionsApi();
+  const { classes, fetchClasses } = useClassesApi();
 
-  const [subject, setSubject] = useState("Matematika");
-  const [gradeLevel, setGradeLevel] = useState("XII");
+  const [subject, setSubject] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
   const [type, setType] = useState<CBTQuestionType>("multichoice");
+
+  useEffect(() => {
+    fetchSubjects();
+    fetchClasses();
+  }, [fetchSubjects, fetchClasses]);
+
+  useEffect(() => {
+    if (!subject && subjects.length > 0) {
+      setSubject(subjects[0]);
+    }
+  }, [subject, subjects]);
+
+  useEffect(() => {
+    if (!gradeLevel && classes.length > 0) {
+      setGradeLevel(classes[0].name);
+    }
+  }, [gradeLevel, classes]);
   const [stem, setStem] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [points, setPoints] = useState(2.5);
@@ -171,7 +191,7 @@ export const CreateQuestionForm: FC = () => {
       )}
 
       {/* Main Metadata Card */}
-      <Card className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5">
+      <Card bodyClassName="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SelectField
           id="subject-select"
           label="Mata Pelajaran:"
@@ -179,25 +199,33 @@ export const CreateQuestionForm: FC = () => {
           onChange={(e) => setSubject(e.target.value)}
           size="sm"
         >
-          <option value="Matematika">Matematika</option>
-          <option value="Fisika">Fisika</option>
-          <option value="Kimia">Kimia</option>
-          <option value="Biologi">Biologi</option>
-          <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-          <option value="Geografi">Geografi</option>
-          <option value="Sosiologi">Sosiologi</option>
+          {subjects.length === 0 ? (
+            <option value="">Memuat mata pelajaran...</option>
+          ) : (
+            subjects.map((sub) => (
+              <option key={sub} value={sub}>
+                {sub}
+              </option>
+            ))
+          )}
         </SelectField>
 
         <SelectField
           id="grade-select"
-          label="Tingkat Kelas:"
+          label="Kelas / Tingkat:"
           value={gradeLevel}
           onChange={(e) => setGradeLevel(e.target.value)}
           size="sm"
         >
-          <option value="X">Kelas X</option>
-          <option value="XI">Kelas XI</option>
-          <option value="XII">Kelas XII</option>
+          {classes.length === 0 ? (
+            <option value="">Memuat data kelas...</option>
+          ) : (
+            classes.map((cls) => (
+              <option key={cls.id} value={cls.name}>
+                {cls.name}
+              </option>
+            ))
+          )}
         </SelectField>
 
         <SelectField
@@ -220,7 +248,7 @@ export const CreateQuestionForm: FC = () => {
       </Card>
 
       {/* Stem, Diagram & Image Upload Card */}
-      <Card className="flex flex-col gap-4 p-5">
+      <Card bodyClassName="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <label
             htmlFor="stem-textarea"
@@ -314,7 +342,7 @@ export const CreateQuestionForm: FC = () => {
 
       {/* Options Matrix (if not essay) */}
       {type !== "essay" && (
-        <Card className="flex flex-col gap-4 p-5">
+        <Card bodyClassName="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xs font-bold text-[#0d2b5c]">
