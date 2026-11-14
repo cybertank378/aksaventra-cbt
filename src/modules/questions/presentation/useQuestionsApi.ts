@@ -17,11 +17,24 @@ export interface ImportQuestionsResultDTO {
 
 export function useQuestionsApi() {
   const [questions, setQuestions] = useState<QuestionDTO[]>([]);
+  const [subjects, setSubjects] = useState<string[]>([]);
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionDTO | null>(
     null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchSubjects = useCallback(async () => {
+    try {
+      const res = await fetch("/api/subjects");
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setSubjects(json.data);
+      }
+    } catch {
+      // Ignore network error for subjects dropdown
+    }
+  }, []);
 
   const fetchQuestions = useCallback(
     async (filters?: QuestionsFilterQueryDTO) => {
@@ -230,10 +243,12 @@ export function useQuestionsApi() {
 
   return {
     questions,
+    subjects,
     selectedQuestion,
     isLoading,
     error,
     fetchQuestions,
+    fetchSubjects,
     fetchQuestionById,
     createQuestion,
     updateQuestion,

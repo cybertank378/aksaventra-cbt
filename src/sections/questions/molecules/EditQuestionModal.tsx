@@ -2,12 +2,14 @@
 
 import { Check, Plus, Save, Trash2, X } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
+import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import type {
   CBTQuestionType,
   CreateQuestionInputDTO,
   QuestionDTO,
   QuestionOptionDTO,
 } from "@/modules/questions/domain/dto/QuestionDTO";
+import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Button from "@/shared-ui/component/Button";
 import ImageUploader from "@/shared-ui/component/ImageUploader";
 import Modal from "@/shared-ui/component/Modal";
@@ -30,8 +32,18 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { subjects, fetchSubjects } = useQuestionsApi();
+  const { classes, fetchClasses } = useClassesApi();
+
   const [subject, setSubject] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      fetchSubjects();
+      fetchClasses();
+    }
+  }, [open, fetchSubjects, fetchClasses]);
   const [type, setType] = useState<CBTQuestionType>("multichoice");
   const [stem, setStem] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
@@ -162,27 +174,26 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
             onChange={(e) => setSubject(e.target.value)}
             size="sm"
           >
-            <option value="Matematika">Matematika</option>
-            <option value="Fisika">Fisika</option>
-            <option value="Kimia">Kimia</option>
-            <option value="Biologi">Biologi</option>
-            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-            <option value="Bahasa Inggris">Bahasa Inggris</option>
-            <option value="Geografi">Geografi</option>
-            <option value="Sosiologi">Sosiologi</option>
-            <option value="Ekonomi">Ekonomi</option>
-            <option value="Sejarah">Sejarah</option>
+            {Array.from(new Set([subject, ...subjects].filter(Boolean))).map((sub) => (
+              <option key={sub} value={sub}>
+                {sub}
+              </option>
+            ))}
           </SelectField>
 
           <SelectField
-            label="Tingkat / Kelas"
+            label="Kelas / Tingkat"
             value={gradeLevel}
             onChange={(e) => setGradeLevel(e.target.value)}
             size="sm"
           >
-            <option value="X">Kelas X</option>
-            <option value="XI">Kelas XI</option>
-            <option value="XII">Kelas XII</option>
+            {Array.from(
+              new Set([gradeLevel, ...classes.map((c) => c.name)].filter(Boolean)),
+            ).map((clsName) => (
+              <option key={clsName} value={clsName}>
+                {clsName}
+              </option>
+            ))}
           </SelectField>
 
           <SelectField
