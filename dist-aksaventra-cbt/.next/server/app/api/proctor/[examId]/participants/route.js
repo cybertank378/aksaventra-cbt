@@ -1,0 +1,11 @@
+var R=require("../../../../../chunks/[turbopack]_runtime.js")("server/app/api/proctor/[examId]/participants/route.js")
+R.c("server/chunks/[root-of-the-server]__14du3v9rb1gvy._.js")
+R.c("server/chunks/src_195scw405it6h._.js")
+R.c("server/chunks/_08hm5u17cndkp._.js")
+R.c("server/chunks/_1p-_bpi3t--ph._.js")
+R.c("server/chunks/[root-of-the-server]__1v1-l-83czzsr._.js")
+R.c("server/chunks/[root-of-the-server]__0onitn93xhbrp._.js")
+R.c("server/chunks/node_modules_zod_v4_classic_external_0bdr4losuarlx.js")
+R.c("server/chunks/1oeh_server_app_api_proctor_[examId]_participants_route_actions_194blwnzwolm5.js")
+R.m(36633)
+module.exports=R.m(36633).exports

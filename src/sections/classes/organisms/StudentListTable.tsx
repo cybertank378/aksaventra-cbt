@@ -1,0 +1,302 @@
+"use client";
+
+import { Download, Plus, Search, UploadCloud, UserCheck } from "lucide-react";
+import { type FC, useEffect, useMemo, useState } from "react";
+import { downloadCsvBlob, generateExcelCsv } from "@/libs/excelCsvUtils";
+import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
+import Badge from "@/shared-ui/component/Badge";
+import Button from "@/shared-ui/component/Button";
+import SelectField from "@/shared-ui/component/SelectField";
+import TextField from "@/shared-ui/component/TextField";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@/shared-ui/component/Table";
+import ClassBadge from "../atoms/ClassBadge";
+import CreateStudentModal from "../molecules/CreateStudentModal";
+import ImportStudentsModal from "../molecules/ImportStudentsModal";
+
+export const StudentListTable: FC = () => {
+  const {
+    classes,
+    students,
+    isLoading,
+    error,
+    fetchClasses,
+    fetchStudents,
+    createStudent,
+    exportStudents,
+  } = useClassesApi();
+
+  const [search, setSearch] = useState("");
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string>("ALL");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => {
+    fetchClasses();
+    fetchStudents();
+  }, [fetchClasses, fetchStudents]);
+
+  const handleProcessDownload = (url: string, filename: string) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportStudents = async () => {
+    setIsExporting(true);
+    try {
+      const csvData = await exportStudents();
+      if (csvData) {
+        downloadCsvBlob(csvData, "daftar_siswa_moodle.csv");
+        setIsExporting(false);
+        return;
+      }
+    } catch {
+      // Fallback to local students export
+    }
+
+    // 2. Client fallback from loaded students
+    const headers = ["nis_username", "nama_lengkap", "kelas", "email"];
+    const rows = filteredStudents.map((s) => [
+      s.username,
+      s.fullName,
+      classes.find((c) => c.id === s.classGroupId)?.name || "-",
+      `${s.username}@cbt.local`,
+    ]);
+    const csvContent = generateExcelCsv(headers, rows);
+    downloadCsvBlob(csvContent, "daftar_siswa_cbt.csv");
+    setIsExporting(false);
+  };
+
+  const filteredStudents = useMemo(() => {
+    return students.filter((s) => {
+      if (search.trim()) {
+        const query = search.toLowerCase();
+        const matchName = s.fullName.toLowerCase().includes(query);
+        const matchNIS = s.username.toLowerCase().includes(query);
+        if (!matchName && !matchNIS) return false;
+      }
+      if (selectedClassFilter !== "ALL") {
+        return s.classGroupId === selectedClassFilter;
+      }
+      return true;
+    });
+  }, [students, search, selectedClassFilter]);
+
+  return (
+    <div className="flex flex-col gap-5 w-full">
+      {/* Top Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">
+            Daftar Akun Peserta Didik (Siswa)
+          </h2>
+          <p className="text-xs text-slate-500">
+            Data login peserta ujian CBT, nomor induk, dan penempatan rombel
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            color="success"
+            size="sm"
+            leftIcon={Download}
+            onClick={() =>
+              handleProcessDownload(
+                "/templates/sample_import_siswa.xlsx",
+                "sample_import_siswa.xlsx",
+              )
+            }
+          >
+            Template (.xlsx)
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            color="teal"
+            size="sm"
+            leftIcon={Download}
+            onClick={() =>
+              handleProcessDownload(
+                "/templates/sample_import_siswa.xls",
+                "sample_import_siswa.xls",
+              )
+            }
+          >
+            .xls
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            color="primary"
+            size="sm"
+            leftIcon={UploadCloud}
+            onClick={() => setImportModalOpen(true)}
+          >
+            Import Siswa
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={Download}
+            onClick={handleExportStudents}
+            disabled={isExporting}
+          >
+            {isExporting ? "Mengekspor..." : "Export Siswa (Excel)"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="filled"
+            color="primary"
+            size="sm"
+            leftIcon={Plus}
+            onClick={() => setModalOpen(true)}
+          >
+            Daftarkan Siswa
+          </Button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-semibold">
+          {error}
+        </div>
+      )}
+
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs">
+        <div className="flex-1 max-w-md">
+          <TextField
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari siswa berdasarkan nama atau NIS..."
+            leftIcon={Search}
+            size="sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <SelectField
+            value={selectedClassFilter}
+            onChange={(e) => setSelectedClassFilter(e.target.value)}
+            size="sm"
+          >
+            <option value="ALL">Semua Rombel / Kelas</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+      </div>
+
+      {/* Students Table */}
+      <Table wrapperClassName="rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+        <TableHead className="bg-slate-50/90 text-slate-500 font-semibold uppercase text-[11px] border-b border-slate-200/80">
+          <TableRow>
+            <TableHeaderCell className="px-5 py-3.5">Nama Siswa</TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">NIS / Username</TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">Kelas / Rombel</TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">Ruang Default</TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5 text-right">Status Akun</TableHeaderCell>
+          </TableRow>
+        </TableHead>
+        <TableBody className="divide-y divide-slate-100">
+          {isLoading && students.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="px-5 py-12 text-center">
+                <div className="h-6 w-6 mx-auto animate-spin rounded-full border-2 border-slate-300 border-t-[#0097a7]" />
+              </TableCell>
+            </TableRow>
+          ) : filteredStudents.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={5}
+                className="px-5 py-8 text-center text-slate-400"
+              >
+                Tidak ada siswa yang ditemukan.
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredStudents.map((s) => (
+              <TableRow
+                key={s.id}
+                className="hover:bg-slate-50/80 transition-colors"
+              >
+                <TableCell className="px-5 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-7 w-7 rounded-full bg-[#0d2b5c] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      {s.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-bold text-slate-900">
+                      {s.fullName}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-5 py-3.5 font-mono text-slate-700 font-medium">
+                  {s.username}
+                </TableCell>
+                <TableCell className="px-5 py-3.5 whitespace-nowrap">
+                  {s.className ? (
+                    <ClassBadge name={s.className} size="sm" />
+                  ) : (
+                    <span className="text-slate-400 italic">
+                      Belum ditentukan
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="px-5 py-3.5 whitespace-nowrap text-slate-600 font-semibold">
+                  {s.roomCode || "-"}
+                </TableCell>
+                <TableCell className="px-5 py-3.5 text-right whitespace-nowrap">
+                  <Badge color="success" variant="soft" size="sm">
+                    <UserCheck className="w-3.5 h-3.5 mr-1 inline" />
+                    Aktif
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+
+      {/* Create Student Modal */}
+      <CreateStudentModal
+        open={modalOpen}
+        classes={classes}
+        onClose={() => setModalOpen(false)}
+        onSubmit={createStudent}
+      />
+
+      {/* Import Students Modal */}
+      <ImportStudentsModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSuccess={() => {
+          fetchStudents();
+          fetchClasses();
+        }}
+      />
+    </div>
+  );
+};
+
+export default StudentListTable;

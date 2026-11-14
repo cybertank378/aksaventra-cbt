@@ -1,0 +1,10 @@
+:HL["/_next/static/chunks/1qouzynrvjihq.css","style"]
+:HL["/_next/static/chunks/2-xrq3-j1o_su.css","style"]
+:HL["/_next/static/media/53897e768d329f66-s.p.3t6q91iet4nsy.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/_next/static/media/d8aeca813a9ab546-s.p.18rizl4rsrl42.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+5:[["children",{"s":"__PAGE__","h":8354}]]
+4:[["children",{"s":"new","h":8290,"c":"$Q5"}]]
+3:[["children",{"s":"exams","h":8290,"c":"$Q4"}]]
+2:[["children",{"s":"dashboard","h":8290,"c":"$Q3"}]]
+1:[["children",{"s":"(protected)","h":8290,"c":"$Q2"}]]
+0:{"b":"S0vjXUFB-c7jayIajAftD","t":{"t":{"s":"","h":8274,"c":"$Q1"}}}

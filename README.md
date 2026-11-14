@@ -1,23 +1,21 @@
-# 🗂️ Indeks Issue & Mitigasi Teknis (`aksaventra-cbt` - Next.js 16)
+# 🗂️ Sequential Implementation Issues (`aksaventra-cbt` — Next.js 16 + Prisma v7)
 
-Seluruh daftar issue pada aplikasi **Next.js 16 Modular Clean Architecture** dipecah menjadi file individual per skenario agar mudah dilacak pada proses pengembangan dan pengujian TDD (Vitest):
+Seluruh *issue* diurutkan secara sekuensial mulai dari **Fase 1 (Database & Core Foundation)** hingga **Fase 4 (UI Sections & Real-Time Proctor)** dengan mematuhi secara ketat struktur direktori proyek (`src/core`, `src/libs`, `src/security`, `src/shared`, `src/modules`, `src/sections`, `src/shared-ui`, `src/app`, dan `src/proxy.ts`):
 
-## 1. Security & Anti-Cheat (`ISSUE-SEC-*`)
-- [`ISSUE-SEC-01-false-positive-blur-strike.md`](./ISSUE-SEC-01-false-positive-blur-strike.md) — False-Positive Strike Akibat Notifikasi OS / Low-Battery Pop-up
-- [`ISSUE-SEC-02-fullscreen-gesture-safari.md`](./ISSUE-SEC-02-fullscreen-gesture-safari.md) — Kegagalan `requestFullscreen()` karena *Transient User Activation* & iOS Safari
-- [`ISSUE-SEC-03-keyboard-shortcut-collision.md`](./ISSUE-SEC-03-keyboard-shortcut-collision.md) — Konflik Pintasan Keyboard (`A-E`, `R`, Panah) pada Input Soal `shortanswer`
-- [`ISSUE-SEC-04-seb-header-spoofing.md`](./ISSUE-SEC-04-seb-header-spoofing.md) — Bypass Validasi Safe Exam Browser (SEB) via *Client-Side Header Spoofing*
+## Fase 1: Database Schema, Core Base & Low-Level Libraries
+1. [`ISSUE-01-database-schema-and-prisma-v7.md`](./ISSUE-01-database-schema-and-prisma-v7.md) — Pembuatan Skema Database (`prisma/schema.prisma`), Konfigurasi Adapter `@prisma/adapter-pg`, dan Singleton `src/libs/prisma.ts`.
+2. [`ISSUE-02-core-base-and-error-handling.md`](./ISSUE-02-core-base-and-error-handling.md) — Implementasi Lapisan Fondasi `src/core/base/` (`Result.ts`, `BaseEntity.ts`, `BaseUseCase.ts`, `BaseRepository.ts`, `BaseService.ts`, `BaseController.ts`) & `src/core/errors/`.
+3. [`ISSUE-03-libs-offline-vault-timer-katex.md`](./ISSUE-03-libs-offline-vault-timer-katex.md) — Implementasi Pustaka Inti `src/libs/` (`dexieVault.ts`, `serverDeltaTimer.ts`, `katexSanitizer.ts`, `DateUtils.ts`) & `src/shared/api/` (`apiQueue.ts`, `apiRequest.ts`).
+4. [`ISSUE-04-security-guards-and-edge-proxy.md`](./ISSUE-04-security-guards-and-edge-proxy.md) — Implementasi `src/security/` (`sebHeaderValidator.ts`, `quizFocusGuard.ts`, `deviceFingerprint.ts`, `rbacConfig.ts`) dan `src/proxy.ts`.
 
-## 2. Offline-First, IndexedDB & Concurrency (`ISSUE-NET-*`)
-- [`ISSUE-NET-01-thundering-herd-and-sync-race.md`](./ISSUE-NET-01-thundering-herd-and-sync-race.md) — *Thundering Herd* & *Race Condition* antara *Auto-Save* dan Klik "Kumpulkan Ujian"
-- [`ISSUE-NET-02-indexeddb-rehydration-conflict.md`](./ISSUE-NET-02-indexeddb-rehydration-conflict.md) — Rehidrasi Jawaban saat Siswa Menekan Refresh (`F5`) atau Listrik Mati
-- [`ISSUE-NET-03-offline-timeout-sealed-receipt.md`](./ISSUE-NET-03-offline-timeout-sealed-receipt.md) — Waktu Ujian Habis (`remainingSeconds === 0`) Saat Wi-Fi / LAN Terputus Total
+## Fase 2: Domain & Application Modules (`src/modules/*` & `src/app/api/*`)
+5. [`ISSUE-05-module-auth-and-users.md`](./ISSUE-05-module-auth-and-users.md) — Implementasi Modul `src/modules/auth/` & `src/modules/users/` beserta Endpoint `/api/auth/*` (`_factory.ts`).
+6. [`ISSUE-06-module-exams-and-moodle-snapshot.md`](./ISSUE-06-module-exams-and-moodle-snapshot.md) — Implementasi Modul `src/modules/exams/` & Proxy Sinkronisasi Snapshot `/api/exams/[id]/snapshot` + `/api/moodle-proxy/[...wsfunction]`.
+7. [`ISSUE-07-module-attempts-sync-and-strike-engine.md`](./ISSUE-07-module-attempts-sync-and-strike-engine.md) — Implementasi Modul `src/modules/attempts/` (Start, Batch Sync dengan Jitter & Mutex, Strike Evaluation Rule, Rehydration Rule, Final Submit) & `/api/attempts/[id]/*`.
+8. [`ISSUE-08-module-proctor-control-engine.md`](./ISSUE-08-module-proctor-control-engine.md) — Implementasi Modul `src/modules/proctor/` (Live Participants, Rotate Token, Unlock Strike, Reset Device, Extend Time, Force Submit) & `/api/proctor/[examId]/*`.
 
-## 3. Zero-Latency Workspace & Performance (`ISSUE-PERF-*`)
-- [`ISSUE-PERF-01-timer-rerender-cascade.md`](./ISSUE-PERF-01-timer-rerender-cascade.md) — *Re-render Cascade* Setiap Detik Akibat Countdown Timer
-- [`ISSUE-PERF-02-katex-dompurify-corruption.md`](./ISSUE-PERF-02-katex-dompurify-corruption.md) — Korupsi Sintaks LaTeX/KaTeX Akibat Sanitasi `DOMPurify` & *Main-Thread Blocking*
-- [`ISSUE-PERF-03-zod-moodle-payload-coercion.md`](./ISSUE-PERF-03-zod-moodle-payload-coercion.md) — Kegagalan Validasi Skema `Zod` Akibat Inkonkonsistensi Tipe Data JSON dari PHP Moodle
-
-## 4. Timer Manipulation & Proctor Synchronization (`ISSUE-SYNC-*`)
-- [`ISSUE-SYNC-01-os-clock-manipulation-sleep.md`](./ISSUE-SYNC-01-os-clock-manipulation-sleep.md) — Manipulasi Jam Sistem Operasi & Efek *Laptop Sleep / Hibernate*
-- [`ISSUE-SYNC-02-proctor-unlock-stale-state.md`](./ISSUE-SYNC-02-proctor-unlock-stale-state.md) — *Stale State* saat Pengawas Melakukan *Unlock Strike* atau *Reset Device*
+## Fase 3: Shared UI & Atomic Sections (`src/shared-ui/*` & `src/sections/*`)
+9. [`ISSUE-09-shared-ui-design-system-and-layouts.md`](./ISSUE-09-shared-ui-design-system-and-layouts.md) — Implementasi Komponen Dasar `src/shared-ui/component/*` dan Layout `src/shared-ui/layout/*` (`AppLayout.tsx`, `ExamFocusLayout.tsx`).
+10. [`ISSUE-10-section-auth-and-student-lobby.md`](./ISSUE-10-section-auth-and-student-lobby.md) — Implementasi Atomic Section `src/sections/auth/` & `src/sections/student-lobby/` (Pre-Flight Check, Synchronous Fullscreen Trigger, Token Input) beserta halaman App Router.
+11. [`ISSUE-11-section-exam-workspace-zero-latency.md`](./ISSUE-11-section-exam-workspace-zero-latency.md) — Implementasi Atomic Section `src/sections/exam-workspace/` (`ServerTimerBadge`, `QuestionCanvas`, `QuestionNavGrid`, `BlurGraceWarningBanner`, `LockdownShieldModal`, `OfflineReceiptModal`).
+12. [`ISSUE-12-section-proctor-room-and-dashboards.md`](./ISSUE-12-section-proctor-room-and-dashboards.md) — Implementasi Atomic Section `src/sections/proctor-room/` (`LiveParticipantGrid`, `TokenProjectorCard`, `ParticipantActionModal`) & `/dashboard/*`.

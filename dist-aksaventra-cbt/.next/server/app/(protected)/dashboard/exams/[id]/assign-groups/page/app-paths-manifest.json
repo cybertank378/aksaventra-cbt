@@ -1,0 +1,3 @@
+{
+  "/(protected)/dashboard/exams/[id]/assign-groups/page": "app/(protected)/dashboard/exams/[id]/assign-groups/page.js"
+}

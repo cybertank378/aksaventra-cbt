@@ -1,0 +1,15 @@
+{
+  "node": {
+    "c0175ef36fc0b251ad57241727ce5e7f18851624b6": {
+      "workers": {
+        "app/(protected)/dashboard/exams/[id]/participants/page": {
+          "moduleId": 93766,
+          "async": false
+        }
+      },
+      "exportedName": "$$RSC_SERVER_CACHE_0",
+      "filename": "src/proxy.ts"
+    }
+  },
+  "edge": {}
+}

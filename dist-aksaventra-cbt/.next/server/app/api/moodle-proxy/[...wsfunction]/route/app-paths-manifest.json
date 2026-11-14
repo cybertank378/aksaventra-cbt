@@ -1,0 +1,3 @@
+{
+  "/api/moodle-proxy/[...wsfunction]/route": "app/api/moodle-proxy/[...wsfunction]/route.js"
+}

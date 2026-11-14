@@ -1,0 +1,3 @@
+{
+  "/api/proctor/[examId]/rotate-token/route": "app/api/proctor/[examId]/rotate-token/route.js"
+}
