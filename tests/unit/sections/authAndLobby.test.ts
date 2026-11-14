@@ -60,13 +60,6 @@ describe("ISSUE-10: Auth Section & Student Lobby Unit Tests", () => {
           status: "SUCCESS",
           isCritical: true,
         },
-        seb: {
-          id: "seb",
-          name: "SEB",
-          description: "",
-          status: "SUCCESS",
-          isCritical: true,
-        },
         screen: {
           id: "screen",
           name: "Screen",
@@ -110,23 +103,6 @@ describe("ISSUE-10: Auth Section & Student Lobby Unit Tests", () => {
       );
 
       expect(hasCriticalError).toBe(true);
-    });
-
-    it("evaluates SEB requirement based on User-Agent string", () => {
-      const userAgentSeb =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SEB/3.4.1";
-      const userAgentChrome =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0";
-
-      const isSeb1 =
-        userAgentSeb.includes("SEB") ||
-        userAgentSeb.includes("SafeExamBrowser");
-      const isSeb2 =
-        userAgentChrome.includes("SEB") ||
-        userAgentChrome.includes("SafeExamBrowser");
-
-      expect(isSeb1).toBe(true);
-      expect(isSeb2).toBe(false);
     });
 
     it("evaluates latency thresholds correctly", () => {
