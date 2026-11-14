@@ -1,7 +1,9 @@
 "use client";
 
-import { Filter, Search } from "lucide-react";
-import type { FC } from "react";
+import { Search } from "lucide-react";
+import { type FC, useEffect } from "react";
+import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
+import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Card from "@/shared-ui/component/Card";
 import SelectField from "@/shared-ui/component/SelectField";
 import TextField from "@/shared-ui/component/TextField";
@@ -27,8 +29,16 @@ export const QuestionFilterBar: FC<Props> = ({
   selectedGrade,
   onGradeChange,
 }) => {
+  const { subjects, fetchSubjects } = useQuestionsApi();
+  const { classes, fetchClasses } = useClassesApi();
+
+  useEffect(() => {
+    fetchSubjects();
+    fetchClasses();
+  }, [fetchSubjects, fetchClasses]);
+
   return (
-    <Card className="p-4 shadow-xs">
+    <Card className="shadow-xs" bodyClassName="p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
         {/* Search Field (5 cols on lg) */}
         <div className="sm:col-span-2 lg:col-span-5">
@@ -49,13 +59,11 @@ export const QuestionFilterBar: FC<Props> = ({
             size="sm"
           >
             <option value="ALL">Semua Mata Pelajaran</option>
-            <option value="Matematika">Matematika</option>
-            <option value="Fisika">Fisika</option>
-            <option value="Kimia">Kimia</option>
-            <option value="Biologi">Biologi</option>
-            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-            <option value="Geografi">Geografi</option>
-            <option value="Sosiologi">Sosiologi</option>
+            {subjects.map((sub) => (
+              <option key={sub} value={sub}>
+                {sub}
+              </option>
+            ))}
           </SelectField>
         </div>
 
@@ -85,10 +93,12 @@ export const QuestionFilterBar: FC<Props> = ({
             onChange={(e) => onGradeChange(e.target.value)}
             size="sm"
           >
-            <option value="ALL">Semua Jenjang</option>
-            <option value="X">Kelas X</option>
-            <option value="XI">Kelas XI</option>
-            <option value="XII">Kelas XII</option>
+            <option value="ALL">Semua Kelas</option>
+            {classes.map((cls) => (
+              <option key={cls.id} value={cls.name}>
+                {cls.name}
+              </option>
+            ))}
           </SelectField>
         </div>
       </div>
