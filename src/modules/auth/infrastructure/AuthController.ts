@@ -14,6 +14,21 @@ export class AuthController extends BaseController {
     super();
   }
 
+  private isSecureRequest(request?: NextRequest): boolean {
+    if (!request) {
+      return false;
+    }
+    const forwardedProto = request.headers
+      .get("x-forwarded-proto")
+      ?.split(",")[0]
+      ?.trim()
+      .toLowerCase();
+    if (forwardedProto) {
+      return forwardedProto === "https";
+    }
+    return request.nextUrl.protocol === "https:";
+  }
+
   public async login(request: NextRequest): Promise<NextResponse> {
     let body: unknown;
     try {
@@ -57,7 +72,7 @@ export class AuthController extends BaseController {
       // Set HTTP-Only session cookie
       response.cookies.set("aksaventra_token", result.value.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: this.isSecureRequest(request),
         sameSite: "lax",
         path: "/",
         maxAge: result.value.expiresInSeconds,
@@ -81,14 +96,14 @@ export class AuthController extends BaseController {
     }
   }
 
-  public async logout(): Promise<NextResponse> {
+  public async logout(request?: NextRequest): Promise<NextResponse> {
     const result = await this.authService.logout({});
     const response = this.handleResult(result, 200);
 
     // Clear HTTP-Only session cookie
     response.cookies.set("aksaventra_token", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: this.isSecureRequest(request),
       sameSite: "lax",
       path: "/",
       maxAge: 0,
@@ -165,7 +180,7 @@ export class AuthController extends BaseController {
 
       response.cookies.set("aksaventra_token", result.value.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: this.isSecureRequest(request),
         sameSite: "lax",
         path: "/",
         maxAge: 43200,
