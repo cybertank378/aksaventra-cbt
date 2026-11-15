@@ -1,7 +1,7 @@
 "use client";
 
 import { Lock, LogIn, User } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { type FC, type FormEvent, useState } from "react";
 import { useAuthApi } from "@/modules/auth/presentation/useAuthApi";
 import { generateDeviceFingerprint } from "@/security/deviceFingerprint";
@@ -23,9 +23,9 @@ export interface LoginFormProps {
 }
 
 export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const examIdParam = defaultExamId || searchParams.get("examId") || undefined;
+  const redirectParam = searchParams.get("redirect");
 
   const { login, isLoading, error: authError } = useAuthApi();
 
@@ -59,12 +59,21 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
         onSuccess(user);
       } else {
         const role = (user.role as UserRole) || "STUDENT";
-        if (role === "STUDENT" && examIdParam) {
-          router.replace(`/student/lobby/${examIdParam}`);
-        } else {
-          const redirectPath = getDefaultRedirectForRole(role);
-          router.replace(redirectPath);
-        }
+        const safeRedirect =
+          redirectParam &&
+          redirectParam.startsWith("/") &&
+          !redirectParam.startsWith("//")
+            ? redirectParam
+            : null;
+        const targetPath =
+          role === "STUDENT" && examIdParam
+            ? `/student/lobby/${examIdParam}`
+            : safeRedirect ||
+              result.redirectUrl ||
+              getDefaultRedirectForRole(role);
+        // Full navigation ensures the browser sends the newly-set HttpOnly cookie
+        // and bypasses any stale unauthenticated App Router prefetch cache.
+        window.location.assign(targetPath);
       }
     } catch (err) {
       const message =

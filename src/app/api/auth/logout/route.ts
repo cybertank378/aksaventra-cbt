@@ -1,5 +1,6 @@
+import type { NextRequest } from "next/server";
 import { authController } from "../_factory";
 
-export async function POST() {
-  return await authController.logout();
+export async function POST(request: NextRequest) {
+  return await authController.logout(request);
 }
