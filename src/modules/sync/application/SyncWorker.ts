@@ -1,9 +1,9 @@
 import type { SyncResult, SyncWorkerStatus } from "../domain/dto/SyncDTO";
-import { MoodleSyncService, moodleSyncService } from "./MoodleSyncService";
+import { type MoodleSyncService, moodleSyncService } from "./MoodleSyncService";
 
 const DEFAULT_SYNC_INTERVAL_MS = 60_000;
 
-class SyncWorkerManager {
+export class SyncWorkerManager {
   private timer: ReturnType<typeof setInterval> | null = null;
   private isSyncing = false;
   private started = false;
@@ -56,7 +56,13 @@ class SyncWorkerManager {
       return (
         this.lastResult ?? {
           success: true,
-          counts: { courses: 0, classes: 0, students: 0, exams: 0, questions: 0 },
+          counts: {
+            courses: 0,
+            classes: 0,
+            students: 0,
+            exams: 0,
+            questions: 0,
+          },
           syncedAt: new Date().toISOString(),
           errors: ["Sync already in progress"],
         }
@@ -68,7 +74,8 @@ class SyncWorkerManager {
       const result = await this.syncService.pullAllFromMoodle();
       this.lastResult = result;
       this.lastSyncedAt = result.syncedAt;
-      this.lastError = result.errors.length > 0 ? result.errors.join("; ") : null;
+      this.lastError =
+        result.errors.length > 0 ? result.errors.join("; ") : null;
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Sync worker failed";
