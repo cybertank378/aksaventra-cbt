@@ -23,6 +23,7 @@ export interface SyncRepositoryInterface {
 
   pushClassToMoodle(input: {
     id: string;
+    moodleId?: number | null;
     name: string;
     code?: string | null;
     description?: string | null;
@@ -30,14 +31,18 @@ export interface SyncRepositoryInterface {
 
   pushStudentToMoodle(input: {
     id: string;
+    moodleUserId?: number | null;
     username: string;
     fullName: string;
     password?: string;
     classGroupId?: string | null;
+    isActive?: boolean;
+    replaceCohort?: boolean;
   }): Promise<OutboundSyncResult>;
 
   pushSubjectToMoodle(input: {
     id: string;
+    moodleCourseId?: number | null;
     name: string;
     shortName?: string | null;
     description?: string | null;
@@ -65,6 +70,11 @@ export interface SyncRepositoryInterface {
     explanation?: string | null;
     options: Array<{ text: string; isCorrect?: boolean }>;
   }): Promise<OutboundSyncResult>;
+
+  deleteEntityInMoodle?(
+    entity: "course" | "cohort" | "user" | "cbt" | "question",
+    moodleId: number,
+  ): Promise<OutboundSyncResult>;
 
   findLocalEntityForPush(
     entity: "class" | "student" | "subject" | "exam" | "question",

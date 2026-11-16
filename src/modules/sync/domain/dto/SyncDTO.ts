@@ -53,6 +53,7 @@ export type PushEntityInput =
       type: "class";
       data: {
         id: string;
+        moodleId?: number | null;
         name: string;
         code?: string | null;
         description?: string | null;
@@ -62,16 +63,20 @@ export type PushEntityInput =
       type: "student";
       data: {
         id: string;
+        moodleUserId?: number | null;
         username: string;
         fullName: string;
         password?: string;
         classGroupId?: string | null;
+        isActive?: boolean;
+        replaceCohort?: boolean;
       };
     }
   | {
       type: "subject";
       data: {
         id: string;
+        moodleCourseId?: number | null;
         name: string;
         shortName?: string | null;
         description?: string | null;
@@ -166,4 +171,5 @@ export interface MoodlePullPayload {
       isCorrect?: boolean;
     }>;
   }>;
+  errors?: string[];
 }

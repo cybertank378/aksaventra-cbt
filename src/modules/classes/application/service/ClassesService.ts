@@ -1,8 +1,11 @@
 import type {
+  BulkAssignStudentsClassInputDTO,
   ClassGroupDTO,
   CreateClassGroupInputDTO,
   CreateStudentInputDTO,
   StudentDTO,
+  UpdateClassGroupInputDTO,
+  UpdateStudentInputDTO,
 } from "../../domain/dto/ClassGroupDTO";
 import type { ClassesRepositoryInterface } from "../../domain/interfaces/ClassesRepositoryInterface";
 import { CreateStudentUseCase } from "../usecases/CreateStudentUseCase";
@@ -31,6 +34,13 @@ export class ClassesService {
     return await this.manageClassesUseCase.createClass(input);
   }
 
+  async updateClass(
+    id: string,
+    input: UpdateClassGroupInputDTO,
+  ): Promise<ClassGroupDTO | null> {
+    return await this.manageClassesUseCase.updateClass(id, input);
+  }
+
   async deleteClass(id: string): Promise<boolean> {
     return await this.manageClassesUseCase.deleteClass(id);
   }
@@ -53,5 +63,26 @@ export class ClassesService {
       classGroupId,
       className,
     );
+  }
+
+  async getStudentById(id: string): Promise<StudentDTO | null> {
+    return await this.createStudentUseCase.getStudentById(id);
+  }
+
+  async updateStudent(
+    id: string,
+    input: UpdateStudentInputDTO,
+  ): Promise<StudentDTO | null> {
+    return await this.createStudentUseCase.updateStudent(id, input);
+  }
+
+  async deleteStudent(id: string): Promise<boolean> {
+    return await this.createStudentUseCase.deleteStudent(id);
+  }
+
+  async bulkAssignStudentsToClass(
+    input: BulkAssignStudentsClassInputDTO,
+  ): Promise<number> {
+    return await this.createStudentUseCase.bulkAssignStudentsToClass(input);
   }
 }

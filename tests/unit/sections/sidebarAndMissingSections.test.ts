@@ -16,7 +16,7 @@ describe("Sidebar Navigation Structure & Categories (Issue #27)", () => {
     ]);
   });
 
-  it("should contain all 10 designated sidebar items in their proper categories", () => {
+  it("should contain all 11 designated sidebar items in their proper categories", () => {
     const flatItems = DEFAULT_NAVIGATION_CATEGORIES.flatMap((c) => c.items);
     const itemIds = flatItems.map((i) => i.id);
 
@@ -26,6 +26,7 @@ describe("Sidebar Navigation Structure & Categories (Issue #27)", () => {
 
     // MANAJEMEN
     expect(itemIds).toContain("classes");
+    expect(itemIds).toContain("subjects");
     expect(itemIds).toContain("exams");
     expect(itemIds).toContain("create-question");
     expect(itemIds).toContain("questions");
@@ -38,7 +39,7 @@ describe("Sidebar Navigation Structure & Categories (Issue #27)", () => {
     // LAPORAN
     expect(itemIds).toContain("results");
 
-    expect(flatItems.length).toBe(10);
+    expect(flatItems.length).toBe(11);
   });
 });
 

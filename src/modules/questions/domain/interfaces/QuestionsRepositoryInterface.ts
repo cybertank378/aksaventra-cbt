@@ -13,4 +13,8 @@ export interface QuestionsRepositoryInterface {
     data: Partial<CreateQuestionInputDTO>,
   ): Promise<QuestionEntity | null>;
   delete(id: string): Promise<boolean>;
+  bulkGroup(
+    ids: string[],
+    group: { gradeLevel?: string; subject?: string },
+  ): Promise<number>;
 }

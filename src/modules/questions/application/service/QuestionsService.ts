@@ -58,4 +58,15 @@ export class QuestionsService extends BaseService {
       Result.ok(await this.manageQuestionsUseCase.deleteQuestion(id)),
     );
   }
+
+  public async bulkGroupQuestions(
+    ids: string[],
+    group: { gradeLevel?: string; subject?: string },
+  ): Promise<Result<number, AppError>> {
+    return this.execute(async () =>
+      Result.ok(
+        await this.manageQuestionsUseCase.bulkGroupQuestions(ids, group),
+      ),
+    );
+  }
 }

@@ -3,10 +3,13 @@
 import { useCallback, useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/shared-ui/component/Toast";
 import type {
+  BulkAssignStudentsClassInputDTO,
   ClassGroupDTO,
   CreateClassGroupInputDTO,
   CreateStudentInputDTO,
   StudentDTO,
+  UpdateClassGroupInputDTO,
+  UpdateStudentInputDTO,
 } from "../domain/dto/ClassGroupDTO";
 
 export interface ImportStudentsResultDTO {
@@ -214,16 +217,171 @@ export function useClassesApi() {
     }
   }, []);
 
+  const updateClass = useCallback(
+    async (
+      id: string,
+      input: UpdateClassGroupInputDTO,
+    ): Promise<ClassGroupDTO | null> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/classes/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setClasses((prev) => prev.map((c) => (c.id === id ? json.data : c)));
+          showSuccessToast("Data kelas berhasil diperbarui");
+          return json.data as ClassGroupDTO;
+        }
+        const msg = json.error?.message || "Gagal memperbarui kelas";
+        showErrorToast(msg);
+        setError(msg);
+        return null;
+      } catch {
+        const msg = "Gangguan jaringan saat memperbarui kelas";
+        showErrorToast(msg);
+        setError(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const fetchClassDetails = useCallback(
+    async (
+      id: string,
+    ): Promise<(ClassGroupDTO & { students: StudentDTO[] }) | null> => {
+      setError(null);
+      try {
+        const res = await fetch(`/api/classes/${id}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          return json.data as ClassGroupDTO & { students: StudentDTO[] };
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
+  const updateStudent = useCallback(
+    async (
+      id: string,
+      input: UpdateStudentInputDTO,
+    ): Promise<StudentDTO | null> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/students/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setStudents((prev) => prev.map((s) => (s.id === id ? json.data : s)));
+          showSuccessToast("Data siswa berhasil diperbarui");
+          return json.data as StudentDTO;
+        }
+        const msg = json.error?.message || "Gagal memperbarui data siswa";
+        showErrorToast(msg);
+        setError(msg);
+        return null;
+      } catch {
+        const msg = "Gangguan jaringan saat memperbarui data siswa";
+        showErrorToast(msg);
+        setError(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const deleteStudent = useCallback(async (id: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/students/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        setStudents((prev) => prev.filter((s) => s.id !== id));
+        showSuccessToast("Akun siswa berhasil dihapus");
+        return true;
+      }
+      const msg = json.error?.message || "Gagal menghapus akun siswa";
+      showErrorToast(msg);
+      setError(msg);
+      return false;
+    } catch {
+      const msg = "Gangguan jaringan saat menghapus akun siswa";
+      showErrorToast(msg);
+      setError(msg);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const bulkAssignStudentsClass = useCallback(
+    async (input: BulkAssignStudentsClassInputDTO): Promise<boolean> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/students/assign-class", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const json = await res.json();
+        if (json.success) {
+          showSuccessToast(
+            `${json.data?.updatedCount ?? input.studentIds.length} siswa berhasil dikelompokkan ke kelas`,
+          );
+          await fetchStudents();
+          await fetchClasses();
+          return true;
+        }
+        const msg =
+          json.error?.message || "Gagal mengelompokkan siswa ke kelas";
+        showErrorToast(msg);
+        setError(msg);
+        return false;
+      } catch {
+        const msg = "Gangguan jaringan saat mengelompokkan kelas siswa";
+        showErrorToast(msg);
+        setError(msg);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchStudents, fetchClasses],
+  );
+
   return {
     classes,
     students,
     isLoading,
     error,
     fetchClasses,
+    fetchClassDetails,
     createClass,
+    updateClass,
     deleteClass,
     fetchStudents,
     createStudent,
+    updateStudent,
+    deleteStudent,
+    bulkAssignStudentsClass,
     importStudents,
     exportStudents,
   };

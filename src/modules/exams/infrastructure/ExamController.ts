@@ -167,4 +167,13 @@ export class ExamController extends BaseController {
       return this.handleUnexpectedError(err);
     }
   }
+
+  public async deleteExam(id: string): Promise<NextResponse> {
+    try {
+      const result = await this.examService.deleteExam(id);
+      return this.handleResult(result, 200);
+    } catch (err) {
+      return this.handleUnexpectedError(err);
+    }
+  }
 }

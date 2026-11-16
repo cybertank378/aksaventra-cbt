@@ -9,6 +9,14 @@ export async function GET(
   return await classesController.getClassById(id);
 }
 
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+): Promise<Response> {
+  const { id } = await context.params;
+  return await classesController.updateClass(id, request);
+}
+
 export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },

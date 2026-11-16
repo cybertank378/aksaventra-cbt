@@ -1,13 +1,24 @@
 "use client";
 
-import { Download, Plus, Search, UploadCloud, UserCheck } from "lucide-react";
+import {
+  Download,
+  Edit3,
+  Eye,
+  FolderKanban,
+  Plus,
+  Search,
+  Trash2,
+  UploadCloud,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import { type FC, useEffect, useMemo, useState } from "react";
 import { downloadCsvBlob, generateExcelCsv } from "@/libs/excelCsvUtils";
+import type { StudentDTO } from "@/modules/classes/domain/dto/ClassGroupDTO";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import SelectField from "@/shared-ui/component/SelectField";
-import TextField from "@/shared-ui/component/TextField";
 import {
   Table,
   TableBody,
@@ -16,9 +27,12 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@/shared-ui/component/Table";
+import TextField from "@/shared-ui/component/TextField";
 import ClassBadge from "../atoms/ClassBadge";
 import CreateStudentModal from "../molecules/CreateStudentModal";
+import EditStudentModal from "../molecules/EditStudentModal";
 import ImportStudentsModal from "../molecules/ImportStudentsModal";
+import ViewStudentModal from "../molecules/ViewStudentModal";
 
 export const StudentListTable: FC = () => {
   const {
@@ -29,6 +43,9 @@ export const StudentListTable: FC = () => {
     fetchClasses,
     fetchStudents,
     createStudent,
+    updateStudent,
+    deleteStudent,
+    bulkAssignStudentsClass,
     exportStudents,
   } = useClassesApi();
 
@@ -37,10 +54,20 @@ export const StudentListTable: FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [viewingStudent, setViewingStudent] = useState<StudentDTO | null>(null);
+  const [editingStudent, setEditingStudent] = useState<StudentDTO | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkTargetClassId, setBulkTargetClassId] = useState<string>("");
 
   useEffect(() => {
     fetchClasses();
     fetchStudents();
+    const handleSynced = () => {
+      fetchClasses();
+      fetchStudents();
+    };
+    window.addEventListener("aksaventra:synced", handleSynced);
+    return () => window.removeEventListener("aksaventra:synced", handleSynced);
   }, [fetchClasses, fetchStudents]);
 
   const handleProcessDownload = (url: string, filename: string) => {
@@ -86,12 +113,63 @@ export const StudentListTable: FC = () => {
         const matchNIS = s.username.toLowerCase().includes(query);
         if (!matchName && !matchNIS) return false;
       }
+      if (selectedClassFilter === "UNASSIGNED") {
+        return !s.classGroupId;
+      }
       if (selectedClassFilter !== "ALL") {
         return s.classGroupId === selectedClassFilter;
       }
       return true;
     });
   }, [students, search, selectedClassFilter]);
+
+  const allFilteredSelected =
+    filteredStudents.length > 0 &&
+    filteredStudents.every((s) => selectedIds.includes(s.id));
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      const filteredSet = new Set(filteredStudents.map((s) => s.id));
+      setSelectedIds((prev) => prev.filter((id) => !filteredSet.has(id)));
+    } else {
+      const merged = new Set([
+        ...selectedIds,
+        ...filteredStudents.map((s) => s.id),
+      ]);
+      setSelectedIds(Array.from(merged));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  const handleBulkAssignClass = async () => {
+    if (selectedIds.length === 0) return;
+    const ok = await bulkAssignStudentsClass({
+      studentIds: selectedIds,
+      classGroupId: bulkTargetClassId || null,
+    });
+    if (ok) {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleDeleteStudent = async (s: StudentDTO) => {
+    if (
+      confirm(
+        `Apakah Anda yakin ingin menghapus siswa "${s.fullName}" (${s.username})?`,
+      )
+    ) {
+      const ok = await deleteStudent(s.id);
+      if (ok) {
+        setSelectedIds((prev) => prev.filter((id) => id !== s.id));
+        fetchClasses();
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col gap-5 w-full">
@@ -199,6 +277,7 @@ export const StudentListTable: FC = () => {
             size="sm"
           >
             <option value="ALL">Semua Rombel / Kelas</option>
+            <option value="UNASSIGNED">Belum Punya Kelas</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -208,28 +287,96 @@ export const StudentListTable: FC = () => {
         </div>
       </div>
 
+      {/* Bulk Class Grouping Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-teal-50/90 border border-teal-200">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#0d2b5c]">
+            <FolderKanban className="w-4 h-4 text-[#0097a7]" />
+            <span>
+              {selectedIds.length} siswa dipilih untuk pengelompokan kelas
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SelectField
+              value={bulkTargetClassId}
+              onChange={(e) => setBulkTargetClassId(e.target.value)}
+              size="sm"
+            >
+              <option value="">
+                -- Lepas dari Kelas (Belum ditentukan) --
+              </option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </SelectField>
+            <Button
+              type="button"
+              variant="filled"
+              color="teal"
+              size="sm"
+              onClick={handleBulkAssignClass}
+              loading={isLoading}
+            >
+              Terapkan Kelas
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+            >
+              Batal
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Students Table */}
       <Table wrapperClassName="rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
         <TableHead className="bg-slate-50/90 text-slate-500 font-semibold uppercase text-[11px] border-b border-slate-200/80">
           <TableRow>
-            <TableHeaderCell className="px-5 py-3.5">Nama Siswa</TableHeaderCell>
-            <TableHeaderCell className="px-5 py-3.5">NIS / Username</TableHeaderCell>
-            <TableHeaderCell className="px-5 py-3.5">Kelas / Rombel</TableHeaderCell>
-            <TableHeaderCell className="px-5 py-3.5">Ruang Default</TableHeaderCell>
-            <TableHeaderCell className="px-5 py-3.5 text-right">Status Akun</TableHeaderCell>
+            <TableHeaderCell className="px-4 py-3.5 w-10">
+              <input
+                type="checkbox"
+                checked={allFilteredSelected}
+                onChange={toggleSelectAll}
+                aria-label="Pilih semua siswa"
+                className="h-4 w-4 rounded border-slate-300 text-[#0097a7]"
+              />
+            </TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">
+              Nama Siswa
+            </TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">
+              NIS / Username
+            </TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">
+              Kelas / Rombel
+            </TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">
+              Ruang Default
+            </TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5">
+              Status Akun
+            </TableHeaderCell>
+            <TableHeaderCell className="px-5 py-3.5 text-right">
+              Aksi
+            </TableHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody className="divide-y divide-slate-100">
           {isLoading && students.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="px-5 py-12 text-center">
+              <TableCell colSpan={7} className="px-5 py-12 text-center">
                 <div className="h-6 w-6 mx-auto animate-spin rounded-full border-2 border-slate-300 border-t-[#0097a7]" />
               </TableCell>
             </TableRow>
           ) : filteredStudents.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={7}
                 className="px-5 py-8 text-center text-slate-400"
               >
                 Tidak ada siswa yang ditemukan.
@@ -241,6 +388,15 @@ export const StudentListTable: FC = () => {
                 key={s.id}
                 className="hover:bg-slate-50/80 transition-colors"
               >
+                <TableCell className="px-4 py-3.5">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(s.id)}
+                    onChange={() => toggleSelectOne(s.id)}
+                    aria-label={`Pilih siswa ${s.fullName}`}
+                    className="h-4 w-4 rounded border-slate-300 text-[#0097a7]"
+                  />
+                </TableCell>
                 <TableCell className="px-5 py-3.5">
                   <div className="flex items-center gap-2.5">
                     <div className="h-7 w-7 rounded-full bg-[#0d2b5c] text-white flex items-center justify-center font-bold text-xs shrink-0">
@@ -266,11 +422,53 @@ export const StudentListTable: FC = () => {
                 <TableCell className="px-5 py-3.5 whitespace-nowrap text-slate-600 font-semibold">
                   {s.roomCode || "-"}
                 </TableCell>
+                <TableCell className="px-5 py-3.5 whitespace-nowrap">
+                  {s.isActive ? (
+                    <Badge color="success" variant="soft" size="sm">
+                      <UserCheck className="w-3.5 h-3.5 mr-1 inline" />
+                      Aktif
+                    </Badge>
+                  ) : (
+                    <Badge color="error" variant="soft" size="sm">
+                      <UserX className="w-3.5 h-3.5 mr-1 inline" />
+                      Nonaktif
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell className="px-5 py-3.5 text-right whitespace-nowrap">
-                  <Badge color="success" variant="soft" size="sm">
-                    <UserCheck className="w-3.5 h-3.5 mr-1 inline" />
-                    Aktif
-                  </Badge>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      color="secondary"
+                      size="sm"
+                      leftIcon={Eye}
+                      onClick={() => setViewingStudent(s)}
+                      title="Lihat Detail Siswa"
+                    >
+                      Lihat
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      color="primary"
+                      size="sm"
+                      leftIcon={Edit3}
+                      onClick={() => setEditingStudent(s)}
+                      title="Edit Siswa & Rombel"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      color="error"
+                      size="sm"
+                      leftIcon={Trash2}
+                      onClick={() => handleDeleteStudent(s)}
+                      title="Hapus Siswa"
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))
@@ -284,6 +482,29 @@ export const StudentListTable: FC = () => {
         classes={classes}
         onClose={() => setModalOpen(false)}
         onSubmit={createStudent}
+      />
+
+      {/* View Student Modal */}
+      <ViewStudentModal
+        open={Boolean(viewingStudent)}
+        student={viewingStudent}
+        onClose={() => setViewingStudent(null)}
+        onEdit={(s) => setEditingStudent(s)}
+      />
+
+      {/* Edit Student Modal */}
+      <EditStudentModal
+        open={Boolean(editingStudent)}
+        student={editingStudent}
+        classes={classes}
+        onClose={() => setEditingStudent(null)}
+        onSave={async (id, data) => {
+          const updated = await updateStudent(id, data);
+          if (updated) {
+            fetchClasses();
+          }
+          return Boolean(updated);
+        }}
       />
 
       {/* Import Students Modal */}
