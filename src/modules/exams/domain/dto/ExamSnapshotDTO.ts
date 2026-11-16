@@ -23,6 +23,8 @@ export interface ExamSnapshotDTO {
   sebConfigKey?: string | null;
   serverTimestamp: number;
   activeToken?: string | null;
+  timeOpen?: string;
+  timeClose?: string;
   questions: QuestionItemDTO[];
   snapshotHash?: string | null;
 }
@@ -46,6 +48,7 @@ export interface CreateExamInput {
 export interface UpdateExamInput {
   id: string;
   title?: string;
+  courseName?: string;
   durationSeconds?: number;
   maxStrikes?: number;
   sebRequired?: boolean;

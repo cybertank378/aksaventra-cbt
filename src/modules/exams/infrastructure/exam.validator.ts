@@ -63,6 +63,7 @@ export const createExamSchema = z.object({
 
 export const updateExamSchema = z.object({
   title: z.string().trim().min(1).optional(),
+  courseName: z.string().trim().min(1).optional(),
   durationSeconds: z.coerce.number().int().min(60).optional(),
   maxStrikes: z.coerce.number().int().min(1).optional(),
   sebRequired: z.boolean().optional(),

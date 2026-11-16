@@ -40,3 +40,9 @@ export const questionsFilterSchema = z.object({
   type: cbtQuestionTypeEnum.optional(),
   search: z.string().optional(),
 });
+
+export const bulkGroupQuestionsSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1, "Pilih minimal 1 butir soal"),
+  gradeLevel: z.string().trim().min(1).optional(),
+  subject: z.string().trim().min(1).optional(),
+});

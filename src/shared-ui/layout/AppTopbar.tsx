@@ -99,6 +99,13 @@ function resolveCbtHeader(pathname: string): {
         "Pengelompokan siswa ke dalam rombel untuk distribusi ujian massal",
     };
   }
+  if (pathname.includes("/subjects")) {
+    return {
+      title: "Manajemen Mata Pelajaran",
+      subtitle:
+        "Pengelolaan daftar mata pelajaran, kelompok tingkat kelas, dan sinkronisasi Moodle",
+    };
+  }
   if (pathname.includes("/students")) {
     return {
       title: "Daftar Peserta Didik (Siswa)",

@@ -26,6 +26,12 @@ export interface CreateClassGroupInputDTO {
   description?: string;
 }
 
+export interface UpdateClassGroupInputDTO {
+  name?: string;
+  code?: string | null;
+  description?: string | null;
+}
+
 export interface CreateStudentInputDTO {
   username: string; // NIS
   fullName: string;
@@ -34,4 +40,19 @@ export interface CreateStudentInputDTO {
   classGroupId?: string;
   className?: string;
   roomCode?: string;
+}
+
+export interface UpdateStudentInputDTO {
+  username?: string;
+  fullName?: string;
+  password?: string;
+  classGroupId?: string | null;
+  className?: string | null;
+  roomCode?: string | null;
+  isActive?: boolean;
+}
+
+export interface BulkAssignStudentsClassInputDTO {
+  studentIds: string[];
+  classGroupId: string | null;
 }

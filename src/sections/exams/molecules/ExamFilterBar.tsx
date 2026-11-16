@@ -3,6 +3,7 @@
 import { Plus, RefreshCw, Search } from "lucide-react";
 import type { FC } from "react";
 import Button from "@/shared-ui/component/Button";
+import SelectField from "@/shared-ui/component/SelectField";
 import TextField from "@/shared-ui/component/TextField";
 
 interface ExamFilterBarProps {
@@ -10,6 +11,9 @@ interface ExamFilterBarProps {
   onSearchChange: (value: string) => void;
   filter: string;
   onFilterChange: (value: string) => void;
+  selectedCourse?: string;
+  onCourseChange?: (value: string) => void;
+  courses?: string[];
   isLoading: boolean;
   onRefresh: () => void;
   onCreateExam: () => void;
@@ -27,20 +31,39 @@ export const ExamFilterBar: FC<ExamFilterBarProps> = ({
   onSearchChange,
   filter,
   onFilterChange,
+  selectedCourse = "ALL",
+  onCourseChange,
+  courses = [],
   isLoading,
   onRefresh,
   onCreateExam,
 }) => {
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs">
-      <div className="w-full sm:w-96">
-        <TextField
-          placeholder="Cari naskah ujian atau mata pelajaran..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          leftIcon={Search}
-          size="sm"
-        />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-1">
+        <div className="w-full sm:w-80">
+          <TextField
+            placeholder="Cari naskah ujian atau mata pelajaran..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            leftIcon={Search}
+            size="sm"
+          />
+        </div>
+        {onCourseChange && courses.length > 0 && (
+          <SelectField
+            value={selectedCourse}
+            onChange={(e) => onCourseChange(e.target.value)}
+            size="sm"
+          >
+            <option value="ALL">Semua Mata Pelajaran</option>
+            {courses.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </SelectField>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">

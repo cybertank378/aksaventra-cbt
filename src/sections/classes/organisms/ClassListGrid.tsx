@@ -1,19 +1,35 @@
 "use client";
 
-import { GraduationCap, Plus, Trash2, Users } from "lucide-react";
+import { Edit3, Eye, GraduationCap, Plus, Trash2, Users } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
+import type { ClassGroupDTO } from "@/modules/classes/domain/dto/ClassGroupDTO";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Button from "@/shared-ui/component/Button";
 import ClassBadge from "../atoms/ClassBadge";
 import CreateClassModal from "../molecules/CreateClassModal";
+import EditClassModal from "../molecules/EditClassModal";
+import ViewClassModal from "../molecules/ViewClassModal";
 
 export const ClassListGrid: FC = () => {
-  const { classes, isLoading, error, fetchClasses, createClass, deleteClass } =
-    useClassesApi();
+  const {
+    classes,
+    isLoading,
+    error,
+    fetchClasses,
+    fetchClassDetails,
+    createClass,
+    updateClass,
+    deleteClass,
+  } = useClassesApi();
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewingClass, setViewingClass] = useState<ClassGroupDTO | null>(null);
+  const [editingClass, setEditingClass] = useState<ClassGroupDTO | null>(null);
 
   useEffect(() => {
     fetchClasses();
+    const handleSynced = () => fetchClasses();
+    window.addEventListener("aksaventra:synced", handleSynced);
+    return () => window.removeEventListener("aksaventra:synced", handleSynced);
   }, [fetchClasses]);
 
   return (
@@ -91,16 +107,43 @@ export const ClassListGrid: FC = () => {
                   <span>{cls.studentCount || 0} Siswa</span>
                 </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  color="danger"
-                  size="sm"
-                  onClick={() => deleteClass(cls.id)}
-                  leftIcon={Trash2}
-                >
-                  Hapus
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="secondary"
+                    size="sm"
+                    onClick={() => setViewingClass(cls)}
+                    leftIcon={Eye}
+                    title="Lihat Anggota Kelas"
+                  >
+                    Lihat
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="primary"
+                    size="sm"
+                    onClick={() => setEditingClass(cls)}
+                    leftIcon={Edit3}
+                    title="Edit Kelas"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    color="error"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm(`Hapus kelas "${cls.name}"?`)) {
+                        deleteClass(cls.id);
+                      }
+                    }}
+                    leftIcon={Trash2}
+                    title="Hapus Kelas"
+                  />
+                </div>
               </div>
             </div>
           ))}
@@ -112,6 +155,23 @@ export const ClassListGrid: FC = () => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSubmit={createClass}
+      />
+
+      {/* View Class Members Modal */}
+      <ViewClassModal
+        open={Boolean(viewingClass)}
+        classGroup={viewingClass}
+        onClose={() => setViewingClass(null)}
+        onLoadDetails={fetchClassDetails}
+        onEdit={(cls) => setEditingClass(cls)}
+      />
+
+      {/* Edit Class Modal */}
+      <EditClassModal
+        open={Boolean(editingClass)}
+        classGroup={editingClass}
+        onClose={() => setEditingClass(null)}
+        onSave={async (id, data) => Boolean(await updateClass(id, data))}
       />
     </div>
   );

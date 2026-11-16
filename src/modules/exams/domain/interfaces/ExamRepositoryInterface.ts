@@ -18,6 +18,7 @@ export interface ExamRepositoryInterface
     examId: string,
     params: {
       title?: string;
+      courseName?: string;
       durationSeconds?: number;
       maxStrikes?: number;
       sebRequired?: boolean;
@@ -26,4 +27,5 @@ export interface ExamRepositoryInterface
       timeClose?: Date;
     },
   ): Promise<ExamEntity>;
+  deleteExam?(examId: string): Promise<boolean>;
 }

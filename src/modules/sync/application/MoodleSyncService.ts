@@ -77,6 +77,7 @@ export class MoodleSyncService {
 
   public async pushClassToMoodle(input: {
     id: string;
+    moodleId?: number | null;
     name: string;
     code?: string | null;
     description?: string | null;
@@ -87,10 +88,13 @@ export class MoodleSyncService {
 
   public async pushStudentToMoodle(input: {
     id: string;
+    moodleUserId?: number | null;
     username: string;
     fullName: string;
     password?: string;
     classGroupId?: string | null;
+    isActive?: boolean;
+    replaceCohort?: boolean;
   }): Promise<OutboundSyncResult> {
     const res = await this.pushUseCase.execute({
       type: "student",
@@ -101,6 +105,7 @@ export class MoodleSyncService {
 
   public async pushSubjectToMoodle(input: {
     id: string;
+    moodleCourseId?: number | null;
     name: string;
     shortName?: string | null;
     description?: string | null;
@@ -142,6 +147,16 @@ export class MoodleSyncService {
       data: input,
     });
     return res.value;
+  }
+
+  public async deleteEntityInMoodle(
+    entity: "course" | "cohort" | "user" | "cbt" | "question",
+    moodleId?: number | null,
+  ): Promise<OutboundSyncResult> {
+    if (!moodleId || moodleId <= 0) {
+      return { synced: false };
+    }
+    return await this.repository.deleteEntityInMoodle(entity, moodleId);
   }
 }
 

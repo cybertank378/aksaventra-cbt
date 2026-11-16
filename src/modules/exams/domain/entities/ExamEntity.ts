@@ -76,6 +76,8 @@ export class ExamEntity extends BaseEntity<string> {
       sebConfigKey: this.sebConfigKey,
       activeToken: this.activeToken,
       serverTimestamp: timestampSec,
+      timeOpen: this.timeOpen.toISOString(),
+      timeClose: this.timeClose.toISOString(),
       questions: this.questions.map((q) => q.toDTO()),
       snapshotHash: this.snapshotHash,
     };

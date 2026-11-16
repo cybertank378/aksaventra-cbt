@@ -113,12 +113,13 @@ export function isRouteAuthorized(
     );
   }
 
-  // Management API routes (exams, classes, students, questions, exam-cards, sync)
+  // Management API routes (exams, classes, students, questions, subjects, exam-cards, sync)
   if (
     pathname.startsWith("/api/exams") ||
     pathname.startsWith("/api/classes") ||
     pathname.startsWith("/api/students") ||
     pathname.startsWith("/api/questions") ||
+    pathname.startsWith("/api/subjects") ||
     pathname.startsWith("/api/exam-cards") ||
     pathname.startsWith("/api/sync")
   ) {

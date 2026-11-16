@@ -221,8 +221,8 @@ export class SyncRepository implements SyncRepositoryInterface {
           data: {
             moodleUserId: s.user_id,
             fullName: s.full_name?.trim() || existing.fullName,
-            ...(classGroupId ? { classGroupId } : {}),
-            ...(className ? { className } : {}),
+            classGroupId,
+            className,
             isActive: true,
           },
         });
@@ -355,6 +355,7 @@ export class SyncRepository implements SyncRepositoryInterface {
 
   public async pushClassToMoodle(input: {
     id: string;
+    moodleId?: number | null;
     name: string;
     code?: string | null;
     description?: string | null;
@@ -365,6 +366,7 @@ export class SyncRepository implements SyncRepositoryInterface {
         {
           action: "create_class",
           payload: JSON.stringify({
+            moodle_id: input.moodleId ?? 0,
             name: input.name,
             code: input.code ?? "",
             description: input.description ?? "",
@@ -391,10 +393,13 @@ export class SyncRepository implements SyncRepositoryInterface {
 
   public async pushStudentToMoodle(input: {
     id: string;
+    moodleUserId?: number | null;
     username: string;
     fullName: string;
     password?: string;
     classGroupId?: string | null;
+    isActive?: boolean;
+    replaceCohort?: boolean;
   }): Promise<OutboundSyncResult> {
     try {
       let moodleClassId = 0;
@@ -415,11 +420,16 @@ export class SyncRepository implements SyncRepositoryInterface {
         {
           action: "create_student",
           payload: JSON.stringify({
+            moodle_user_id: input.moodleUserId ?? 0,
             username: input.username,
             firstname,
             lastname,
             password: input.password || "",
             class_id: moodleClassId,
+            replace_cohort: input.replaceCohort ?? true,
+            ...(input.isActive !== undefined
+              ? { is_active: input.isActive }
+              : {}),
           }),
         },
       );
@@ -445,6 +455,7 @@ export class SyncRepository implements SyncRepositoryInterface {
 
   public async pushSubjectToMoodle(input: {
     id: string;
+    moodleCourseId?: number | null;
     name: string;
     shortName?: string | null;
     description?: string | null;
@@ -455,6 +466,7 @@ export class SyncRepository implements SyncRepositoryInterface {
         {
           action: "push_course",
           payload: JSON.stringify({
+            moodle_course_id: input.moodleCourseId ?? 0,
             name: input.name,
             short_name: input.shortName ?? "",
             description: input.description ?? "",
@@ -634,47 +646,83 @@ export class SyncRepository implements SyncRepositoryInterface {
     }
   }
 
+  public async deleteEntityInMoodle(
+    entity: "course" | "cohort" | "user" | "cbt" | "question",
+    moodleId: number,
+  ): Promise<OutboundSyncResult> {
+    if (!moodleId || moodleId <= 0) {
+      return { synced: false, error: "Invalid Moodle ID" };
+    }
+    try {
+      const res = await this.callMoodle<MoodleSyncMasterResponse>(
+        "mod_cbt_sync_master",
+        {
+          action: "delete_entity",
+          payload: JSON.stringify({
+            entity,
+            moodle_id: moodleId,
+          }),
+        },
+      );
+      return { synced: Boolean(res?.success), moodleId };
+    } catch (err) {
+      return {
+        synced: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to delete entity in Moodle",
+      };
+    }
+  }
+
   public async pushPendingLocalToMoodle(): Promise<void> {
     try {
       const pendingSubjects = await this.db.subject.findMany({
         where: { moodleCourseId: null },
+        take: 25,
       });
-      for (const sub of pendingSubjects) {
-        await this.pushSubjectToMoodle(sub);
-      }
+      await Promise.allSettled(
+        pendingSubjects.map((sub) => this.pushSubjectToMoodle(sub)),
+      );
 
       const pendingClasses = await this.db.classGroup.findMany({
         where: { moodleId: null },
+        take: 25,
       });
-      for (const cls of pendingClasses) {
-        await this.pushClassToMoodle(cls);
-      }
+      await Promise.allSettled(
+        pendingClasses.map((cls) => this.pushClassToMoodle(cls)),
+      );
 
       const pendingStudents = await this.db.user.findMany({
         where: { role: "STUDENT", moodleUserId: null, isActive: true },
+        take: 25,
       });
-      for (const student of pendingStudents) {
-        await this.pushStudentToMoodle(student);
-      }
+      await Promise.allSettled(
+        pendingStudents.map((student) => this.pushStudentToMoodle(student)),
+      );
 
       const pendingQuestions = await this.db.question.findMany({
         where: { moodleQuestionId: null },
+        take: 25,
       });
-      for (const q of pendingQuestions) {
-        const options = Array.isArray(q.optionsJson)
-          ? (q.optionsJson as Array<{ text: string; isCorrect?: boolean }>)
-          : [];
-        await this.pushQuestionToMoodle({
-          id: q.id,
-          moodleQuestionId: q.moodleQuestionId,
-          code: q.code,
-          type: q.type,
-          stem: q.stem,
-          points: q.points,
-          explanation: q.explanation,
-          options,
-        });
-      }
+      await Promise.allSettled(
+        pendingQuestions.map((q) => {
+          const options = Array.isArray(q.optionsJson)
+            ? (q.optionsJson as Array<{ text: string; isCorrect?: boolean }>)
+            : [];
+          return this.pushQuestionToMoodle({
+            id: q.id,
+            moodleQuestionId: q.moodleQuestionId,
+            code: q.code,
+            type: q.type,
+            stem: q.stem,
+            points: q.points,
+            explanation: q.explanation,
+            options,
+          });
+        }),
+      );
     } catch {
       // Never block inbound pull if outbound pre-push encounters offline Moodle
     }
