@@ -1,5 +1,10 @@
+import type { Prisma } from "@prisma/client";
+import { prisma } from "@/libs/prisma";
+import { moodleSyncService } from "@/modules/sync/application/MoodleSyncService";
 import type {
+  CBTQuestionType,
   CreateQuestionInputDTO,
+  QuestionOptionDTO,
   QuestionsFilterQueryDTO,
 } from "../domain/dto/QuestionDTO";
 import { QuestionEntity } from "../domain/entities/QuestionEntity";
@@ -189,7 +194,72 @@ const initialBankQuestions: QuestionEntity[] = [
 export class QuestionsRepository implements QuestionsRepositoryInterface {
   private questions: QuestionEntity[] = [...initialBankQuestions];
 
+  private mapDbToEntity(row: {
+    id: string;
+    code: string;
+    subject: string;
+    gradeLevel: string;
+    type: string;
+    stem: string;
+    imageUrl: string | null;
+    points: number;
+    tolerance: number | null;
+    optionsJson: unknown;
+    explanation: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): QuestionEntity {
+    return new QuestionEntity(
+      row.id,
+      row.code,
+      row.subject,
+      row.gradeLevel,
+      row.type as CBTQuestionType,
+      row.stem,
+      row.points,
+      row.tolerance ?? undefined,
+      (row.optionsJson as QuestionOptionDTO[]) || [],
+      row.explanation ?? undefined,
+      row.createdAt,
+      row.updatedAt,
+      row.imageUrl ?? undefined,
+    );
+  }
+
   async findMany(filter?: QuestionsFilterQueryDTO): Promise<QuestionEntity[]> {
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        const rows = await prisma.question.findMany({
+          where: {
+            ...(filter?.subject && filter.subject !== "ALL"
+              ? { subject: filter.subject }
+              : {}),
+            ...(filter?.gradeLevel && filter.gradeLevel !== "ALL"
+              ? { gradeLevel: filter.gradeLevel }
+              : {}),
+            ...(filter?.type && filter.type !== ("ALL" as unknown)
+              ? { type: filter.type }
+              : {}),
+            ...(filter?.search?.trim()
+              ? {
+                  OR: [
+                    { stem: { contains: filter.search.trim() } },
+                    { code: { contains: filter.search.trim() } },
+                    { subject: { contains: filter.search.trim() } },
+                  ],
+                }
+              : {}),
+          },
+          orderBy: { createdAt: "desc" },
+        });
+        if (rows.length > 0) {
+          return rows.map((r) => this.mapDbToEntity(r));
+        }
+      } catch {
+        // Fallback to in-memory seed when DB is unavailable
+      }
+    }
+
     let result = [...this.questions];
 
     if (filter?.subject && filter.subject !== "ALL") {
@@ -220,6 +290,14 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
   }
 
   async findById(id: string): Promise<QuestionEntity | null> {
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        const row = await prisma.question.findUnique({ where: { id } });
+        if (row) return this.mapDbToEntity(row);
+      } catch {
+        // Fallback
+      }
+    }
     const q = this.questions.find((item) => item.id === id);
     return q || null;
   }
@@ -228,6 +306,38 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
     const id = `qb-${Date.now()}`;
     const code = `${data.subject.slice(0, 3).toUpperCase()}-${data.type.slice(0, 2).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
     const now = new Date();
+
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        const created = await prisma.question.create({
+          data: {
+            code,
+            subject: data.subject,
+            gradeLevel: data.gradeLevel,
+            type: data.type,
+            stem: data.stem,
+            imageUrl: data.imageUrl ?? null,
+            points: data.points,
+            tolerance: data.tolerance ?? null,
+            optionsJson: data.options as unknown as Prisma.InputJsonValue,
+            explanation: data.explanation ?? null,
+          },
+        });
+        const entity = this.mapDbToEntity(created);
+        void moodleSyncService.pushQuestionToMoodle({
+          id: entity.id,
+          code: entity.code,
+          type: entity.type,
+          stem: entity.stem,
+          points: entity.points,
+          explanation: entity.explanation,
+          options: entity.options,
+        });
+        return entity;
+      } catch {
+        // Fallback to in-memory
+      }
+    }
 
     const entity = new QuestionEntity(
       id,
@@ -253,6 +363,50 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
     id: string,
     data: Partial<CreateQuestionInputDTO>,
   ): Promise<QuestionEntity | null> {
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        const updated = await prisma.question.update({
+          where: { id },
+          data: {
+            ...(data.subject !== undefined ? { subject: data.subject } : {}),
+            ...(data.gradeLevel !== undefined
+              ? { gradeLevel: data.gradeLevel }
+              : {}),
+            ...(data.type !== undefined ? { type: data.type } : {}),
+            ...(data.stem !== undefined ? { stem: data.stem } : {}),
+            ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl } : {}),
+            ...(data.points !== undefined ? { points: data.points } : {}),
+            ...(data.tolerance !== undefined
+              ? { tolerance: data.tolerance }
+              : {}),
+            ...(data.options !== undefined
+              ? {
+                  optionsJson:
+                    data.options as unknown as Prisma.InputJsonValue,
+                }
+              : {}),
+            ...(data.explanation !== undefined
+              ? { explanation: data.explanation }
+              : {}),
+          },
+        });
+        const entity = this.mapDbToEntity(updated);
+        void moodleSyncService.pushQuestionToMoodle({
+          id: entity.id,
+          moodleQuestionId: updated.moodleQuestionId,
+          code: entity.code,
+          type: entity.type,
+          stem: entity.stem,
+          points: entity.points,
+          explanation: entity.explanation,
+          options: entity.options,
+        });
+        return entity;
+      } catch {
+        // Fallback
+      }
+    }
+
     const index = this.questions.findIndex((q) => q.id === id);
     if (index === -1) {
       return null;
@@ -267,6 +421,14 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
   }
 
   async delete(id: string): Promise<boolean> {
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        await prisma.question.delete({ where: { id } });
+        return true;
+      } catch {
+        // Fallback
+      }
+    }
     const before = this.questions.length;
     this.questions = this.questions.filter((q) => q.id !== id);
     return this.questions.length < before;

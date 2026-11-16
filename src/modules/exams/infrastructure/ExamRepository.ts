@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma as defaultPrisma, type PrismaClient } from "@/libs/prisma";
+import { moodleSyncService } from "@/modules/sync/application/MoodleSyncService";
 import type { QuestionItemDTO } from "../domain/dto/ExamSnapshotDTO";
 import { ExamEntity } from "../domain/entities/ExamEntity";
 import { QuestionItemEntity } from "../domain/entities/QuestionItemEntity";
@@ -142,7 +143,21 @@ export class ExamRepository implements ExamRepositoryInterface {
       },
     });
 
-    return this.mapToEntity(updated);
+    const mapped = this.mapToEntity(updated);
+    if (process.env.NODE_ENV !== "test") {
+      void moodleSyncService.pushExamToMoodle({
+        id: mapped.id,
+        moodleCbtId: mapped.moodleCbtId,
+        title: mapped.title,
+        courseName: mapped.courseName,
+        durationSeconds: mapped.durationSeconds,
+        maxStrikes: mapped.maxStrikes,
+        activeToken: mapped.activeToken,
+        timeOpen: mapped.timeOpen,
+        timeClose: mapped.timeClose,
+      });
+    }
+    return mapped;
   }
 
   public async save(
@@ -189,6 +204,20 @@ export class ExamRepository implements ExamRepositoryInterface {
       },
     });
 
-    return this.mapToEntity(saved);
+    const mapped = this.mapToEntity(saved);
+    if (process.env.NODE_ENV !== "test") {
+      void moodleSyncService.pushExamToMoodle({
+        id: mapped.id,
+        moodleCbtId: mapped.moodleCbtId,
+        title: mapped.title,
+        courseName: mapped.courseName,
+        durationSeconds: mapped.durationSeconds,
+        maxStrikes: mapped.maxStrikes,
+        activeToken: mapped.activeToken,
+        timeOpen: mapped.timeOpen,
+        timeClose: mapped.timeClose,
+      });
+    }
+    return mapped;
   }
 }
