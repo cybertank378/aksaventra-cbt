@@ -12,7 +12,9 @@ function createMockDb() {
     },
     classGroup: {
       findFirst: vi.fn().mockResolvedValue(null),
-      findUnique: vi.fn().mockResolvedValue({ id: "cls-1", name: "XII IPA 1", moodleId: 10 }),
+      findUnique: vi
+        .fn()
+        .mockResolvedValue({ id: "cls-1", name: "XII IPA 1", moodleId: 10 }),
       create: vi.fn().mockResolvedValue({ id: "cls-1" }),
       update: vi.fn().mockResolvedValue({ id: "cls-1" }),
       deleteMany: vi.fn().mockResolvedValue({ count: 1 }),

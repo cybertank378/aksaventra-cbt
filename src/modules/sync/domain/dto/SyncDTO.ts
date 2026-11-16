@@ -44,6 +44,67 @@ export interface OutboundSyncResult {
   error?: string;
 }
 
+export interface TriggerSyncInput {
+  entity?: SyncEntityType;
+}
+
+export type PushEntityInput =
+  | {
+      type: "class";
+      data: {
+        id: string;
+        name: string;
+        code?: string | null;
+        description?: string | null;
+      };
+    }
+  | {
+      type: "student";
+      data: {
+        id: string;
+        username: string;
+        fullName: string;
+        password?: string;
+        classGroupId?: string | null;
+      };
+    }
+  | {
+      type: "subject";
+      data: {
+        id: string;
+        name: string;
+        shortName?: string | null;
+        description?: string | null;
+      };
+    }
+  | {
+      type: "exam";
+      data: {
+        id: string;
+        moodleCbtId?: number;
+        title: string;
+        courseName?: string;
+        durationSeconds: number;
+        maxStrikes: number;
+        activeToken: string;
+        timeOpen: Date;
+        timeClose: Date;
+      };
+    }
+  | {
+      type: "question";
+      data: {
+        id: string;
+        moodleQuestionId?: number | null;
+        code: string;
+        type: string;
+        stem: string;
+        points: number;
+        explanation?: string | null;
+        options: Array<{ text: string; isCorrect?: boolean }>;
+      };
+    };
+
 export interface SyncWorkerStatus {
   started: boolean;
   isSyncing: boolean;
