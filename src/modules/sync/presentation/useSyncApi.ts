@@ -71,8 +71,29 @@ export function useSyncApi() {
     }
   };
 
+  const syncAll = async (): Promise<SyncResult> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await apiRequest<SyncResult>("/api/sync", {
+        method: "POST",
+        body: { mode: "full" },
+        timeoutMs: 30_000,
+      });
+      return unwrapApiResponse(response);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Sinkronisasi penuh gagal";
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     getStatus,
+    syncAll,
     triggerPull,
     pushEntity,
     isLoading,

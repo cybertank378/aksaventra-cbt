@@ -38,6 +38,7 @@ function createMockRepo(): SyncRepositoryInterface {
     findLocalEntityForPush: vi
       .fn()
       .mockResolvedValue({ synced: true, moodleId: 99 }),
+    pushPendingLocalToMoodle: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -45,7 +46,13 @@ function createControllerWithRepo(repo: SyncRepositoryInterface) {
   const pullUseCase = new PullMoodleMasterDataUseCase(repo);
   const webhookUseCase = new HandleMoodleWebhookUseCase(repo, pullUseCase);
   const pushUseCase = new PushEntityToMoodleUseCase(repo);
-  const service = new SyncService(pullUseCase, webhookUseCase, pushUseCase);
+  const service = new SyncService(
+    pullUseCase,
+    webhookUseCase,
+    pushUseCase,
+    undefined,
+    repo,
+  );
   return new SyncController(service);
 }
 
@@ -128,5 +135,22 @@ describe("SyncController & Clean Architecture Sync UseCases", () => {
     expect(validRes.status).toBe(200);
     expect(validJson.success).toBe(true);
     expect(validJson.data.counts.courses).toBe(1);
+  });
+
+  it("POST /api/sync mode=full pushes pending local entities and pulls all from Moodle", async () => {
+    const repo = createMockRepo();
+    const controller = createControllerWithRepo(repo);
+
+    const fullReq = new NextRequest("http://localhost/api/sync", {
+      method: "POST",
+      body: JSON.stringify({ mode: "full" }),
+    });
+    const fullRes = await controller.manageSync(fullReq);
+    const fullJson = await fullRes.json();
+
+    expect(fullRes.status).toBe(200);
+    expect(fullJson.success).toBe(true);
+    expect(repo.pushPendingLocalToMoodle).toHaveBeenCalledTimes(1);
+    expect(repo.pullFromMoodle).toHaveBeenCalledWith("pull_all");
   });
 });
