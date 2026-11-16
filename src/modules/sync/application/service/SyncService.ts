@@ -8,6 +8,7 @@ import type {
   SyncWorkerStatus,
   TriggerSyncInput,
 } from "../../domain/dto/SyncDTO";
+import type { SyncRepositoryInterface } from "../../domain/interfaces/SyncRepositoryInterface";
 import type { SyncWorkerManager } from "../SyncWorker";
 import type { HandleMoodleWebhookUseCase } from "../usecases/HandleMoodleWebhookUseCase";
 import type { PullMoodleMasterDataUseCase } from "../usecases/PullMoodleMasterDataUseCase";
@@ -19,6 +20,7 @@ export class SyncService {
     private readonly handleWebhookUseCase: HandleMoodleWebhookUseCase,
     private readonly pushEntityUseCase: PushEntityToMoodleUseCase,
     private readonly worker?: SyncWorkerManager,
+    private readonly syncRepository?: SyncRepositoryInterface,
   ) {}
 
   public async pullMasterData(
@@ -29,6 +31,11 @@ export class SyncService {
       return Result.ok(workerResult);
     }
     return await this.pullMasterDataUseCase.execute(input);
+  }
+
+  public async syncAllBidirectional(): Promise<Result<SyncResult, AppError>> {
+    await this.syncRepository?.pushPendingLocalToMoodle?.();
+    return await this.pullMasterData({ entity: "all" });
   }
 
   public async handleWebhook(

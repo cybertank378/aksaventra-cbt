@@ -30,6 +30,35 @@ enum ViolationEventType {
   FORCE_SUBMIT
 }
 
+model Subject {
+  id             String   @id @default(uuid())
+  moodleCourseId Int?     @unique
+  name           String   @unique
+  shortName      String?
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Question {
+  id               String   @id @default(uuid())
+  moodleQuestionId Int?     @unique
+  code             String   @unique
+  subject          String
+  gradeLevel       String
+  type             String
+  stem             String   @db.Text
+  imageUrl         String?
+  points           Float    @default(1)
+  tolerance        Float?
+  optionsJson      Json     @default("[]")
+  explanation      String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([subject, gradeLevel])
+}
+
 model ClassGroup {
   id          String   @id @default(uuid())
   moodleId    Int?     @unique

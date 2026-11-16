@@ -33,6 +33,9 @@ export const triggerSyncSchema = z.object({
 
 export const syncManageSchema = z.discriminatedUnion("mode", [
   z.object({
+    mode: z.literal("full"),
+  }),
+  z.object({
     mode: z.literal("pull"),
     entity: syncEntitySchema.optional().default("all"),
   }),

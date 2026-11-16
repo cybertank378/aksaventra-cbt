@@ -6,6 +6,7 @@ import {
   LogOut,
   type LucideIcon,
   Menu,
+  RefreshCw,
   Search,
   User,
 } from "lucide-react";
@@ -19,10 +20,16 @@ import {
   useState,
 } from "react";
 import type { UserRole } from "@/libs/enums";
+import { useSyncApi } from "@/modules/sync/presentation/useSyncApi";
 import Avatar from "@/shared-ui/component/Avatar";
 import Badge, { type BadgeColor } from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import { DropdownItem } from "@/shared-ui/component/DropdownItem";
+import {
+  showErrorToast,
+  showSuccessToast,
+  showWarningToast,
+} from "@/shared-ui/component/Toast";
 
 export interface TopbarMenuItem {
   label: string;
@@ -152,9 +159,38 @@ const AppTopbar: FC<AppTopbarProps> = ({
 }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const { syncAll, isLoading: isSyncing } = useSyncApi();
   const [isOpen, setIsOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const canSyncMoodle = role === "ADMIN" || role === "TEACHER";
+
+  const handleFullSync = async () => {
+    try {
+      const res = await syncAll();
+      if (res.success) {
+        const { courses, classes, students, exams, questions } = res.counts;
+        showSuccessToast(
+          `Sinkronisasi selesai: ${courses} mapel, ${classes} kelas, ${students} siswa, ${exams} ujian, ${questions} soal.`,
+        );
+      } else {
+        showWarningToast(
+          `Sinkronisasi selesai dengan peringatan: ${res.errors.join("; ")}`,
+        );
+      }
+      window.dispatchEvent(
+        new CustomEvent("aksaventra:synced", { detail: res }),
+      );
+      router.refresh();
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error
+          ? err.message
+          : "Gagal melakukan sinkronisasi dengan Moodle",
+      );
+    }
+  };
 
   const headerMeta = resolveCbtHeader(pathname);
   const displayTitle = title || headerMeta.title;
@@ -232,6 +268,29 @@ const AppTopbar: FC<AppTopbarProps> = ({
         {/* Quick Action Slot */}
         {quickActionSlot && (
           <div className="hidden items-center sm:flex">{quickActionSlot}</div>
+        )}
+
+        {/* Moodle Full Bidirectional Sync Button */}
+        {canSyncMoodle && (
+          <Button
+            type="button"
+            variant="outline"
+            color="teal"
+            size="sm"
+            onClick={handleFullSync}
+            disabled={isSyncing}
+            title="Sinkronkan seluruh data (Mapel, Kelas, Siswa, Soal, Ujian) dengan Moodle"
+            aria-label="Sinkronkan seluruh data dengan Moodle"
+            className="h-9 gap-1.5 rounded-xl px-2.5 text-xs font-semibold sm:px-3"
+          >
+            <RefreshCw
+              size={14}
+              className={isSyncing ? "animate-spin shrink-0" : "shrink-0"}
+            />
+            <span className="hidden sm:inline">
+              {isSyncing ? "Menyinkronkan..." : "Sinkron Moodle"}
+            </span>
+          </Button>
         )}
 
         {/* Notification Bell */}

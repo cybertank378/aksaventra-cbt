@@ -70,4 +70,6 @@ export interface SyncRepositoryInterface {
     entity: "class" | "student" | "subject" | "exam" | "question",
     id: string,
   ): Promise<OutboundSyncResult>;
+
+  pushPendingLocalToMoodle?(): Promise<void>;
 }
