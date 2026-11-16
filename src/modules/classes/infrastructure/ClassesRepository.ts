@@ -1,4 +1,5 @@
 import { prisma } from "@/libs/prisma";
+import { moodleSyncService } from "@/modules/sync/application/MoodleSyncService";
 import type {
   ClassGroupDTO,
   CreateClassGroupInputDTO,
@@ -73,6 +74,15 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       },
     });
 
+    if (process.env.NODE_ENV !== "test") {
+      void moodleSyncService.pushClassToMoodle({
+        id: created.id,
+        name: created.name,
+        code: created.code,
+        description: created.description,
+      });
+    }
+
     return {
       id: created.id,
       name: created.name,
@@ -129,6 +139,16 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       },
     });
 
+    if (process.env.NODE_ENV !== "test") {
+      void moodleSyncService.pushStudentToMoodle({
+        id: created.id,
+        username: created.username,
+        fullName: created.fullName,
+        password: data.password,
+        classGroupId: created.classGroupId,
+      });
+    }
+
     return {
       id: created.id,
       username: created.username,
@@ -147,13 +167,21 @@ export class ClassesRepository implements ClassesRepositoryInterface {
     className?: string,
   ): Promise<boolean> {
     try {
-      await prisma.user.update({
+      const updated = await prisma.user.update({
         where: { id: studentId },
         data: {
           classGroupId,
           ...(className ? { className } : {}),
         },
       });
+      if (process.env.NODE_ENV !== "test") {
+        void moodleSyncService.pushStudentToMoodle({
+          id: updated.id,
+          username: updated.username,
+          fullName: updated.fullName,
+          classGroupId: updated.classGroupId,
+        });
+      }
       return true;
     } catch {
       return false;
