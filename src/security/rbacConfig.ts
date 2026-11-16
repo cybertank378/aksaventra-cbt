@@ -43,6 +43,7 @@ export const PUBLIC_ROUTE_PREFIXES = [
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/moodle-launch",
+  "/api/sync/moodle-webhook",
   "/api/health",
   "/_next",
   "/favicon.ico",
@@ -112,13 +113,14 @@ export function isRouteAuthorized(
     );
   }
 
-  // Management API routes (exams, classes, students, questions, exam-cards)
+  // Management API routes (exams, classes, students, questions, exam-cards, sync)
   if (
     pathname.startsWith("/api/exams") ||
     pathname.startsWith("/api/classes") ||
     pathname.startsWith("/api/students") ||
     pathname.startsWith("/api/questions") ||
-    pathname.startsWith("/api/exam-cards")
+    pathname.startsWith("/api/exam-cards") ||
+    pathname.startsWith("/api/sync")
   ) {
     return normalizedRole === "ADMIN" || normalizedRole === "TEACHER";
   }
