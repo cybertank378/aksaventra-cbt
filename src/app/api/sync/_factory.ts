@@ -20,6 +20,7 @@ export function createSyncController(): SyncController {
     handleWebhookUseCase,
     pushUseCase,
     syncWorker,
+    syncRepository,
   );
 
   return new SyncController(syncService);

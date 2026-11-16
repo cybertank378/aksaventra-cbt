@@ -633,4 +633,50 @@ export class SyncRepository implements SyncRepositoryInterface {
       }
     }
   }
+
+  public async pushPendingLocalToMoodle(): Promise<void> {
+    try {
+      const pendingSubjects = await this.db.subject.findMany({
+        where: { moodleCourseId: null },
+      });
+      for (const sub of pendingSubjects) {
+        await this.pushSubjectToMoodle(sub);
+      }
+
+      const pendingClasses = await this.db.classGroup.findMany({
+        where: { moodleId: null },
+      });
+      for (const cls of pendingClasses) {
+        await this.pushClassToMoodle(cls);
+      }
+
+      const pendingStudents = await this.db.user.findMany({
+        where: { role: "STUDENT", moodleUserId: null, isActive: true },
+      });
+      for (const student of pendingStudents) {
+        await this.pushStudentToMoodle(student);
+      }
+
+      const pendingQuestions = await this.db.question.findMany({
+        where: { moodleQuestionId: null },
+      });
+      for (const q of pendingQuestions) {
+        const options = Array.isArray(q.optionsJson)
+          ? (q.optionsJson as Array<{ text: string; isCorrect?: boolean }>)
+          : [];
+        await this.pushQuestionToMoodle({
+          id: q.id,
+          moodleQuestionId: q.moodleQuestionId,
+          code: q.code,
+          type: q.type,
+          stem: q.stem,
+          points: q.points,
+          explanation: q.explanation,
+          options,
+        });
+      }
+    } catch {
+      // Never block inbound pull if outbound pre-push encounters offline Moodle
+    }
+  }
 }

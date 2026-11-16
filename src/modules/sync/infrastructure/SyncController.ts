@@ -66,6 +66,14 @@ export class SyncController extends BaseController {
       return this.handleResult(Result.fail(handleZodError(parsed.error)));
     }
 
+    if (parsed.data.mode === "full") {
+      const result = await this.syncService.syncAllBidirectional();
+      return this.handleResult(
+        result,
+        result.isSuccess && result.value.success ? 200 : 207,
+      );
+    }
+
     if (parsed.data.mode === "pull") {
       const result = await this.syncService.pullMasterData({
         entity: parsed.data.entity,
