@@ -78,7 +78,8 @@ export class ManageQuestionsUseCase {
               text: opt.text?.trim() || "",
               isCorrect: Boolean(opt.isCorrect),
             })),
-      explanation: (data.explanation ?? existing.explanation)?.trim() || undefined,
+      explanation:
+        (data.explanation ?? existing.explanation)?.trim() || undefined,
     };
 
     // Enforce business rules on merged result
@@ -104,5 +105,19 @@ export class ManageQuestionsUseCase {
 
     return await this.questionsRepo.delete(id.trim());
   }
-}
 
+  async bulkGroupQuestions(
+    ids: string[],
+    group: { gradeLevel?: string; subject?: string },
+  ): Promise<number> {
+    if (ids.length === 0) {
+      throw new QuestionValidationError("Pilih minimal 1 butir soal.");
+    }
+    if (!group.gradeLevel && !group.subject) {
+      throw new QuestionValidationError(
+        "Pilih target tingkat kelas atau mata pelajaran.",
+      );
+    }
+    return await this.questionsRepo.bulkGroup(ids, group);
+  }
+}

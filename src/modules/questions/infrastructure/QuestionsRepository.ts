@@ -381,8 +381,7 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
               : {}),
             ...(data.options !== undefined
               ? {
-                  optionsJson:
-                    data.options as unknown as Prisma.InputJsonValue,
+                  optionsJson: data.options as unknown as Prisma.InputJsonValue,
                 }
               : {}),
             ...(data.explanation !== undefined
@@ -423,7 +422,17 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
   async delete(id: string): Promise<boolean> {
     if (process.env.NODE_ENV !== "test") {
       try {
+        const existing = await prisma.question.findUnique({
+          where: { id },
+          select: { moodleQuestionId: true },
+        });
         await prisma.question.delete({ where: { id } });
+        if (existing?.moodleQuestionId) {
+          void moodleSyncService.deleteEntityInMoodle(
+            "question",
+            existing.moodleQuestionId,
+          );
+        }
         return true;
       } catch {
         // Fallback
@@ -432,5 +441,63 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
     const before = this.questions.length;
     this.questions = this.questions.filter((q) => q.id !== id);
     return this.questions.length < before;
+  }
+
+  async bulkGroup(
+    ids: string[],
+    group: { gradeLevel?: string; subject?: string },
+  ): Promise<number> {
+    if (ids.length === 0) return 0;
+
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        const res = await prisma.question.updateMany({
+          where: { id: { in: ids } },
+          data: {
+            ...(group.gradeLevel ? { gradeLevel: group.gradeLevel } : {}),
+            ...(group.subject ? { subject: group.subject } : {}),
+          },
+        });
+        if (res.count > 0) {
+          const updatedQuestions = await prisma.question.findMany({
+            where: { id: { in: ids } },
+          });
+          await Promise.allSettled(
+            updatedQuestions.map((q) => {
+              const options = Array.isArray(q.optionsJson)
+                ? (q.optionsJson as Array<{
+                    text: string;
+                    isCorrect?: boolean;
+                  }>)
+                : [];
+              return moodleSyncService.pushQuestionToMoodle({
+                id: q.id,
+                moodleQuestionId: q.moodleQuestionId,
+                code: q.code,
+                type: q.type,
+                stem: q.stem,
+                points: q.points,
+                explanation: q.explanation,
+                options,
+              });
+            }),
+          );
+          return res.count;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    let count = 0;
+    this.questions = this.questions.map((q) => {
+      if (!ids.includes(q.id)) return q;
+      count++;
+      return q.update({
+        ...(group.gradeLevel ? { gradeLevel: group.gradeLevel } : {}),
+        ...(group.subject ? { subject: group.subject } : {}),
+      });
+    });
+    return count;
   }
 }

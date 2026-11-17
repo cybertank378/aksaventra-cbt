@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { showErrorToast, showSuccessToast } from "@/shared-ui/component/Toast";
 import type {
   AssignGroupInputDTO,
   ExamParticipantDTO,
@@ -194,6 +195,79 @@ export function useExamManagementApi(examId?: string) {
     [],
   );
 
+  const updateExam = useCallback(
+    async (
+      id: string,
+      input: {
+        title?: string;
+        courseName?: string;
+        durationSeconds?: number;
+        maxStrikes?: number;
+        activeToken?: string;
+        tokenExpiresAt?: string;
+        timeOpen?: string;
+        timeClose?: string;
+      },
+    ): Promise<ExamSnapshotDTO | null> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/exams/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setExamsList((prev) =>
+            prev.map((item) =>
+              item.examId === id ? (json.data as ExamSnapshotDTO) : item,
+            ),
+          );
+          showSuccessToast("Jadwal ujian berhasil diperbarui");
+          return json.data as ExamSnapshotDTO;
+        }
+        const msg = json.error?.message || "Gagal memperbarui ujian";
+        showErrorToast(msg);
+        setError(msg);
+        return null;
+      } catch {
+        const msg = "Gangguan jaringan saat memperbarui ujian";
+        showErrorToast(msg);
+        setError(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const deleteExam = useCallback(async (id: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/exams/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        setExamsList((prev) => prev.filter((item) => item.examId !== id));
+        showSuccessToast("Naskah ujian berhasil dihapus");
+        return true;
+      }
+      const msg = json.error?.message || "Gagal menghapus ujian";
+      showErrorToast(msg);
+      setError(msg);
+      return false;
+    } catch {
+      const msg = "Gangguan jaringan saat menghapus ujian";
+      showErrorToast(msg);
+      setError(msg);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     exam,
     examsList,
@@ -206,5 +280,7 @@ export function useExamManagementApi(examId?: string) {
     assignGroups,
     updateSeat,
     createSchedule,
+    updateExam,
+    deleteExam,
   };
 }

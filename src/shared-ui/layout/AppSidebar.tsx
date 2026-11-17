@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import {
   BarChart2,
+  BookOpen,
   Building2,
   ChevronsLeft,
   ChevronsRight,
@@ -76,6 +77,13 @@ export const DEFAULT_NAVIGATION_CATEGORIES: NavigationCategory[] = [
         title: "Data Kelas",
         path: "/dashboard/classes",
         icon: Building2,
+        allowedRoles: ["ADMIN", "TEACHER"],
+      },
+      {
+        id: "subjects",
+        title: "Mata Pelajaran",
+        path: "/dashboard/subjects",
+        icon: BookOpen,
         allowedRoles: ["ADMIN", "TEACHER"],
       },
       {

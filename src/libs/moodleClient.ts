@@ -59,8 +59,10 @@ export async function callMoodleApi<T = unknown>(
   // Handle Moodle Web Service Exceptions
   if (json && typeof json === "object") {
     if (json.exception || json.errorcode) {
+      const baseMsg =
+        json.message || `Moodle Exception: ${json.errorcode || json.exception}`;
       throw new Error(
-        json.message || `Moodle Exception: ${json.errorcode || json.exception}`,
+        json.debuginfo ? `${baseMsg} (${json.debuginfo})` : baseMsg,
       );
     }
   }

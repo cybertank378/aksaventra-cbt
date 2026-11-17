@@ -1,6 +1,8 @@
 import type {
+  BulkAssignStudentsClassInputDTO,
   CreateStudentInputDTO,
   StudentDTO,
+  UpdateStudentInputDTO,
 } from "../../domain/dto/ClassGroupDTO";
 import type { ClassesRepositoryInterface } from "../../domain/interfaces/ClassesRepositoryInterface";
 
@@ -39,6 +41,48 @@ export class CreateStudentUseCase {
       studentId,
       classGroupId,
       className,
+    );
+  }
+
+  async getStudentById(id: string): Promise<StudentDTO | null> {
+    return await this.classesRepo.getStudentById(id);
+  }
+
+  async updateStudent(
+    id: string,
+    input: UpdateStudentInputDTO,
+  ): Promise<StudentDTO | null> {
+    return await this.classesRepo.updateStudent(id, {
+      ...(input.username !== undefined
+        ? { username: input.username.trim() }
+        : {}),
+      ...(input.fullName !== undefined
+        ? { fullName: input.fullName.trim() }
+        : {}),
+      ...(input.password ? { password: input.password.trim() } : {}),
+      ...(input.classGroupId !== undefined
+        ? { classGroupId: input.classGroupId || null }
+        : {}),
+      ...(input.className !== undefined
+        ? { className: input.className ? input.className.trim() : null }
+        : {}),
+      ...(input.roomCode !== undefined
+        ? { roomCode: input.roomCode ? input.roomCode.trim() : null }
+        : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+    });
+  }
+
+  async deleteStudent(id: string): Promise<boolean> {
+    return await this.classesRepo.deleteStudent(id);
+  }
+
+  async bulkAssignStudentsToClass(
+    input: BulkAssignStudentsClassInputDTO,
+  ): Promise<number> {
+    return await this.classesRepo.bulkAssignStudentsToClass(
+      input.studentIds,
+      input.classGroupId,
     );
   }
 }

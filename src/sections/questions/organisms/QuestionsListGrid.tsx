@@ -6,6 +6,7 @@ import {
   Download,
   Edit3,
   Eye,
+  FolderKanban,
   HelpCircle,
   Image as ImageIcon,
   LineChart,
@@ -25,6 +26,7 @@ import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
 import MathRenderer from "@/shared-ui/component/MathRenderer";
+import SelectField from "@/shared-ui/component/SelectField";
 import QuestionTypeBadge from "../atoms/QuestionTypeBadge";
 import EditQuestionModal from "../molecules/EditQuestionModal";
 import ImportQuestionsModal from "../molecules/ImportQuestionsModal";
@@ -36,11 +38,14 @@ export const QuestionsListGrid: FC = () => {
   const router = useRouter();
   const {
     questions,
+    subjects,
     isLoading,
     error,
     fetchQuestions,
+    fetchSubjects,
     updateQuestion,
     deleteQuestion,
+    bulkGroupQuestions,
   } = useQuestionsApi();
 
   const [search, setSearch] = useState("");
@@ -49,17 +54,51 @@ export const QuestionsListGrid: FC = () => {
   const [grade, setGrade] = useState("ALL");
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
-  const [viewingQuestion, setViewingQuestion] = useState<QuestionDTO | null>(null);
-  const [editingQuestion, setEditingQuestion] = useState<QuestionDTO | null>(null);
+  const [viewingQuestion, setViewingQuestion] = useState<QuestionDTO | null>(
+    null,
+  );
+  const [editingQuestion, setEditingQuestion] = useState<QuestionDTO | null>(
+    null,
+  );
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkGrade, setBulkGrade] = useState("");
+  const [bulkSubject, setBulkSubject] = useState("");
 
   useEffect(() => {
-    fetchQuestions({
-      subject: subject === "ALL" ? undefined : subject,
-      gradeLevel: grade === "ALL" ? undefined : grade,
-      type: type === "ALL" ? undefined : (type as CBTQuestionType),
-      search: search.trim() || undefined,
-    });
+    fetchSubjects();
+  }, [fetchSubjects]);
+
+  useEffect(() => {
+    const load = () =>
+      fetchQuestions({
+        subject: subject === "ALL" ? undefined : subject,
+        gradeLevel: grade === "ALL" ? undefined : grade,
+        type: type === "ALL" ? undefined : (type as CBTQuestionType),
+        search: search.trim() || undefined,
+      });
+    load();
+    window.addEventListener("aksaventra:synced", load);
+    return () => window.removeEventListener("aksaventra:synced", load);
   }, [fetchQuestions, subject, grade, type, search]);
+
+  const toggleSelectQuestion = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  const handleBulkGroup = async () => {
+    if (selectedIds.length === 0 || (!bulkGrade && !bulkSubject)) return;
+    const ok = await bulkGroupQuestions(selectedIds, {
+      ...(bulkGrade ? { gradeLevel: bulkGrade } : {}),
+      ...(bulkSubject ? { subject: bulkSubject } : {}),
+    });
+    if (ok) {
+      setSelectedIds([]);
+      setBulkGrade("");
+      setBulkSubject("");
+    }
+  };
 
   const handleDelete = async (id: string, code: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus butir soal ${code}?`)) {
@@ -119,7 +158,7 @@ export const QuestionsListGrid: FC = () => {
             onClick={() =>
               handleProcessDownload(
                 "/templates/sample_import_soal.xlsx",
-                "sample_import_soal.xlsx"
+                "sample_import_soal.xlsx",
               )
             }
             title="Unduh Template Format Excel (.xlsx)"
@@ -135,7 +174,7 @@ export const QuestionsListGrid: FC = () => {
             onClick={() =>
               handleProcessDownload(
                 "/templates/sample_import_soal.xls",
-                "sample_import_soal.xls"
+                "sample_import_soal.xls",
               )
             }
             title="Unduh Template Format Excel (.xls)"
@@ -191,6 +230,62 @@ export const QuestionsListGrid: FC = () => {
         onGradeChange={setGrade}
       />
 
+      {/* Bulk Grade / Subject Grouping Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-teal-50/90 border border-teal-200">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#0d2b5c]">
+            <FolderKanban className="w-4 h-4 text-[#0097a7]" />
+            <span>{selectedIds.length} soal dipilih untuk pengelompokan</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SelectField
+              value={bulkSubject}
+              onChange={(e) => setBulkSubject(e.target.value)}
+              size="sm"
+            >
+              <option value="">-- Ubah Mapel (Opsional) --</option>
+              {subjects.map((sub) => (
+                <option key={sub} value={sub}>
+                  {sub}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField
+              value={bulkGrade}
+              onChange={(e) => setBulkGrade(e.target.value)}
+              size="sm"
+            >
+              <option value="">-- Ubah Kelas (Opsional) --</option>
+              <option value="X">Kelas X</option>
+              <option value="XI">Kelas XI</option>
+              <option value="XII">Kelas XII</option>
+              <option value="VII">Kelas VII</option>
+              <option value="VIII">Kelas VIII</option>
+              <option value="IX">Kelas IX</option>
+            </SelectField>
+            <Button
+              type="button"
+              variant="filled"
+              color="teal"
+              size="sm"
+              onClick={handleBulkGroup}
+              disabled={!bulkGrade && !bulkSubject}
+              loading={isLoading}
+            >
+              Terapkan Kelompok
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+            >
+              Batal
+            </Button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-700">
           {error}
@@ -228,12 +323,36 @@ export const QuestionsListGrid: FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Badge color="neutral" size="sm" className="font-mono font-extrabold text-[#0d2b5c]">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(q.id)}
+                      onChange={() => toggleSelectQuestion(q.id)}
+                      aria-label={`Pilih soal ${q.code}`}
+                      className="h-4 w-4 rounded border-slate-300 text-[#0097a7]"
+                    />
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(q.id)}
+                      onChange={() => toggleSelectQuestion(q.id)}
+                      aria-label={`Pilih soal ${q.code}`}
+                      className="h-4 w-4 rounded border-slate-300 text-[#0097a7]"
+                    />
+                    <Badge
+                      color="neutral"
+                      size="sm"
+                      className="font-mono font-extrabold text-[#0d2b5c]"
+                    >
                       {q.code}
                     </Badge>
                     <QuestionTypeBadge type={q.type} />
-                    {(q.imageUrl || q.stem.includes("<svg") || q.stem.includes("<img")) && (
-                      <Badge color="teal" size="sm" className="flex items-center gap-1 font-bold">
+                    {(q.imageUrl ||
+                      q.stem.includes("<svg") ||
+                      q.stem.includes("<img")) && (
+                      <Badge
+                        color="teal"
+                        size="sm"
+                        className="flex items-center gap-1 font-bold"
+                      >
                         <ImageIcon className="w-3 h-3 text-[#0097a7]" />
                         Diagram / Kurva
                       </Badge>

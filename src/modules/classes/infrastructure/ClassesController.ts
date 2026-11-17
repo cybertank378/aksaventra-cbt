@@ -3,8 +3,11 @@ import { BaseController } from "@/core/base/BaseController";
 import type { ClassesService } from "../application/service/ClassesService";
 import {
   assignStudentSchema,
+  bulkAssignStudentClassSchema,
   createClassSchema,
   createStudentSchema,
+  updateClassSchema,
+  updateStudentSchema,
 } from "./classes.validator";
 
 export class ClassesController extends BaseController {
@@ -71,6 +74,44 @@ export class ClassesController extends BaseController {
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Gagal membuat kelas baru";
+      return NextResponse.json(
+        { success: false, error: { message: msg } },
+        { status: 500 },
+      );
+    }
+  }
+
+  public async updateClass(
+    id: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const parsed = updateClassSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              message: "Validasi pembaruan kelas gagal",
+              details: parsed.error.issues,
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      const updated = await this.classesService.updateClass(id, parsed.data);
+      if (!updated) {
+        return NextResponse.json(
+          { success: false, error: { message: "Kelas tidak ditemukan" } },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({ success: true, data: updated });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal memperbarui data kelas";
       return NextResponse.json(
         { success: false, error: { message: msg } },
         { status: 500 },
@@ -172,6 +213,123 @@ export class ClassesController extends BaseController {
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Gagal menetapkan siswa ke kelas";
+      return NextResponse.json(
+        { success: false, error: { message: msg } },
+        { status: 500 },
+      );
+    }
+  }
+
+  public async getStudentById(id: string): Promise<NextResponse> {
+    try {
+      const student = await this.classesService.getStudentById(id);
+      if (!student) {
+        return NextResponse.json(
+          { success: false, error: { message: "Siswa tidak ditemukan" } },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({ success: true, data: student });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal mengambil detail siswa";
+      return NextResponse.json(
+        { success: false, error: { message: msg } },
+        { status: 500 },
+      );
+    }
+  }
+
+  public async updateStudent(
+    id: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const parsed = updateStudentSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              message: "Validasi pembaruan data siswa gagal",
+              details: parsed.error.issues,
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      const updated = await this.classesService.updateStudent(id, {
+        ...parsed.data,
+        password: parsed.data.password || undefined,
+      });
+      if (!updated) {
+        return NextResponse.json(
+          { success: false, error: { message: "Siswa tidak ditemukan" } },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({ success: true, data: updated });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal memperbarui data siswa";
+      return NextResponse.json(
+        { success: false, error: { message: msg } },
+        { status: 500 },
+      );
+    }
+  }
+
+  public async deleteStudent(id: string): Promise<NextResponse> {
+    try {
+      const success = await this.classesService.deleteStudent(id);
+      if (!success) {
+        return NextResponse.json(
+          { success: false, error: { message: "Siswa tidak ditemukan" } },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({ success: true, data: { id } });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal menghapus data siswa";
+      return NextResponse.json(
+        { success: false, error: { message: msg } },
+        { status: 500 },
+      );
+    }
+  }
+
+  public async bulkAssignStudents(request: NextRequest): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const parsed = bulkAssignStudentClassSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              message: "Validasi pengelompokan kelas gagal",
+              details: parsed.error.issues,
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      const updatedCount = await this.classesService.bulkAssignStudentsToClass(
+        parsed.data,
+      );
+      return NextResponse.json({
+        success: true,
+        data: { updatedCount },
+      });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Gagal mengelompokkan siswa ke kelas";
       return NextResponse.json(
         { success: false, error: { message: msg } },
         { status: 500 },

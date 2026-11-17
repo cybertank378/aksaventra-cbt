@@ -241,6 +241,43 @@ export function useQuestionsApi() {
     [fetchQuestions],
   );
 
+  const bulkGroupQuestions = useCallback(
+    async (
+      ids: string[],
+      group: { gradeLevel?: string; subject?: string },
+    ): Promise<boolean> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/questions/bulk-group", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids, ...group }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          showSuccessToast(
+            `${json.data ?? ids.length} butir soal berhasil dikelompokkan`,
+          );
+          await fetchQuestions();
+          return true;
+        }
+        const errMsg = json.error?.message || "Gagal mengelompokkan soal";
+        showErrorToast(errMsg);
+        setError(errMsg);
+        return false;
+      } catch {
+        const err = "Gangguan jaringan saat mengelompokkan soal";
+        showErrorToast(err);
+        setError(err);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchQuestions],
+  );
+
   return {
     questions,
     subjects,
@@ -253,6 +290,7 @@ export function useQuestionsApi() {
     createQuestion,
     updateQuestion,
     deleteQuestion,
+    bulkGroupQuestions,
     importQuestions,
   };
 }

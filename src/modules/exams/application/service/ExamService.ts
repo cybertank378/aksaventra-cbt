@@ -16,6 +16,7 @@ import type { ExamEntity } from "../../domain/entities/ExamEntity";
 import type { ExamRepositoryInterface } from "../../domain/interfaces/ExamRepositoryInterface";
 import { AssignGroupByExamUseCase } from "../usecases/AssignGroupByExamUseCase";
 import { CreateExamUseCase } from "../usecases/CreateExamUseCase";
+import { DeleteExamUseCase } from "../usecases/DeleteExamUseCase";
 import { GetExamByIdUseCase } from "../usecases/GetExamByIdUseCase";
 import {
   type GetExamSnapshotInput,
@@ -44,6 +45,7 @@ export class ExamService extends BaseService {
   private readonly getExamSnapshotUseCase: GetExamSnapshotUseCase;
   private readonly createExamUseCase: CreateExamUseCase;
   private readonly updateExamUseCase: UpdateExamUseCase;
+  private readonly deleteExamUseCase: DeleteExamUseCase;
   private readonly listExamsUseCase: ListExamsUseCase;
   private readonly getExamByIdUseCase: GetExamByIdUseCase;
   private readonly assignGroupByExamUseCase: AssignGroupByExamUseCase;
@@ -67,6 +69,7 @@ export class ExamService extends BaseService {
       getExamSnapshotUseCase?: GetExamSnapshotUseCase;
       createExamUseCase?: CreateExamUseCase;
       updateExamUseCase?: UpdateExamUseCase;
+      deleteExamUseCase?: DeleteExamUseCase;
       listExamsUseCase?: ListExamsUseCase;
       getExamByIdUseCase?: GetExamByIdUseCase;
       assignGroupByExamUseCase?: AssignGroupByExamUseCase;
@@ -83,6 +86,8 @@ export class ExamService extends BaseService {
       useCases?.createExamUseCase ?? new CreateExamUseCase(repository);
     this.updateExamUseCase =
       useCases?.updateExamUseCase ?? new UpdateExamUseCase(repository);
+    this.deleteExamUseCase =
+      useCases?.deleteExamUseCase ?? new DeleteExamUseCase(repository);
     this.listExamsUseCase =
       useCases?.listExamsUseCase ?? new ListExamsUseCase(repository);
     this.getExamByIdUseCase =
@@ -149,6 +154,16 @@ export class ExamService extends BaseService {
     );
     if (result.isSuccess) {
       this.invalidateCache(input.id);
+    }
+    return result;
+  }
+
+  public async deleteExam(id: string): Promise<Result<boolean, AppError>> {
+    const result = await this.execute(() =>
+      this.deleteExamUseCase.execute({ id }),
+    );
+    if (result.isSuccess) {
+      this.invalidateCache(id);
     }
     return result;
   }

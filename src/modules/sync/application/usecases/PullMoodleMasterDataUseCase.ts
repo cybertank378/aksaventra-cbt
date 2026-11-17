@@ -75,6 +75,9 @@ export class PullMoodleMasterDataUseCase
         }
         default: {
           const payload = await this.syncRepository.pullFromMoodle("pull_all");
+          if (Array.isArray(payload.errors) && payload.errors.length > 0) {
+            errors.push(...payload.errors);
+          }
           counts.courses = await this.syncRepository.upsertCourses(
             payload.courses ?? [],
           );

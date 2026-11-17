@@ -37,6 +37,7 @@ export class UpdateExamUseCase
 
     const updated = await this.examRepository.updateExamMetadata(input.id, {
       title: input.title,
+      courseName: input.courseName,
       durationSeconds: input.durationSeconds,
       maxStrikes: input.maxStrikes,
       sebRequired: input.sebRequired,

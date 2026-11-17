@@ -12,9 +12,11 @@ function createMockDb() {
     },
     classGroup: {
       findFirst: vi.fn().mockResolvedValue(null),
-      findUnique: vi
-        .fn()
-        .mockResolvedValue({ id: "cls-1", name: "XII IPA 1", moodleId: 10 }),
+      findUnique: vi.fn().mockResolvedValue({
+        id: "cls-1",
+        name: "XII IPA 1",
+        moodleId: 10,
+      }),
       create: vi.fn().mockResolvedValue({ id: "cls-1" }),
       update: vi.fn().mockResolvedValue({ id: "cls-1" }),
       deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -177,5 +179,30 @@ describe("MoodleSyncService Bidirectional Sync", () => {
     });
     expect(failRes.synced).toBe(false);
     expect(failRes.error).toContain("Moodle offline");
+  });
+
+  it("deleteEntityInMoodle calls mod_cbt_sync_master delete_entity when moodleId is valid", async () => {
+    const db = createMockDb();
+    const callMoodle = vi.fn().mockResolvedValue({
+      success: true,
+      message: "deleted",
+      record_id: 55,
+      data_json: "{}",
+    });
+    const service = new MoodleSyncService(
+      db as unknown as PrismaClient,
+      callMoodle,
+    );
+
+    const skipped = await service.deleteEntityInMoodle("user", null);
+    expect(skipped.synced).toBe(false);
+    expect(callMoodle).not.toHaveBeenCalled();
+
+    const deleted = await service.deleteEntityInMoodle("user", 55);
+    expect(deleted.synced).toBe(true);
+    expect(callMoodle).toHaveBeenCalledWith("mod_cbt_sync_master", {
+      action: "delete_entity",
+      payload: JSON.stringify({ entity: "user", moodle_id: 55 }),
+    });
   });
 });

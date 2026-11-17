@@ -112,6 +112,7 @@ export class ExamRepository implements ExamRepositoryInterface {
     examId: string,
     params: {
       title?: string;
+      courseName?: string;
       durationSeconds?: number;
       maxStrikes?: number;
       sebRequired?: boolean;
@@ -124,6 +125,9 @@ export class ExamRepository implements ExamRepositoryInterface {
       where: { id: examId },
       data: {
         ...(params.title !== undefined ? { title: params.title } : {}),
+        ...(params.courseName !== undefined
+          ? { courseName: params.courseName }
+          : {}),
         ...(params.durationSeconds !== undefined
           ? { durationSeconds: params.durationSeconds }
           : {}),
@@ -219,5 +223,26 @@ export class ExamRepository implements ExamRepositoryInterface {
       });
     }
     return mapped;
+  }
+
+  public async deleteExam(examId: string): Promise<boolean> {
+    try {
+      const existing = await this.db.exam.findUnique({
+        where: { id: examId },
+        select: { moodleCbtId: true },
+      });
+      await this.db.exam.delete({
+        where: { id: examId },
+      });
+      if (process.env.NODE_ENV !== "test" && existing?.moodleCbtId) {
+        void moodleSyncService.deleteEntityInMoodle(
+          "cbt",
+          existing.moodleCbtId,
+        );
+      }
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
