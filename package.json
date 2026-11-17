@@ -14,7 +14,7 @@
     "db:mode:pg": "node ./scripts/switch-db-mode.mjs postgresql",
     "db:mode:mariadb": "node ./scripts/switch-db-mode.mjs mariadb",
     "dist:package": "powershell -ExecutionPolicy Bypass -File ./scripts/package-dist.ps1",
-    "dist:build": "npm run build && npm run dist:package"
+    "dist:build": "powershell -Command \"$env:CI='true'; $env:NEXT_TELEMETRY_DISABLED='1'; npm run build; if ($LASTEXITCODE -eq 0) { npm run dist:package }\""
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.10.1",
