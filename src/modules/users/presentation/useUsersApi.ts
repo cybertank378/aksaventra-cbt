@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { apiRequest } from "@/shared/api/apiRequest";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type { UserResponseDTO } from "../domain/dto/UserDTO";
@@ -7,7 +7,7 @@ export function useUsersApi() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCurrentUser = async (): Promise<UserResponseDTO> => {
+  const fetchCurrentUser = useCallback(async (): Promise<UserResponseDTO> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -21,7 +21,7 @@ export function useUsersApi() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
     fetchCurrentUser,
