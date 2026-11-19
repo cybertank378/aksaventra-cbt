@@ -12,9 +12,12 @@ function createMockDb() {
     },
     classGroup: {
       findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([{ id: "cls-1" }]),
       findUnique: vi.fn().mockResolvedValue({
         id: "cls-1",
         name: "XII IPA 1",
+        code: "XII-IPA-1",
+        description: null,
         moodleId: 10,
       }),
       create: vi.fn().mockResolvedValue({ id: "cls-1" }),
@@ -129,6 +132,10 @@ describe("MoodleSyncService Bidirectional Sync", () => {
       objectId: 10,
     });
     expect(resCohort.success).toBe(true);
+    expect(db.user.updateMany).toHaveBeenCalledWith({
+      where: { classGroupId: { in: ["cls-1"] } },
+      data: { classGroupId: null, className: null },
+    });
     expect(db.classGroup.deleteMany).toHaveBeenCalledWith({
       where: { moodleId: 10 },
     });
@@ -203,6 +210,66 @@ describe("MoodleSyncService Bidirectional Sync", () => {
     expect(callMoodle).toHaveBeenCalledWith("mod_cbt_sync_master", {
       action: "delete_entity",
       payload: JSON.stringify({ entity: "user", moodle_id: 55 }),
+    });
+  });
+
+  it("pushStudentToMoodle auto-creates unlinked Moodle Cohort before assigning student", async () => {
+    const db = createMockDb();
+    db.classGroup.findUnique.mockResolvedValueOnce({
+      id: "cls-local-1",
+      moodleId: null,
+      name: "VII-1",
+      code: "VII-1",
+      description: "Rombel 7-1",
+    });
+
+    const callMoodle = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: true,
+        record_id: 42,
+        message: "Cohort created",
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        record_id: 901,
+        message: "Student synced",
+      });
+
+    const service = new MoodleSyncService(
+      db as unknown as PrismaClient,
+      callMoodle,
+    );
+
+    const res = await service.pushStudentToMoodle({
+      id: "usr-local-1",
+      username: "siswa07",
+      fullName: "Ani Wijaya",
+      classGroupId: "cls-local-1",
+      replaceCohort: true,
+    });
+
+    expect(res.synced).toBe(true);
+    expect(callMoodle).toHaveBeenNthCalledWith(1, "mod_cbt_manage_groups", {
+      action: "create_class",
+      payload: JSON.stringify({
+        moodle_id: 0,
+        name: "VII-1",
+        code: "VII-1",
+        description: "Rombel 7-1",
+      }),
+    });
+    expect(callMoodle).toHaveBeenNthCalledWith(2, "mod_cbt_manage_groups", {
+      action: "create_student",
+      payload: JSON.stringify({
+        moodle_user_id: 0,
+        username: "siswa07",
+        firstname: "Ani",
+        lastname: "Wijaya",
+        password: "",
+        class_id: 42,
+        replace_cohort: true,
+      }),
     });
   });
 });

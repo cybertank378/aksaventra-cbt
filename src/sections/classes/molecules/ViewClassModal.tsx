@@ -60,7 +60,14 @@ export const ViewClassModal: FC<ViewClassModalProps> = ({
       <div className="flex flex-col gap-4 py-1">
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
           <div className="space-y-1">
-            <ClassBadge name={classGroup.name} />
+            <div className="flex flex-wrap items-center gap-2">
+              <ClassBadge name={classGroup.name} />
+              {classGroup.moodleId && (
+                <Badge color="teal" size="sm" variant="soft">
+                  Moodle Cohort #{classGroup.moodleId}
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-slate-600 mt-1">
               {classGroup.description || "Tidak ada deskripsi tambahan."}
             </p>
