@@ -10,6 +10,7 @@ import type {
 import type {
   CreateExamInput,
   ExamSnapshotDTO,
+  StudentAvailableExamDTO,
   UpdateExamInput,
 } from "../../domain/dto/ExamSnapshotDTO";
 import type { ExamEntity } from "../../domain/entities/ExamEntity";
@@ -42,6 +43,7 @@ interface CacheEntry {
  * ============================================================
  */
 export class ExamService extends BaseService {
+  private readonly repository: ExamRepositoryInterface;
   private readonly getExamSnapshotUseCase: GetExamSnapshotUseCase;
   private readonly createExamUseCase: CreateExamUseCase;
   private readonly updateExamUseCase: UpdateExamUseCase;
@@ -79,6 +81,7 @@ export class ExamService extends BaseService {
   ) {
     super("ExamService");
 
+    this.repository = repository;
     this.getExamSnapshotUseCase =
       useCases?.getExamSnapshotUseCase ??
       new GetExamSnapshotUseCase(repository);
@@ -215,6 +218,18 @@ export class ExamService extends BaseService {
     return this.execute(async () =>
       Result.ok(await this.manageScheduleUseCase.updateSchedule(id, input)),
     );
+  }
+
+  public async listStudentExams(
+    userId: string,
+  ): Promise<Result<StudentAvailableExamDTO[], AppError>> {
+    return this.execute(async () => {
+      if (!this.repository.listForStudent) {
+        return Result.ok([]);
+      }
+      const exams = await this.repository.listForStudent(userId);
+      return Result.ok(exams);
+    });
   }
 
   /**

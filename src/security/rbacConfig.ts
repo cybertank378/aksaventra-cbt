@@ -88,8 +88,25 @@ export function isRouteAuthorized(
   }
 
   // Student specific zone
-  if (pathname.startsWith("/student") || pathname.startsWith("/api/attempts")) {
+  if (
+    pathname === "/student" ||
+    pathname.startsWith("/student/") ||
+    pathname === "/api/student" ||
+    pathname.startsWith("/api/student/") ||
+    pathname.startsWith("/api/attempts") ||
+    pathname === "/api/auth/verify-token"
+  ) {
     return normalizedRole === "STUDENT" || normalizedRole === "ADMIN";
+  }
+
+  // Allow STUDENT to read single exam detail/snapshot needed by lobby & workspace
+  if (/^\/api\/exams\/[^/]+(\/snapshot)?$/.test(pathname)) {
+    return (
+      normalizedRole === "STUDENT" ||
+      normalizedRole === "PROCTOR" ||
+      normalizedRole === "TEACHER" ||
+      normalizedRole === "ADMIN"
+    );
   }
 
   // Proctor specific zone

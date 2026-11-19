@@ -18,9 +18,9 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  return await examController.deleteExam(id);
+  return await examController.deleteExam(id, request);
 }
