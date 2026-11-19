@@ -84,11 +84,22 @@ export class SyncRepository implements SyncRepositoryInterface {
           where: { moodleCourseId: objectId },
         });
         break;
-      case "cohort":
+      case "cohort": {
+        const targets = await this.db.classGroup.findMany({
+          where: { moodleId: objectId },
+          select: { id: true },
+        });
+        if (targets.length > 0) {
+          await this.db.user.updateMany({
+            where: { classGroupId: { in: targets.map((t) => t.id) } },
+            data: { classGroupId: null, className: null },
+          });
+        }
         await this.db.classGroup.deleteMany({
           where: { moodleId: objectId },
         });
         break;
+      }
       case "user":
         await this.db.user.updateMany({
           where: { moodleUserId: objectId },
@@ -156,6 +167,10 @@ export class SyncRepository implements SyncRepositoryInterface {
     for (const cls of classes) {
       const name = cls.name?.trim();
       if (!name) continue;
+      const cleanDescription =
+        typeof cls.description === "string"
+          ? cls.description.replace(/<[^>]*>/g, "").trim() || null
+          : null;
 
       const existing = await this.db.classGroup.findFirst({
         where: {
@@ -170,16 +185,22 @@ export class SyncRepository implements SyncRepositoryInterface {
             moodleId: cls.id,
             name,
             code: cls.code || existing.code,
-            description: cls.description ?? existing.description,
+            description: cleanDescription ?? existing.description,
           },
         });
+        if (existing.name !== name) {
+          await this.db.user.updateMany({
+            where: { classGroupId: existing.id },
+            data: { className: name },
+          });
+        }
       } else {
         await this.db.classGroup.create({
           data: {
             moodleId: cls.id,
             name,
             code: cls.code || null,
-            description: cls.description || null,
+            description: cleanDescription,
           },
         });
       }
@@ -406,9 +427,27 @@ export class SyncRepository implements SyncRepositoryInterface {
       if (input.classGroupId) {
         const cls = await this.db.classGroup.findUnique({
           where: { id: input.classGroupId },
-          select: { moodleId: true },
+          select: {
+            id: true,
+            moodleId: true,
+            name: true,
+            code: true,
+            description: true,
+          },
         });
-        moodleClassId = cls?.moodleId ?? 0;
+        if (cls) {
+          if (cls.moodleId && cls.moodleId > 0) {
+            moodleClassId = cls.moodleId;
+          } else {
+            const pushedClass = await this.pushClassToMoodle({
+              id: cls.id,
+              name: cls.name,
+              code: cls.code,
+              description: cls.description,
+            });
+            moodleClassId = pushedClass.moodleId ?? 0;
+          }
+        }
       }
 
       const parts = input.fullName.trim().split(/\s+/);

@@ -1,5 +1,6 @@
 export interface ClassGroupDTO {
   id: string;
+  moodleId?: number | null;
   name: string;
   code?: string | null;
   description?: string | null;
