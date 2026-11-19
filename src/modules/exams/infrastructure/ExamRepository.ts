@@ -1,7 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { prisma as defaultPrisma, type PrismaClient } from "@/libs/prisma";
 import { moodleSyncService } from "@/modules/sync/application/MoodleSyncService";
-import type { QuestionItemDTO } from "../domain/dto/ExamSnapshotDTO";
+import type {
+  QuestionItemDTO,
+  StudentAvailableExamDTO,
+} from "../domain/dto/ExamSnapshotDTO";
 import { ExamEntity } from "../domain/entities/ExamEntity";
 import { QuestionItemEntity } from "../domain/entities/QuestionItemEntity";
 import type { ExamRepositoryInterface } from "../domain/interfaces/ExamRepositoryInterface";
@@ -244,5 +247,74 @@ export class ExamRepository implements ExamRepositoryInterface {
     } catch {
       return false;
     }
+  }
+
+  public async listForStudent(
+    userId: string,
+  ): Promise<StudentAvailableExamDTO[]> {
+    const exams = await this.db.exam.findMany({
+      orderBy: [{ timeOpen: "desc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        moodleCbtId: true,
+        title: true,
+        courseName: true,
+        durationSeconds: true,
+        maxStrikes: true,
+        sebRequired: true,
+        questionsJson: true,
+        timeOpen: true,
+        timeClose: true,
+        attempts: {
+          where: { userId },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            finalScore: true,
+            startedAt: true,
+            finishedAt: true,
+          },
+        },
+      },
+    });
+
+    const now = Date.now();
+    return exams.map((exam) => {
+      const openTime = exam.timeOpen.getTime();
+      const closeTime = exam.timeClose.getTime();
+      const availabilityStatus: "OPEN" | "UPCOMING" | "CLOSED" =
+        now < openTime ? "UPCOMING" : now > closeTime ? "CLOSED" : "OPEN";
+
+      const questions = Array.isArray(exam.questionsJson)
+        ? exam.questionsJson
+        : [];
+      const studentAttempt = exam.attempts[0] ?? null;
+
+      return {
+        id: exam.id,
+        moodleCbtId: exam.moodleCbtId,
+        title: exam.title,
+        courseName: exam.courseName,
+        durationSeconds: exam.durationSeconds,
+        maxStrikes: exam.maxStrikes,
+        sebRequired: exam.sebRequired,
+        totalQuestions: questions.length,
+        timeOpen: exam.timeOpen.toISOString(),
+        timeClose: exam.timeClose.toISOString(),
+        availabilityStatus,
+        attempt: studentAttempt
+          ? {
+              id: studentAttempt.id,
+              status: studentAttempt.status,
+              finalScore: studentAttempt.finalScore,
+              startedAt: studentAttempt.startedAt.toISOString(),
+              finishedAt: studentAttempt.finishedAt
+                ? studentAttempt.finishedAt.toISOString()
+                : null,
+            }
+          : null,
+      };
+    });
   }
 }

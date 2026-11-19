@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { apiRequest } from "@/shared/api/apiRequest";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
-import type { ExamSnapshotDTO } from "../domain/dto/ExamSnapshotDTO";
+import type {
+  ExamSnapshotDTO,
+  StudentAvailableExamDTO,
+} from "../domain/dto/ExamSnapshotDTO";
 
 export function useExamApi() {
   const [isLoading, setIsLoading] = useState(false);
@@ -45,9 +48,30 @@ export function useExamApi() {
     }
   };
 
+  const fetchStudentExams = useCallback(async (): Promise<
+    StudentAvailableExamDTO[]
+  > => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response =
+        await apiRequest<StudentAvailableExamDTO[]>("/api/student/exams");
+      const data = unwrapApiResponse(response);
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Gagal memuat daftar ujian siswa";
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     fetchExamSnapshot,
     fetchExamDetail,
+    fetchStudentExams,
     isLoading,
     error,
   };
