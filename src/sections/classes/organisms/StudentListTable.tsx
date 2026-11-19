@@ -46,6 +46,7 @@ export const StudentListTable: FC = () => {
     updateStudent,
     deleteStudent,
     bulkAssignStudentsClass,
+    enrollStudents,
     exportStudents,
   } = useClassesApi();
 
@@ -58,13 +59,52 @@ export const StudentListTable: FC = () => {
   const [editingStudent, setEditingStudent] = useState<StudentDTO | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkTargetClassId, setBulkTargetClassId] = useState<string>("");
+  const [enrollSubjectId, setEnrollSubjectId] = useState<string>("");
+  const [enrollExamId, setEnrollExamId] = useState<string>("");
+  const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>(
+    [],
+  );
+  const [exams, setExams] = useState<Array<{ id: string; title: string }>>([]);
 
   useEffect(() => {
     fetchClasses();
     fetchStudents();
+    const loadEnrollmentTargets = () => {
+      void fetch("/api/subjects?detailed=true")
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.success && Array.isArray(json.data)) {
+            setSubjects(
+              json.data.map((s: { id: string; name: string }) => ({
+                id: s.id,
+                name: s.name,
+              })),
+            );
+          }
+        })
+        .catch(() => undefined);
+
+      void fetch("/api/exams")
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.success && Array.isArray(json.data)) {
+            setExams(
+              json.data.map(
+                (e: { id?: string; examId?: string; title: string }) => ({
+                  id: String(e.id || e.examId || ""),
+                  title: e.title,
+                }),
+              ),
+            );
+          }
+        })
+        .catch(() => undefined);
+    };
+    loadEnrollmentTargets();
     const handleSynced = () => {
       fetchClasses();
       fetchStudents();
+      loadEnrollmentTargets();
     };
     window.addEventListener("aksaventra:synced", handleSynced);
     return () => window.removeEventListener("aksaventra:synced", handleSynced);
@@ -157,6 +197,23 @@ export const StudentListTable: FC = () => {
     }
   };
 
+  const handleBulkEnroll = async () => {
+    if (selectedIds.length === 0) return;
+    if (!enrollSubjectId && !enrollExamId) return;
+    const selectedSubject = subjects.find((s) => s.id === enrollSubjectId);
+    const res = await enrollStudents({
+      studentIds: selectedIds,
+      subjectId: enrollSubjectId || null,
+      courseName: selectedSubject?.name || null,
+      examId: enrollExamId || null,
+    });
+    if (res) {
+      setSelectedIds([]);
+      setEnrollSubjectId("");
+      setEnrollExamId("");
+    }
+  };
+
   const handleDeleteStudent = async (s: StudentDTO) => {
     if (
       confirm(
@@ -224,7 +281,7 @@ export const StudentListTable: FC = () => {
             leftIcon={UploadCloud}
             onClick={() => setImportModalOpen(true)}
           >
-            Import Siswa
+            Batch Upload Siswa
           </Button>
 
           <Button
@@ -287,47 +344,88 @@ export const StudentListTable: FC = () => {
         </div>
       </div>
 
-      {/* Bulk Class Grouping Bar */}
+      {/* Bulk Class Grouping & Course/Exam Enrollment Bar */}
       {selectedIds.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-teal-50/90 border border-teal-200">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#0d2b5c]">
-            <FolderKanban className="w-4 h-4 text-[#0097a7]" />
-            <span>
-              {selectedIds.length} siswa dipilih untuk pengelompokan kelas
-            </span>
+        <div className="flex flex-col gap-3 px-4 py-3 rounded-2xl bg-teal-50/90 border border-teal-200">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#0d2b5c]">
+              <FolderKanban className="w-4 h-4 text-[#0097a7]" />
+              <span>
+                {selectedIds.length} siswa dipilih (Pengelompokan Cohort &amp;
+                Enrollment Course/Ujian)
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <SelectField
+                value={bulkTargetClassId}
+                onChange={(e) => setBulkTargetClassId(e.target.value)}
+                size="sm"
+              >
+                <option value="">
+                  -- Lepas dari Kelas (Belum ditentukan) --
+                </option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </SelectField>
+              <Button
+                type="button"
+                variant="filled"
+                color="teal"
+                size="sm"
+                onClick={handleBulkAssignClass}
+                loading={isLoading}
+              >
+                Terapkan Kelas
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedIds([])}
+              >
+                Batal
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-teal-200/70">
             <SelectField
-              value={bulkTargetClassId}
-              onChange={(e) => setBulkTargetClassId(e.target.value)}
+              value={enrollSubjectId}
+              onChange={(e) => setEnrollSubjectId(e.target.value)}
               size="sm"
             >
-              <option value="">
-                -- Lepas dari Kelas (Belum ditentukan) --
-              </option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
+              <option value="">-- Pilih Mata Pelajaran (Course) --</option>
+              {subjects.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.name}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField
+              value={enrollExamId}
+              onChange={(e) => setEnrollExamId(e.target.value)}
+              size="sm"
+            >
+              <option value="">-- Pilih Ujian / Quiz CBT --</option>
+              {exams.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {ex.title}
                 </option>
               ))}
             </SelectField>
             <Button
               type="button"
               variant="filled"
-              color="teal"
+              color="primary"
               size="sm"
-              onClick={handleBulkAssignClass}
+              onClick={handleBulkEnroll}
+              disabled={!enrollSubjectId && !enrollExamId}
               loading={isLoading}
             >
-              Terapkan Kelas
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedIds([])}
-            >
-              Batal
+              Enroll ke Course / Ujian
             </Button>
           </div>
         </div>
@@ -510,6 +608,7 @@ export const StudentListTable: FC = () => {
       {/* Import Students Modal */}
       <ImportStudentsModal
         open={importModalOpen}
+        classes={classes}
         onClose={() => setImportModalOpen(false)}
         onSuccess={() => {
           fetchStudents();

@@ -57,3 +57,38 @@ export interface BulkAssignStudentsClassInputDTO {
   studentIds: string[];
   classGroupId: string | null;
 }
+
+export interface BatchImportStudentsInputDTO {
+  csvText: string;
+  defaultClassGroupId?: string | null;
+  subjectId?: string | null;
+  courseName?: string | null;
+  examId?: string | null;
+  roomCode?: string;
+  seatPrefix?: string;
+}
+
+export interface BatchImportStudentsResultDTO {
+  processedCount: number;
+  createdClasses: number;
+  enrolledCount: number;
+  moodleSyncedCount: number;
+  errors: string[];
+}
+
+export interface EnrollStudentsInputDTO {
+  studentIds?: string[];
+  classGroupIds?: string[];
+  subjectId?: string | null;
+  courseName?: string | null;
+  examId?: string | null;
+  roomCode?: string;
+  seatPrefix?: string;
+}
+
+export interface EnrollStudentsResultDTO {
+  enrolledCount: number;
+  moodleSynced: boolean;
+  courseName?: string | null;
+  examTitle?: string | null;
+}

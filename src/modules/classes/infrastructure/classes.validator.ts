@@ -52,3 +52,64 @@ export const bulkAssignStudentClassSchema = z.object({
     .min(1, "Pilih minimal 1 siswa terlebih dahulu"),
   classGroupId: z.string().nullable(),
 });
+
+export const batchImportStudentsSchema = z.object({
+  csvText: z.string().min(1, "Konten berkas CSV/Excel tidak boleh kosong"),
+  defaultClassGroupId: z.string().nullable().optional(),
+  subjectId: z.string().nullable().optional(),
+  courseName: z.string().nullable().optional(),
+  examId: z.string().nullable().optional(),
+  roomCode: z.string().optional(),
+  seatPrefix: z.string().optional(),
+});
+
+export const enrollStudentsSchema = z
+  .object({
+    studentIds: z.array(z.string().min(1)).optional(),
+    classGroupIds: z.array(z.string().min(1)).optional(),
+    subjectId: z.string().nullable().optional(),
+    courseName: z.string().nullable().optional(),
+    examId: z.string().nullable().optional(),
+    roomCode: z.string().optional(),
+    seatPrefix: z.string().optional(),
+  })
+  .refine(
+    (d) =>
+      (d.studentIds && d.studentIds.length > 0) ||
+      (d.classGroupIds && d.classGroupIds.length > 0),
+    { message: "Pilih minimal 1 siswa atau 1 kelas/cohort" },
+  )
+  .refine((d) => Boolean(d.subjectId || d.courseName?.trim() || d.examId), {
+    message: "Pilih minimal 1 mata pelajaran (Course) atau ujian (Quiz/CBT)",
+  });
+
+export const batchImportStudentsSchema = z.object({
+  csvText: z.string().min(1, "Konten berkas CSV/Excel tidak boleh kosong"),
+  defaultClassGroupId: z.string().nullable().optional(),
+  subjectId: z.string().nullable().optional(),
+  courseName: z.string().nullable().optional(),
+  examId: z.string().nullable().optional(),
+  roomCode: z.string().optional(),
+  seatPrefix: z.string().optional(),
+});
+
+export const enrollStudentsSchema = z
+  .object({
+    studentIds: z.array(z.string().min(1)).optional(),
+    classGroupIds: z.array(z.string().min(1)).optional(),
+    subjectId: z.string().nullable().optional(),
+    courseName: z.string().nullable().optional(),
+    examId: z.string().nullable().optional(),
+    roomCode: z.string().optional(),
+    seatPrefix: z.string().optional(),
+  })
+  .refine(
+    (d) =>
+      (d.studentIds && d.studentIds.length > 0) ||
+      (d.classGroupIds && d.classGroupIds.length > 0),
+    { message: "Pilih minimal 1 siswa atau 1 kelas/cohort" },
+  )
+  .refine(
+    (d) => Boolean(d.subjectId || d.courseName?.trim() || d.examId),
+    { message: "Pilih minimal 1 mata pelajaran (Course) atau ujian (Quiz/CBT)" },
+  );
