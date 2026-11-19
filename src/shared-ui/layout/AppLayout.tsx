@@ -33,8 +33,8 @@ export default function AppLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
-  // Student exam workspace has its own standalone zero-latency full-screen shell
-  if (pathname?.startsWith("/student/exam/")) {
+  // Student pages (lobby & exam workspace) use their own standalone ExamFocusLayout shell
+  if (pathname === "/student" || pathname?.startsWith("/student/")) {
     return <>{children}</>;
   }
 
