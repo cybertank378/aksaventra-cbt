@@ -61,3 +61,24 @@ export interface UpdateExamInput {
   timeOpen?: Date;
   timeClose?: Date;
 }
+
+export interface StudentAvailableExamDTO {
+  id: string;
+  moodleCbtId: number;
+  title: string;
+  courseName: string;
+  durationSeconds: number;
+  maxStrikes: number;
+  sebRequired: boolean;
+  totalQuestions: number;
+  timeOpen: string;
+  timeClose: string;
+  availabilityStatus: "OPEN" | "UPCOMING" | "CLOSED";
+  attempt: {
+    id: string;
+    status: "IN_PROGRESS" | "LOCKED" | "SUBMITTED" | "ABANDONED";
+    finalScore: number | null;
+    startedAt: string;
+    finishedAt: string | null;
+  } | null;
+}

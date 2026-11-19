@@ -1,4 +1,5 @@
 import type { BaseRepository } from "@/core/base/BaseRepository";
+import type { StudentAvailableExamDTO } from "../dto/ExamSnapshotDTO";
 import type { ExamEntity } from "../entities/ExamEntity";
 
 export interface ExamRepositoryInterface
@@ -28,4 +29,5 @@ export interface ExamRepositoryInterface
     },
   ): Promise<ExamEntity>;
   deleteExam?(examId: string): Promise<boolean>;
+  listForStudent?(userId: string): Promise<StudentAvailableExamDTO[]>;
 }

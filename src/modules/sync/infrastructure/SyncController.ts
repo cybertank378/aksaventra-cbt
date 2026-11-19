@@ -1,4 +1,4 @@
-import type { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/base/Result";
 import { DomainError } from "@/core/errors/DomainError";
@@ -120,5 +120,31 @@ export class SyncController extends BaseController {
       result,
       result.isSuccess && result.value.success ? 200 : 207,
     );
+  }
+
+  public async proxyMoodleRequest(
+    request: NextRequest,
+    wsfunction: string[],
+  ): Promise<NextResponse> {
+    const rawBody =
+      request.method !== "GET" && request.method !== "HEAD"
+        ? await request.text()
+        : undefined;
+
+    const result = await this.syncService.proxyMoodleRequest({
+      wsfunction,
+      method: request.method,
+      searchParams: request.nextUrl.searchParams,
+      contentType: request.headers.get("content-type") || "",
+      rawBody,
+    });
+
+    if (result.isFailure) {
+      return this.handleResult(result);
+    }
+
+    return NextResponse.json(result.value.data, {
+      status: result.value.status,
+    });
   }
 }

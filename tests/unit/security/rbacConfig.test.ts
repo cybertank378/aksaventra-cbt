@@ -37,8 +37,13 @@ describe("rbacConfig & sidebarMenu", () => {
     });
 
     it("allows STUDENT to access student pages and attempts APIs", () => {
+      expect(isRouteAuthorized("STUDENT", "/student/lobby")).toBe(true);
       expect(isRouteAuthorized("STUDENT", "/student/lobby/10")).toBe(true);
       expect(isRouteAuthorized("STUDENT", "/student/exam/55")).toBe(true);
+      expect(isRouteAuthorized("STUDENT", "/api/student/exams")).toBe(true);
+      expect(isRouteAuthorized("STUDENT", "/api/auth/verify-token")).toBe(true);
+      expect(isRouteAuthorized("STUDENT", "/api/exams/10")).toBe(true);
+      expect(isRouteAuthorized("STUDENT", "/api/exams/10/snapshot")).toBe(true);
       expect(isRouteAuthorized("STUDENT", "/api/attempts/55/sync")).toBe(true);
 
       // Student cannot access proctor or dashboard

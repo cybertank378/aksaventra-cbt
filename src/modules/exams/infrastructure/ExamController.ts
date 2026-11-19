@@ -10,6 +10,30 @@ export class ExamController extends BaseController {
     super();
   }
 
+  private isExamManager(request?: NextRequest): boolean {
+    const role = request?.headers.get("x-user-role")?.toUpperCase();
+    return !role || role === "ADMIN" || role === "TEACHER";
+  }
+
+  public async listStudentExams(request: NextRequest): Promise<NextResponse> {
+    const userId = request.headers.get("x-user-id");
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Sesi peserta tidak ditemukan. Silakan login kembali.",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    const result = await this.examService.listStudentExams(userId);
+    return this.handleResult(result, 200);
+  }
+
   public async getSnapshot(examId: string): Promise<NextResponse> {
     if (!examId || examId.trim() === "") {
       return NextResponse.json(
@@ -83,6 +107,19 @@ export class ExamController extends BaseController {
     id: string,
     request: NextRequest,
   ): Promise<NextResponse> {
+    if (!this.isExamManager(request)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "FORBIDDEN",
+            message:
+              "Hanya ADMIN atau TEACHER yang dapat mengubah jadwal ujian.",
+          },
+        },
+        { status: 403 },
+      );
+    }
     try {
       const body = await request.json();
       const parseResult = updateExamSchema.safeParse(body);
@@ -168,7 +205,22 @@ export class ExamController extends BaseController {
     }
   }
 
-  public async deleteExam(id: string): Promise<NextResponse> {
+  public async deleteExam(
+    id: string,
+    request?: NextRequest,
+  ): Promise<NextResponse> {
+    if (!this.isExamManager(request)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "FORBIDDEN",
+            message: "Hanya ADMIN atau TEACHER yang dapat menghapus ujian.",
+          },
+        },
+        { status: 403 },
+      );
+    }
     try {
       const result = await this.examService.deleteExam(id);
       return this.handleResult(result, 200);
