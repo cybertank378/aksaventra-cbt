@@ -77,5 +77,6 @@ export interface SubmitAttemptResponseDTO {
   status: AttemptStatus;
   finishedAt: string;
   finalScore: number;
+  requiresManualGrading?: boolean;
   syncedToMoodle: boolean;
 }

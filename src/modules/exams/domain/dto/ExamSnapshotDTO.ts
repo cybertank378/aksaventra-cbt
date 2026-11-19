@@ -6,9 +6,12 @@ export interface QuestionOptionDTO {
 export interface QuestionItemDTO {
   slot: number;
   questionId: number;
-  type: string; // "multichoice", "truefalse", "shortanswer", "essay"
+  type: string; // "multichoice", "mcma", "truefalse", "shortanswer", "numerical", "matching", "cloze", "essay"
   stemHtml: string;
   imageUrl?: string;
+  points?: number;
+  maxScore?: number;
+  tolerance?: number | null;
   options?: QuestionOptionDTO[];
 }
 
