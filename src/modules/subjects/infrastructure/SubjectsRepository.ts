@@ -52,19 +52,24 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
 
   async getAllDetailed(): Promise<SubjectDTO[]> {
     const [subjects, questions, exams] = await Promise.all([
-      prisma.subject.findMany({ orderBy: { name: "asc" } }),
-      prisma.question.findMany({
-        select: { subject: true, gradeLevel: true },
-      }),
-      prisma.exam.findMany({
-        select: { courseName: true },
-      }),
+      prisma.subject.findMany({ orderBy: { name: "asc" } }).catch(() => []),
+      prisma.question
+        .findMany({
+          select: { subject: true, gradeLevel: true },
+        })
+        .catch(() => []),
+      prisma.exam
+        .findMany({
+          select: { courseName: true },
+        })
+        .catch(() => []),
     ]);
 
     const qCountMap = new Map<string, number>();
     const gradeMap = new Map<string, Set<string>>();
     for (const q of questions) {
-      const key = q.subject.trim().toLowerCase();
+      const key = (q.subject ?? "").trim().toLowerCase();
+      if (!key) continue;
       qCountMap.set(key, (qCountMap.get(key) ?? 0) + 1);
       if (!gradeMap.has(key)) gradeMap.set(key, new Set());
       if (q.gradeLevel?.trim()) gradeMap.get(key)?.add(q.gradeLevel.trim());
@@ -72,7 +77,8 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
 
     const eCountMap = new Map<string, number>();
     for (const e of exams) {
-      const key = e.courseName.trim().toLowerCase();
+      const key = (e.courseName ?? "").trim().toLowerCase();
+      if (!key) continue;
       eCountMap.set(key, (eCountMap.get(key) ?? 0) + 1);
     }
 
@@ -94,31 +100,37 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
   }
 
   async getById(id: string): Promise<SubjectDetailDTO | null> {
-    const s = await prisma.subject.findUnique({ where: { id } });
+    const s = await prisma.subject
+      .findUnique({ where: { id } })
+      .catch(() => null);
     if (!s) return null;
 
     const [questions, exams] = await Promise.all([
-      prisma.question.findMany({
-        where: { subject: s.name },
-        select: {
-          id: true,
-          code: true,
-          gradeLevel: true,
-          type: true,
-          points: true,
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.exam.findMany({
-        where: { courseName: s.name },
-        select: {
-          id: true,
-          title: true,
-          durationSeconds: true,
-          timeOpen: true,
-        },
-        orderBy: { timeOpen: "desc" },
-      }),
+      prisma.question
+        .findMany({
+          where: { subject: s.name },
+          select: {
+            id: true,
+            code: true,
+            gradeLevel: true,
+            type: true,
+            points: true,
+          },
+          orderBy: { createdAt: "desc" },
+        })
+        .catch(() => []),
+      prisma.exam
+        .findMany({
+          where: { courseName: s.name },
+          select: {
+            id: true,
+            title: true,
+            durationSeconds: true,
+            timeOpen: true,
+          },
+          orderBy: { timeOpen: "desc" },
+        })
+        .catch(() => []),
     ]);
 
     const gradeSet = new Set<string>();
@@ -209,14 +221,18 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
 
       if (nextName && nextName !== existing.name) {
         await Promise.all([
-          prisma.question.updateMany({
-            where: { subject: existing.name },
-            data: { subject: nextName },
-          }),
-          prisma.exam.updateMany({
-            where: { courseName: existing.name },
-            data: { courseName: nextName },
-          }),
+          prisma.question
+            .updateMany({
+              where: { subject: existing.name },
+              data: { subject: nextName },
+            })
+            .catch(() => undefined),
+          prisma.exam
+            .updateMany({
+              where: { courseName: existing.name },
+              data: { courseName: nextName },
+            })
+            .catch(() => undefined),
         ]);
       }
 
