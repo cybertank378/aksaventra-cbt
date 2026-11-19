@@ -1,4 +1,6 @@
 import type {
+  BatchImportClassesInputDTO,
+  BatchImportClassesResultDTO,
   BatchImportStudentsInputDTO,
   BatchImportStudentsResultDTO,
   BulkAssignStudentsClassInputDTO,
@@ -108,5 +110,21 @@ export class ClassesService {
       throw new Error("Enrollment siswa tidak didukung oleh repository");
     }
     return await this.classesRepo.enrollStudents(input);
+  }
+
+  async batchImportClasses(
+    input: BatchImportClassesInputDTO,
+  ): Promise<BatchImportClassesResultDTO> {
+    if (!this.classesRepo.batchImportClasses) {
+      throw new Error("Batch import kelas tidak didukung oleh repository");
+    }
+    return await this.classesRepo.batchImportClasses(input);
+  }
+
+  async exportClassesCsv(): Promise<string> {
+    if (!this.classesRepo.exportClassesCsv) {
+      throw new Error("Export CSV kelas tidak didukung oleh repository");
+    }
+    return await this.classesRepo.exportClassesCsv();
   }
 }

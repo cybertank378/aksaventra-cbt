@@ -1,6 +1,8 @@
 import { prisma } from "@/libs/prisma";
 import { moodleSyncService } from "@/modules/sync/application/MoodleSyncService";
 import type {
+  BatchImportClassesInputDTO,
+  BatchImportClassesResultDTO,
   BatchImportStudentsInputDTO,
   BatchImportStudentsResultDTO,
   ClassGroupDTO,
@@ -146,6 +148,21 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       },
     });
 
+    let assignedCount = 0;
+    if (data.studentIds && data.studentIds.length > 0) {
+      const assigned = await prisma.user.updateMany({
+        where: {
+          id: { in: data.studentIds },
+          role: "STUDENT",
+        },
+        data: {
+          classGroupId: created.id,
+          className: created.name,
+        },
+      });
+      assignedCount = assigned.count;
+    }
+
     if (process.env.NODE_ENV !== "test") {
       void moodleSyncService.pushClassToMoodle({
         id: created.id,
@@ -161,7 +178,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       name: created.name,
       code: created.code,
       description: created.description,
-      studentCount: 0,
+      studentCount: assignedCount,
       createdAt: created.createdAt.toISOString(),
       updatedAt: created.updatedAt.toISOString(),
     };
@@ -186,7 +203,39 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         },
       });
 
-      if (data.name !== undefined) {
+      let studentCount = updated._count.students;
+
+      if (data.studentIds !== undefined) {
+        await prisma.user.updateMany({
+          where: {
+            classGroupId: id,
+            ...(data.studentIds.length > 0
+              ? { id: { notIn: data.studentIds } }
+              : {}),
+          },
+          data: {
+            classGroupId: null,
+            className: null,
+          },
+        });
+
+        if (data.studentIds.length > 0) {
+          await prisma.user.updateMany({
+            where: {
+              id: { in: data.studentIds },
+              role: "STUDENT",
+            },
+            data: {
+              classGroupId: id,
+              className: updated.name,
+            },
+          });
+        }
+
+        studentCount = await prisma.user.count({
+          where: { classGroupId: id, role: "STUDENT" },
+        });
+      } else if (data.name !== undefined) {
         await prisma.user.updateMany({
           where: { classGroupId: id },
           data: { className: data.name },
@@ -209,7 +258,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         name: updated.name,
         code: updated.code,
         description: updated.description,
-        studentCount: updated._count.students,
+        studentCount,
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
       };
@@ -531,6 +580,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         row.cohort_idnumber ||
         row.kelas ||
         row.class ||
+        row.lastname ||
         ""
       ).trim();
       const rowCourse = (
@@ -851,5 +901,349 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       courseName: targetCourseName,
       examTitle: targetExam?.title ?? null,
     };
+  }
+
+  async batchImportClasses(
+    input: BatchImportClassesInputDTO,
+  ): Promise<BatchImportClassesResultDTO> {
+    const records = parseCsvRecords(input.csvText);
+    const errors: string[] = [];
+    let processedCount = 0;
+    let assignedStudentsCount = 0;
+    let moodleSyncedCount = 0;
+
+    if (records.length === 0) {
+      return {
+        processedCount: 0,
+        assignedStudentsCount: 0,
+        moodleSyncedCount: 0,
+        errors: [
+          "Format CSV kosong atau tidak memiliki baris data di bawah header (gunakan header: fullname,lastname).",
+        ],
+      };
+    }
+
+    const classGroupsMap = new Map<
+      string,
+      {
+        code: string | null;
+        description: string | null;
+        fullnames: string[];
+        usernames: string[];
+      }
+    >();
+
+    for (let idx = 0; idx < records.length; idx++) {
+      const row = records[idx];
+      const rowNumber = idx + 2;
+
+      const rawFullname = (
+        row.fullname ||
+        row.full_name ||
+        row.nama_lengkap ||
+        row.firstname ||
+        row.nama ||
+        ""
+      ).trim();
+
+      let rawLastname = (
+        row.lastname ||
+        row.last_name ||
+        row.kelas ||
+        row.rombel ||
+        row.name ||
+        row.nama_kelas ||
+        row.class_name ||
+        ""
+      ).trim();
+
+      if (!rawLastname && rawFullname.includes(" ")) {
+        const parts = rawFullname.split(/\s+/);
+        rawLastname = parts[parts.length - 1] || "";
+      }
+
+      if (!rawLastname) {
+        errors.push(
+          `Baris ${rowNumber}: Kolom lastname (kelas/rombel) wajib diisi.`,
+        );
+        continue;
+      }
+
+      const code =
+        (
+          row.code ||
+          row.kode ||
+          row.kode_rombel ||
+          row.cohort_id ||
+          row.idnumber ||
+          ""
+        ).trim() || null;
+
+      const description =
+        (
+          row.description ||
+          row.keterangan ||
+          row.deskripsi ||
+          row.jurusan ||
+          ""
+        ).trim() || null;
+
+      const rawStudents = (
+        row.students ||
+        row.siswa ||
+        row.usernames ||
+        row.username ||
+        row.nis ||
+        ""
+      ).trim();
+
+      const existingEntry = classGroupsMap.get(rawLastname) ?? {
+        code,
+        description,
+        fullnames: [],
+        usernames: [],
+      };
+
+      if (code && !existingEntry.code) existingEntry.code = code;
+      if (description && !existingEntry.description) {
+        existingEntry.description = description;
+      }
+
+      if (rawFullname) {
+        existingEntry.fullnames.push(rawFullname);
+      }
+
+      if (rawStudents) {
+        const parsedUsernames = rawStudents
+          .split(/[;|,\s]+/)
+          .map((u) => u.trim())
+          .filter(Boolean);
+        existingEntry.usernames.push(...parsedUsernames);
+      }
+
+      classGroupsMap.set(rawLastname, existingEntry);
+    }
+
+    const allStudents = await prisma.user.findMany({
+      where: { role: "STUDENT" },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+      },
+    });
+
+    const extractLastToken = (fullName: string): string => {
+      const parts = fullName.trim().split(/\s+/);
+      return parts.length > 1 ? parts[parts.length - 1] : "";
+    };
+
+    const stripTrailingLastname = (
+      fullName: string,
+      lastname: string,
+    ): string => {
+      const normalizedFull = fullName.trim();
+      const suffix = ` ${lastname.trim()}`;
+      if (
+        normalizedFull.toLowerCase().endsWith(suffix.toLowerCase()) &&
+        normalizedFull.length > suffix.length
+      ) {
+        return normalizedFull
+          .slice(0, normalizedFull.length - suffix.length)
+          .trim();
+      }
+      return normalizedFull;
+    };
+
+    for (const [lastname, groupInfo] of classGroupsMap.entries()) {
+      try {
+        const upserted = await prisma.classGroup.upsert({
+          where: { name: lastname },
+          create: {
+            name: lastname,
+            code: groupInfo.code || lastname,
+            description:
+              groupInfo.description ||
+              `Rombel ${lastname} (grouped by lastname)`,
+          },
+          update: {
+            ...(groupInfo.code !== null ? { code: groupInfo.code } : {}),
+            ...(groupInfo.description !== null
+              ? { description: groupInfo.description }
+              : {}),
+          },
+        });
+        processedCount++;
+
+        const matchedStudentIds = new Set<string>();
+        const targetLastnameLower = lastname.toLowerCase();
+        const targetFullnamesLower = new Set(
+          groupInfo.fullnames.map((f) =>
+            stripTrailingLastname(f, lastname).toLowerCase(),
+          ),
+        );
+        const targetFullnamesWithSuffixLower = new Set(
+          groupInfo.fullnames.map((f) => `${f} ${lastname}`.toLowerCase()),
+        );
+        const targetRawFullnamesLower = new Set(
+          groupInfo.fullnames.map((f) => f.toLowerCase()),
+        );
+        const targetUsernamesLower = new Set(
+          groupInfo.usernames.map((u) => u.toLowerCase()),
+        );
+
+        for (const student of allStudents) {
+          const sFullLower = student.fullName.trim().toLowerCase();
+          const sBaseLower = stripTrailingLastname(
+            student.fullName,
+            lastname,
+          ).toLowerCase();
+          const sLastTokenLower = extractLastToken(
+            student.fullName,
+          ).toLowerCase();
+          const sUserLower = student.username.trim().toLowerCase();
+
+          const matchedByUsername = targetUsernamesLower.has(sUserLower);
+          const matchedByFullname =
+            targetRawFullnamesLower.has(sFullLower) ||
+            targetFullnamesWithSuffixLower.has(sFullLower) ||
+            (targetFullnamesLower.has(sBaseLower) &&
+              (sLastTokenLower === targetLastnameLower ||
+                sFullLower === sBaseLower));
+          const matchedByLastnameToken =
+            sLastTokenLower === targetLastnameLower &&
+            (targetFullnamesLower.size === 0 ||
+              targetFullnamesLower.has(sBaseLower));
+
+          if (
+            matchedByUsername ||
+            matchedByFullname ||
+            matchedByLastnameToken
+          ) {
+            matchedStudentIds.add(student.id);
+          }
+        }
+
+        if (matchedStudentIds.size > 0) {
+          const assigned = await prisma.user.updateMany({
+            where: {
+              id: { in: Array.from(matchedStudentIds) },
+              role: "STUDENT",
+            },
+            data: {
+              classGroupId: upserted.id,
+              className: upserted.name,
+            },
+          });
+          assignedStudentsCount += assigned.count;
+        }
+
+        if (process.env.NODE_ENV !== "test") {
+          const pushed = await moodleSyncService.pushClassToMoodle({
+            id: upserted.id,
+            moodleId: upserted.moodleId,
+            name: upserted.name,
+            code: upserted.code,
+            description: upserted.description,
+          });
+          if (pushed.synced) {
+            moodleSyncedCount++;
+          }
+        }
+      } catch (err) {
+        errors.push(
+          `Kelas ${lastname}: ${
+            err instanceof Error ? err.message : "Gagal menyimpan kelas"
+          }`,
+        );
+      }
+    }
+
+    return {
+      processedCount,
+      assignedStudentsCount,
+      moodleSyncedCount,
+      errors,
+    };
+  }
+
+  async exportClassesCsv(): Promise<string> {
+    const students = await prisma.user.findMany({
+      where: { role: "STUDENT" },
+      include: {
+        classGroup: {
+          select: { name: true },
+        },
+      },
+      orderBy: [{ className: "asc" }, { fullName: "asc" }],
+    });
+
+    const escapeCsv = (val: string | number | null | undefined): string => {
+      const str = val === null || val === undefined ? "" : String(val);
+      if (/[",\r\n;]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const extractFirstnameAndLastname = (
+      fullName: string,
+      className?: string | null,
+    ): { fullname: string; lastname: string } => {
+      const trimmed = fullName.trim();
+      const explicitClass = (className || "").trim();
+
+      if (explicitClass) {
+        const suffix = ` ${explicitClass}`;
+        if (
+          trimmed.toLowerCase().endsWith(suffix.toLowerCase()) &&
+          trimmed.length > suffix.length
+        ) {
+          return {
+            fullname: trimmed.slice(0, trimmed.length - suffix.length).trim(),
+            lastname: explicitClass,
+          };
+        }
+        return {
+          fullname: trimmed,
+          lastname: explicitClass,
+        };
+      }
+
+      const parts = trimmed.split(/\s+/);
+      if (parts.length > 1) {
+        const lastToken = parts[parts.length - 1];
+        return {
+          fullname: parts.slice(0, -1).join(" "),
+          lastname: lastToken,
+        };
+      }
+
+      return {
+        fullname: trimmed,
+        lastname: "",
+      };
+    };
+
+    const lines = ["fullname,lastname"];
+    if (students.length > 0) {
+      for (const s of students) {
+        const resolvedClass = s.classGroup?.name || s.className || null;
+        const { fullname, lastname } = extractFirstnameAndLastname(
+          s.fullName,
+          resolvedClass,
+        );
+        lines.push([escapeCsv(fullname), escapeCsv(lastname)].join(","));
+      }
+    } else {
+      const classes = await prisma.classGroup.findMany({
+        orderBy: { name: "asc" },
+      });
+      for (const cls of classes) {
+        lines.push(["", escapeCsv(cls.name)].join(","));
+      }
+    }
+
+    return lines.join("\n");
   }
 }
