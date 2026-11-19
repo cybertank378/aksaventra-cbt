@@ -23,6 +23,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
 
     return records.map((r) => ({
       id: r.id,
+      moodleId: r.moodleId,
       name: r.name,
       code: r.code,
       description: r.description,
@@ -48,6 +49,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
 
     return {
       id: record.id,
+      moodleId: record.moodleId,
       name: record.name,
       code: record.code,
       description: record.description,
@@ -87,6 +89,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
 
     return {
       id: created.id,
+      moodleId: created.moodleId,
       name: created.name,
       code: created.code,
       description: created.description,
@@ -134,6 +137,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
 
       return {
         id: updated.id,
+        moodleId: updated.moodleId,
         name: updated.name,
         code: updated.code,
         description: updated.description,
@@ -151,6 +155,10 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       const existing = await prisma.classGroup.findUnique({
         where: { id },
         select: { moodleId: true },
+      });
+      await prisma.user.updateMany({
+        where: { classGroupId: id },
+        data: { classGroupId: null, className: null },
       });
       await prisma.classGroup.delete({
         where: { id },
@@ -239,9 +247,12 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       if (process.env.NODE_ENV !== "test") {
         void moodleSyncService.pushStudentToMoodle({
           id: updated.id,
+          moodleUserId: updated.moodleUserId,
           username: updated.username,
           fullName: updated.fullName,
           classGroupId: updated.classGroupId,
+          isActive: updated.isActive,
+          replaceCohort: true,
         });
       }
       return true;

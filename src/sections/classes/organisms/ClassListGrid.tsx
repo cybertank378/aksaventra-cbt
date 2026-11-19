@@ -4,6 +4,7 @@ import { Edit3, Eye, GraduationCap, Plus, Trash2, Users } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
 import type { ClassGroupDTO } from "@/modules/classes/domain/dto/ClassGroupDTO";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
+import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import ClassBadge from "../atoms/ClassBadge";
 import CreateClassModal from "../molecules/CreateClassModal";
@@ -87,13 +88,20 @@ export const ClassListGrid: FC = () => {
               className="flex flex-col justify-between p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:border-[#0097a7]/50 transition-all"
             >
               <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <ClassBadge name={cls.name} />
-                  {cls.code && (
-                    <span className="text-[11px] font-mono text-slate-400 font-medium">
-                      {cls.code}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {cls.moodleId && (
+                      <Badge color="teal" size="sm" variant="soft">
+                        Cohort #{cls.moodleId}
+                      </Badge>
+                    )}
+                    {cls.code && (
+                      <span className="text-[11px] font-mono text-slate-400 font-medium">
+                        {cls.code}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <p className="text-xs text-slate-500 mt-2 line-clamp-2">
@@ -101,13 +109,13 @@ export const ClassListGrid: FC = () => {
                 </p>
               </div>
 
-              <div className="flex items-center justify-between gap-2 pt-4 mt-4 border-t border-slate-100">
-                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold">
-                  <Users className="w-4 h-4 text-[#0097a7]" />
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-4 mt-4 border-t border-slate-100">
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold whitespace-nowrap">
+                  <Users className="w-4 h-4 text-[#0097a7] shrink-0" />
                   <span>{cls.studentCount || 0} Siswa</span>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <Button
                     type="button"
                     variant="outline"
@@ -135,6 +143,7 @@ export const ClassListGrid: FC = () => {
                     variant="ghost"
                     color="error"
                     size="sm"
+                    iconOnly
                     onClick={() => {
                       if (confirm(`Hapus kelas "${cls.name}"?`)) {
                         deleteClass(cls.id);
