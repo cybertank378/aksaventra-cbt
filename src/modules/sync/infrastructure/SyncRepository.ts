@@ -44,8 +44,57 @@ const VALID_QUESTION_TYPES = new Set([
   "essay",
 ]);
 
-function normalizeQuestionType(rawType: string): string {
+export function normalizeQuestionType(
+  rawType: string,
+  options?: Array<{ isCorrect?: boolean; fraction?: number }>,
+): string {
   const lower = rawType.toLowerCase().trim();
+
+  if (lower === "match") {
+    return "matching";
+  }
+  if (lower === "gapselect" || lower === "ddwtos") {
+    return "cloze";
+  }
+  if (lower === "multichoice_multi") {
+    return "mcma";
+  }
+  if (lower === "multichoice_single" || lower === "multichoice") {
+    if (Array.isArray(options)) {
+      const correctCount = options.filter(
+        (opt) =>
+          opt.isCorrect === true ||
+          (typeof opt.fraction === "number" && opt.fraction > 0),
+      ).length;
+      if (correctCount > 1) {
+        return "mcma";
+      }
+    }
+    return "multichoice";
+  }
+
+
+  if (lower === "match") {
+    return "matching";
+  }
+  if (lower === "gapselect" || lower === "ddwtos") {
+    return "cloze";
+  }
+  if (lower === "multichoice_multi") {
+    return "mcma";
+  }
+  if (lower === "multichoice_single" || lower === "multichoice") {
+    if (Array.isArray(options)) {
+      const correctCount = options.filter(
+        (opt) => opt.isCorrect === true || (typeof opt.fraction === "number" && opt.fraction > 0),
+      ).length;
+      if (correctCount > 1) {
+        return "mcma";
+      }
+    }
+    return "multichoice";
+  }
+
   if (VALID_QUESTION_TYPES.has(lower)) {
     return lower;
   }
@@ -56,7 +105,7 @@ export class SyncRepository implements SyncRepositoryInterface {
   constructor(
     private readonly db: PrismaClient = defaultPrisma,
     private readonly callMoodle: MoodleApiCaller = defaultCallMoodleApi,
-  ) {}
+  ) { }
 
   public async pullFromMoodle(action: string): Promise<MoodlePullPayload> {
     const res = await this.callMoodle<MoodleSyncMasterResponse>(
@@ -331,7 +380,7 @@ export class SyncRepository implements SyncRepositoryInterface {
     let count = 0;
     for (const q of questions) {
       const code = q.code?.trim() || `MDL-Q-${q.id}`;
-      const type = normalizeQuestionType(q.type || "multichoice");
+      const type = normalizeQuestionType(q.type || "multichoice", q.options);
       const optionsJson = (q.options ?? []) as unknown as Prisma.InputJsonValue;
 
       const existing = await this.db.question.findFirst({

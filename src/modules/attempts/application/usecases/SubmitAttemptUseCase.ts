@@ -4,11 +4,16 @@ import type { AppError } from "@/core/errors/AppError";
 import { DomainError } from "@/core/errors/DomainError";
 import type { ExamRepositoryInterface } from "@/modules/exams/domain/interfaces/ExamRepositoryInterface";
 import type {
+  AnswerValue,
   SubmitAttemptInputDTO,
   SubmitAttemptResponseDTO,
 } from "../../domain/dto/SyncBatchDTO";
 import type { AttemptRepositoryInterface } from "../../domain/interfaces/AttemptRepositoryInterface";
 import { AnswerRehydrationRule } from "../../domain/rules/AnswerRehydrationRule";
+import {
+  type QuestionScoreMeta,
+  ScoreCalculatorRule,
+} from "../../domain/rules/ScoreCalculatorRule";
 
 export class SubmitAttemptUseCase
   implements
@@ -51,44 +56,76 @@ export class SubmitAttemptUseCase
       );
     }
 
-    // Calculate score in-memory against private answer keys
-    const answerKeys = await this.examRepo.getAnswerKeys(attempt.examId);
+    // Calculate weighted score in-memory aligned with Moodle 5 grading rules
+    const [answerKeys, exam] = await Promise.all([
+      this.examRepo.getAnswerKeys(attempt.examId),
+      Promise.resolve(this.examRepo.findById(attempt.examId)).catch(() => null),
+    ]);
+
     let finalScore = 0;
+    let requiresManualGrading = false;
 
     if (answerKeys && Object.keys(answerKeys).length > 0) {
-      const totalQuestions = Object.keys(answerKeys).length;
-      let correctCount = 0;
+      const questionLookup = new Map<
+        string,
+        { type?: string; points?: number; tolerance?: number | null }
+      >();
 
-      for (const [qidStr, expectedKey] of Object.entries(answerKeys)) {
-        const qid = Number.parseInt(qidStr, 10);
-        const record = allAnswers.get(qid);
-        if (!record || record.answer === null || record.answer === undefined) {
-          continue;
-        }
-
-        const formattedExpected = String(expectedKey).trim().toLowerCase();
-        let formattedStudent = "";
-
-        if (Array.isArray(record.answer)) {
-          formattedStudent = record.answer
-            .map((a) => String(a).trim().toLowerCase())
-            .sort()
-            .join(",");
-        } else if (typeof record.answer === "object") {
-          formattedStudent = JSON.stringify(record.answer).toLowerCase();
-        } else {
-          formattedStudent = String(record.answer).trim().toLowerCase();
-        }
-
-        if (formattedExpected === formattedStudent) {
-          correctCount++;
+      if (exam && Array.isArray(exam.questions)) {
+        for (const q of exam.questions) {
+          questionLookup.set(String(q.questionId), {
+            type: q.type,
+            points: q.points ?? q.maxScore,
+            tolerance: q.tolerance,
+          });
         }
       }
 
-      finalScore =
-        totalQuestions > 0
-          ? Math.round((correctCount / totalQuestions) * 10000) / 100
-          : 0;
+      const questionMetaMap: Record<string, QuestionScoreMeta> = {};
+      for (const [qidStr, rawKey] of Object.entries(answerKeys)) {
+        const qMeta = questionLookup.get(qidStr);
+        if (
+          rawKey &&
+          typeof rawKey === "object" &&
+          !Array.isArray(rawKey) &&
+          "key" in (rawKey as Record<string, unknown>)
+        ) {
+          const structured = rawKey as {
+            type?: string;
+            weight?: number;
+            points?: number;
+            tolerance?: number | null;
+            key: unknown;
+          };
+          questionMetaMap[qidStr] = {
+            type: structured.type ?? qMeta?.type ?? "multichoice",
+            weight:
+              structured.weight ?? structured.points ?? qMeta?.points ?? 1,
+            tolerance: structured.tolerance ?? qMeta?.tolerance ?? null,
+            key: structured.key,
+          };
+        } else {
+          questionMetaMap[qidStr] = {
+            type: qMeta?.type ?? "multichoice",
+            weight: qMeta?.points ?? 1,
+            tolerance: qMeta?.tolerance ?? null,
+            key: rawKey,
+          };
+        }
+      }
+
+      const submittedMap = new Map<number, AnswerValue>();
+      for (const [qid, record] of allAnswers.entries()) {
+        submittedMap.set(qid, record.answer);
+      }
+
+      const scoreResult = ScoreCalculatorRule.calculateExamScore(
+        questionMetaMap,
+        submittedMap,
+        100,
+      );
+      finalScore = scoreResult.finalScore;
+      requiresManualGrading = scoreResult.requiresManualGrading;
     }
 
     const finishedAt = new Date();
@@ -103,6 +140,7 @@ export class SubmitAttemptUseCase
       status: "SUBMITTED",
       finishedAt: finishedAt.toISOString(),
       finalScore,
+      requiresManualGrading,
       syncedToMoodle: false,
     });
   }
