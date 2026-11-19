@@ -76,6 +76,16 @@ export interface SyncRepositoryInterface {
     moodleId: number,
   ): Promise<OutboundSyncResult>;
 
+  enrollStudentsInMoodle?(input: {
+    courseName?: string | null;
+    moodleCourseId?: number | null;
+    moodleCbtId?: number | null;
+    cohortMoodleIds?: number[];
+    userMoodleIds?: number[];
+    roomCode?: string;
+    seatPrefix?: string;
+  }): Promise<OutboundSyncResult>;
+
   findLocalEntityForPush(
     entity: "class" | "student" | "subject" | "exam" | "question",
     id: string,

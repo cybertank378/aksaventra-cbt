@@ -7,12 +7,20 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
-import { type ChangeEvent, type DragEvent, type FC, useState } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type FC,
+  useEffect,
+  useState,
+} from "react";
 import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
+import type { ClassGroupDTO } from "@/modules/classes/domain/dto/ClassGroupDTO";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
 import Modal from "@/shared-ui/component/Modal";
+import SelectField from "@/shared-ui/component/SelectField";
 import {
   Table,
   TableBody,
@@ -22,10 +30,22 @@ import {
   TableRow,
 } from "@/shared-ui/component/Table";
 
+interface SimpleSubjectOption {
+  id: string;
+  name: string;
+}
+
+interface SimpleExamOption {
+  id: string;
+  title: string;
+  courseName?: string;
+}
+
 interface ImportStudentsModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  classes?: ClassGroupDTO[];
   cbtId?: number;
 }
 
@@ -33,7 +53,7 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
   open,
   onClose,
   onSuccess,
-  cbtId = 1,
+  classes = [],
 }) => {
   const { importStudents, isLoading } = useClassesApi();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -43,11 +63,65 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
   const [isParsing, setIsParsing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  const [defaultClassGroupId, setDefaultClassGroupId] = useState<string>("");
+  const [targetSubjectId, setTargetSubjectId] = useState<string>("");
+  const [targetExamId, setTargetExamId] = useState<string>("");
+  const [subjects, setSubjects] = useState<SimpleSubjectOption[]>([]);
+  const [exams, setExams] = useState<SimpleExamOption[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    void fetch("/api/subjects?detailed=true")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json.success && Array.isArray(json.data)) {
+          setSubjects(
+            json.data.map((s: { id: string; name: string }) => ({
+              id: s.id,
+              name: s.name,
+            })),
+          );
+        }
+      })
+      .catch(() => undefined);
+
+    void fetch("/api/exams")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json.success && Array.isArray(json.data)) {
+          setExams(
+            json.data.map(
+              (e: {
+                id?: string;
+                examId?: string;
+                title: string;
+                courseName?: string;
+              }) => ({
+                id: String(e.id || e.examId || ""),
+                title: e.title,
+                courseName: e.courseName,
+              }),
+            ),
+          );
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   const handleReset = () => {
     setSelectedFile(null);
     setRawCsvText("");
     setPreviewRows([]);
     setTotalRows(0);
+    setDefaultClassGroupId("");
+    setTargetSubjectId("");
+    setTargetExamId("");
   };
 
   const handleClose = () => {
@@ -110,7 +184,13 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
   const handleSubmit = async () => {
     if (!rawCsvText) return;
 
-    const res = await importStudents(rawCsvText, cbtId);
+    const selectedSubject = subjects.find((s) => s.id === targetSubjectId);
+    const res = await importStudents(rawCsvText, {
+      defaultClassGroupId: defaultClassGroupId || null,
+      subjectId: targetSubjectId || null,
+      courseName: selectedSubject?.name || null,
+      examId: targetExamId || null,
+    });
     if (res.success) {
       if (onSuccess) {
         onSuccess();
@@ -123,8 +203,8 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Import Data Siswa & Rombel (Excel / CSV)"
-      subtitle="Unggah berkas data siswa masal untuk sinkronisasi otomatis ke Moodle"
+      title="Batch Upload Siswa, Cohort & Enrollment (Excel / CSV)"
+      subtitle="Mendukung format Aksaventra & Moodle Upload Users CSV — otomatis tersimpan di Aksaventra CBT dan tersinkron ke Moodle"
       size="lg"
     >
       <div className="flex flex-col gap-5 py-2">
@@ -141,11 +221,13 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800">
-                  Gunakan Template Resmi CSV Excel
+                  Mendukung Template Aksaventra &amp; Moodle Batch Upload Users
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  Format:
+                  Aksaventra:
                   nis_username;nama_lengkap;password;kelas;ruang_ujian;nomor_meja;email
+                  {" · "}Moodle:
+                  username,password,firstname,lastname,email,cohort1,course1
                 </p>
               </div>
             </div>
@@ -270,6 +352,51 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
               </div>
             </Card>
 
+            {/* Optional Cohort & Enrollment Targets */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+              <SelectField
+                label="Kelas / Cohort Default (Opsional)"
+                value={defaultClassGroupId}
+                onChange={(e) => setDefaultClassGroupId(e.target.value)}
+                size="sm"
+              >
+                <option value="">Ikuti kolom kelas/cohort1 di berkas</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </SelectField>
+
+              <SelectField
+                label="Enroll ke Course / Mapel (Opsional)"
+                value={targetSubjectId}
+                onChange={(e) => setTargetSubjectId(e.target.value)}
+                size="sm"
+              >
+                <option value="">Tidak perlu / ikut kolom course1</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </SelectField>
+
+              <SelectField
+                label="Enroll ke Ujian / Quiz CBT (Opsional)"
+                value={targetExamId}
+                onChange={(e) => setTargetExamId(e.target.value)}
+                size="sm"
+              >
+                <option value="">Belum ditetapkan ke ujian</option>
+                {exams.map((ex) => (
+                  <option key={ex.id} value={ex.id}>
+                    {ex.title}
+                  </option>
+                ))}
+              </SelectField>
+            </div>
+
             {/* Preview Table */}
             {previewRows.length > 0 && (
               <div className="flex flex-col gap-1.5">
@@ -286,33 +413,38 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
                         Nama Lengkap
                       </TableHeaderCell>
                       <TableHeaderCell className="px-3 py-2 text-xs">
-                        Kelas
+                        Kelas / Cohort
+                      </TableHeaderCell>
+                      <TableHeaderCell className="px-3 py-2 text-xs">
+                        Course
                       </TableHeaderCell>
                       <TableHeaderCell className="px-3 py-2 text-xs">
                         Ruang
-                      </TableHeaderCell>
-                      <TableHeaderCell className="px-3 py-2 text-xs">
-                        Meja
                       </TableHeaderCell>
                     </TableRow>
                   </TableHead>
                   <TableBody className="divide-y divide-slate-100 text-slate-700">
                     {previewRows.map((r, i) => (
-                      <TableRow key={`row-${r.nis_username || i}`}>
+                      <TableRow
+                        key={`row-${r.nis_username || r.username || i}`}
+                      >
                         <TableCell className="px-3 py-2 text-xs font-mono">
-                          {r.nis_username || r.username || "-"}
+                          {r.nis_username || r.username || r.nis || "-"}
                         </TableCell>
                         <TableCell className="px-3 py-2 text-xs font-medium">
-                          {r.nama_lengkap || r.name || "-"}
+                          {r.nama_lengkap ||
+                            r.name ||
+                            `${r.firstname || ""} ${r.lastname || ""}`.trim() ||
+                            "-"}
                         </TableCell>
                         <TableCell className="px-3 py-2 text-xs">
-                          {r.kelas || r.class || "-"}
+                          {r.cohort || r.cohort1 || r.kelas || r.class || "-"}
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs">
+                          {r.course1 || r.course || r.mata_pelajaran || "-"}
                         </TableCell>
                         <TableCell className="px-3 py-2 text-xs">
                           {r.ruang_ujian || r.ruangan || "-"}
-                        </TableCell>
-                        <TableCell className="px-3 py-2 text-xs">
-                          {r.nomor_meja || r.meja || "-"}
                         </TableCell>
                       </TableRow>
                     ))}

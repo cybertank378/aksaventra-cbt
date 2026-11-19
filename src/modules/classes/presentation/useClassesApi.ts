@@ -7,6 +7,8 @@ import type {
   ClassGroupDTO,
   CreateClassGroupInputDTO,
   CreateStudentInputDTO,
+  EnrollStudentsInputDTO,
+  EnrollStudentsResultDTO,
   StudentDTO,
   UpdateClassGroupInputDTO,
   UpdateStudentInputDTO,
@@ -16,7 +18,18 @@ export interface ImportStudentsResultDTO {
   success: boolean;
   message: string;
   processedCount: number;
+  moodleSyncedCount?: number;
+  enrolledCount?: number;
   errors?: string[];
+}
+
+export interface ImportStudentsOptionsDTO {
+  defaultClassGroupId?: string | null;
+  subjectId?: string | null;
+  courseName?: string | null;
+  examId?: string | null;
+  roomCode?: string;
+  seatPrefix?: string;
 }
 
 export function useClassesApi() {
@@ -141,47 +154,57 @@ export function useClassesApi() {
   const importStudents = useCallback(
     async (
       rawCsvText: string,
-      cbtId: number = 1,
+      options?: ImportStudentsOptionsDTO | number,
     ): Promise<ImportStudentsResultDTO> => {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/moodle-proxy/mod_cbt_import_export", {
+        const opts: ImportStudentsOptionsDTO =
+          typeof options === "number" ? {} : (options ?? {});
+        const res = await fetch("/api/students/import", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: "import_students",
-            cbtid: cbtId,
-            payload: rawCsvText,
+            csvText: rawCsvText,
+            defaultClassGroupId: opts.defaultClassGroupId || null,
+            subjectId: opts.subjectId || null,
+            courseName: opts.courseName || null,
+            examId: opts.examId || null,
+            roomCode: opts.roomCode,
+            seatPrefix: opts.seatPrefix,
           }),
         });
 
-        const data = await res.json();
-        if (data.success) {
+        const json = await res.json();
+        const data = json.data;
+        if (json.success && data) {
           const msg =
-            data.message ||
-            `Berhasil mengimpor ${data.processed_count || 0} siswa.`;
+            json.message ||
+            `Berhasil mengimpor ${data.processedCount || 0} siswa.`;
           showSuccessToast(msg);
-          await fetchStudents();
+          await Promise.all([fetchStudents(), fetchClasses()]);
           return {
             success: true,
             message: msg,
-            processedCount: data.processed_count || 0,
+            processedCount: data.processedCount || 0,
+            moodleSyncedCount: data.moodleSyncedCount || 0,
+            enrolledCount: data.enrolledCount || 0,
             errors: data.errors || [],
           };
         }
 
-        const errMsg = data.message || data.error || "Gagal mengimpor siswa.";
+        const errMsg =
+          json.error?.message || json.message || "Gagal mengimpor data siswa.";
         showErrorToast(errMsg);
         setError(errMsg);
         return {
           success: false,
           message: errMsg,
-          processedCount: 0,
-          errors: data.errors || [errMsg],
+          processedCount: data?.processedCount || 0,
+          errors: data?.errors || [errMsg],
         };
       } catch {
-        const connErr = "Gagal terhubung ke Moodle Headless Bridge.";
+        const connErr = "Gangguan jaringan saat mengimpor data siswa.";
         showErrorToast(connErr);
         setError(connErr);
         return {
@@ -194,7 +217,46 @@ export function useClassesApi() {
         setIsLoading(false);
       }
     },
-    [fetchStudents],
+    [fetchStudents, fetchClasses],
+  );
+
+  const enrollStudents = useCallback(
+    async (
+      input: EnrollStudentsInputDTO,
+    ): Promise<EnrollStudentsResultDTO | null> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/students/enroll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          const resData = json.data as EnrollStudentsResultDTO;
+          const targetLabel =
+            resData.examTitle || resData.courseName || "Course / Ujian";
+          showSuccessToast(
+            `${resData.enrolledCount} siswa berhasil didaftarkan ke ${targetLabel}${resData.moodleSynced ? " (tersinkron ke Moodle)" : ""}.`,
+          );
+          return resData;
+        }
+        const msg =
+          json.error?.message || "Gagal mendaftarkan siswa ke course/ujian";
+        showErrorToast(msg);
+        setError(msg);
+        return null;
+      } catch {
+        const msg = "Gangguan jaringan saat mendaftarkan siswa ke course/ujian";
+        showErrorToast(msg);
+        setError(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
   );
 
   const exportStudents = useCallback(async (): Promise<string | null> => {
@@ -383,6 +445,7 @@ export function useClassesApi() {
     deleteStudent,
     bulkAssignStudentsClass,
     importStudents,
+    enrollStudents,
     exportStudents,
   };
 }

@@ -1,4 +1,5 @@
 import { prisma } from "@/libs/prisma";
+import { moodleSyncService } from "@/modules/sync/application/MoodleSyncService";
 import type {
   AssignGroupInputDTO,
   ExamParticipantDTO,
@@ -90,6 +91,30 @@ export class AssignGroupByExamUseCase {
       });
 
       seatIndex++;
+    }
+
+    if (process.env.NODE_ENV !== "test") {
+      const targetClasses = await prisma.classGroup
+        .findMany({
+          where: { id: { in: classGroupIds } },
+          select: { moodleId: true },
+        })
+        .catch(() => []);
+      const cohortMoodleIds = targetClasses
+        .map((c) => c.moodleId)
+        .filter((id): id is number => typeof id === "number" && id > 0);
+      const userMoodleIds = students
+        .map((s) => s.moodleUserId)
+        .filter((id): id is number => typeof id === "number" && id > 0);
+
+      void moodleSyncService.enrollStudentsInMoodle({
+        courseName: exam.courseName,
+        moodleCbtId: exam.moodleCbtId,
+        cohortMoodleIds,
+        userMoodleIds,
+        roomCode,
+        seatPrefix,
+      });
     }
 
     return assignedParticipants;

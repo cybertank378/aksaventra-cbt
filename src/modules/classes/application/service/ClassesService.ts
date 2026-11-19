@@ -1,8 +1,12 @@
 import type {
+  BatchImportStudentsInputDTO,
+  BatchImportStudentsResultDTO,
   BulkAssignStudentsClassInputDTO,
   ClassGroupDTO,
   CreateClassGroupInputDTO,
   CreateStudentInputDTO,
+  EnrollStudentsInputDTO,
+  EnrollStudentsResultDTO,
   StudentDTO,
   UpdateClassGroupInputDTO,
   UpdateStudentInputDTO,
@@ -14,8 +18,10 @@ import { ManageClassesUseCase } from "../usecases/ManageClassesUseCase";
 export class ClassesService {
   private readonly manageClassesUseCase: ManageClassesUseCase;
   private readonly createStudentUseCase: CreateStudentUseCase;
+  private readonly classesRepo: ClassesRepositoryInterface;
 
   constructor(classesRepo: ClassesRepositoryInterface) {
+    this.classesRepo = classesRepo;
     this.manageClassesUseCase = new ManageClassesUseCase(classesRepo);
     this.createStudentUseCase = new CreateStudentUseCase(classesRepo);
   }
@@ -84,5 +90,23 @@ export class ClassesService {
     input: BulkAssignStudentsClassInputDTO,
   ): Promise<number> {
     return await this.createStudentUseCase.bulkAssignStudentsToClass(input);
+  }
+
+  async batchImportStudents(
+    input: BatchImportStudentsInputDTO,
+  ): Promise<BatchImportStudentsResultDTO> {
+    if (!this.classesRepo.batchImportStudents) {
+      throw new Error("Batch import siswa tidak didukung oleh repository");
+    }
+    return await this.classesRepo.batchImportStudents(input);
+  }
+
+  async enrollStudents(
+    input: EnrollStudentsInputDTO,
+  ): Promise<EnrollStudentsResultDTO> {
+    if (!this.classesRepo.enrollStudents) {
+      throw new Error("Enrollment siswa tidak didukung oleh repository");
+    }
+    return await this.classesRepo.enrollStudents(input);
   }
 }
