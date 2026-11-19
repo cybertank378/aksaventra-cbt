@@ -1,4 +1,6 @@
 import type {
+  BatchImportClassesInputDTO,
+  BatchImportClassesResultDTO,
   BatchImportStudentsInputDTO,
   BatchImportStudentsResultDTO,
   ClassGroupDTO,
@@ -46,4 +48,8 @@ export interface ClassesRepositoryInterface {
   enrollStudents?(
     input: EnrollStudentsInputDTO,
   ): Promise<EnrollStudentsResultDTO>;
+  batchImportClasses?(
+    input: BatchImportClassesInputDTO,
+  ): Promise<BatchImportClassesResultDTO>;
+  exportClassesCsv?(): Promise<string>;
 }

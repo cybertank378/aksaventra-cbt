@@ -3,6 +3,7 @@ import { BaseController } from "@/core/base/BaseController";
 import type { ClassesService } from "../application/service/ClassesService";
 import {
   assignStudentSchema,
+  batchImportClassesSchema,
   batchImportStudentsSchema,
   bulkAssignStudentClassSchema,
   createClassSchema,
@@ -406,6 +407,62 @@ export class ClassesController extends BaseController {
         err instanceof Error
           ? err.message
           : "Gagal melakukan enrollment siswa ke course/ujian";
+      return NextResponse.json(
+        { success: false, error: { message: msg } },
+        { status: 500 },
+      );
+    }
+  }
+
+  public async batchImportClasses(request: NextRequest): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const parsed = batchImportClassesSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              message:
+                parsed.error.issues[0]?.message ||
+                "Validasi import CSV kelas gagal",
+              details: parsed.error.issues,
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      const result = await this.classesService.batchImportClasses(parsed.data);
+      return NextResponse.json({
+        success: result.processedCount > 0,
+        data: result,
+        message:
+          result.processedCount > 0
+            ? `Berhasil mengimpor ${result.processedCount} kelas (${result.assignedStudentsCount} siswa dikelompokkan).`
+            : result.errors[0] ||
+              "Tidak ada baris kelas yang berhasil diimpor.",
+      });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal mengimpor data kelas";
+      return NextResponse.json(
+        { success: false, error: { message: msg } },
+        { status: 500 },
+      );
+    }
+  }
+
+  public async exportClassesCsv(): Promise<NextResponse> {
+    try {
+      const csvData = await this.classesService.exportClassesCsv();
+      return NextResponse.json({
+        success: true,
+        data: { csvData },
+      });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal mengekspor data kelas";
       return NextResponse.json(
         { success: false, error: { message: msg } },
         { status: 500 },

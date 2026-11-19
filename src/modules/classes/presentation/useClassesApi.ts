@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/shared-ui/component/Toast";
 import type {
+  BatchImportClassesResultDTO,
   BulkAssignStudentsClassInputDTO,
   ClassGroupDTO,
   CreateClassGroupInputDTO,
@@ -429,6 +430,91 @@ export function useClassesApi() {
     [fetchStudents, fetchClasses],
   );
 
+  const importClasses = useCallback(
+    async (
+      rawCsvText: string,
+    ): Promise<
+      BatchImportClassesResultDTO & { success: boolean; message: string }
+    > => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/classes/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ csvText: rawCsvText }),
+        });
+        const json = await res.json();
+        const data = json.data as BatchImportClassesResultDTO | undefined;
+        if (json.success && data) {
+          const msg =
+            json.message ||
+            `Berhasil mengimpor ${data.processedCount} kelas (${data.assignedStudentsCount} siswa dikelompokkan).`;
+          showSuccessToast(msg);
+          await Promise.all([fetchClasses(), fetchStudents()]);
+          return {
+            success: true,
+            message: msg,
+            processedCount: data.processedCount,
+            assignedStudentsCount: data.assignedStudentsCount,
+            moodleSyncedCount: data.moodleSyncedCount,
+            errors: data.errors || [],
+          };
+        }
+        const errMsg =
+          json.error?.message || json.message || "Gagal mengimpor data kelas.";
+        showErrorToast(errMsg);
+        setError(errMsg);
+        return {
+          success: false,
+          message: errMsg,
+          processedCount: data?.processedCount || 0,
+          assignedStudentsCount: data?.assignedStudentsCount || 0,
+          moodleSyncedCount: data?.moodleSyncedCount || 0,
+          errors: data?.errors || [errMsg],
+        };
+      } catch {
+        const connErr = "Gangguan jaringan saat mengimpor data kelas.";
+        showErrorToast(connErr);
+        setError(connErr);
+        return {
+          success: false,
+          message: connErr,
+          processedCount: 0,
+          assignedStudentsCount: 0,
+          moodleSyncedCount: 0,
+          errors: [connErr],
+        };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchClasses, fetchStudents],
+  );
+
+  const exportClassesCsv = useCallback(async (): Promise<string | null> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/classes/export");
+      const json = await res.json();
+      if (json.success && json.data?.csvData) {
+        return json.data.csvData as string;
+      }
+      const msg = json.error?.message || "Gagal mengekspor data kelas";
+      showErrorToast(msg);
+      setError(msg);
+      return null;
+    } catch {
+      const msg = "Gangguan jaringan saat mengekspor data kelas";
+      showErrorToast(msg);
+      setError(msg);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     classes,
     students,
@@ -447,5 +533,7 @@ export function useClassesApi() {
     importStudents,
     enrollStudents,
     exportStudents,
+    importClasses,
+    exportClassesCsv,
   };
 }

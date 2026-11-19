@@ -4,6 +4,7 @@ export const createClassSchema = z.object({
   name: z.string().min(1, "Nama kelas wajib diisi"),
   code: z.string().optional(),
   description: z.string().optional(),
+  studentIds: z.array(z.string().min(1)).optional(),
 });
 
 export const createStudentSchema = z.object({
@@ -30,6 +31,11 @@ export const updateClassSchema = z.object({
   name: z.string().min(1, "Nama kelas wajib diisi").optional(),
   code: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
+  studentIds: z.array(z.string().min(1)).optional(),
+});
+
+export const batchImportClassesSchema = z.object({
+  csvText: z.string().min(1, "Konten berkas CSV kelas tidak boleh kosong"),
 });
 
 export const updateStudentSchema = z.object({
