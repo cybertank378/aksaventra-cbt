@@ -1,37 +1,89 @@
 "use client";
 
-import { Edit3, Eye, GraduationCap, Plus, Trash2, Users } from "lucide-react";
+import {
+  Download,
+  Edit3,
+  Eye,
+  FileDown,
+  FileUp,
+  GraduationCap,
+  Plus,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { type FC, useEffect, useState } from "react";
 import type { ClassGroupDTO } from "@/modules/classes/domain/dto/ClassGroupDTO";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import { showSuccessToast } from "@/shared-ui/component/Toast";
 import ClassBadge from "../atoms/ClassBadge";
 import CreateClassModal from "../molecules/CreateClassModal";
 import EditClassModal from "../molecules/EditClassModal";
+import ImportClassesModal from "../molecules/ImportClassesModal";
 import ViewClassModal from "../molecules/ViewClassModal";
+
+const SAMPLE_CLASSES_CSV = `fullname,lastname
+A SIFA CHECILIA EKA PUTRI,IX-1
+AHMAD DAHLAN,IX-1
+BUDI SANTOSO,IX-2
+CITRA LESTARI,IX-2
+DEWI SARTIKA,IX-3`;
+
+function triggerCsvDownload(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 export const ClassListGrid: FC = () => {
   const {
     classes,
+    students,
     isLoading,
     error,
     fetchClasses,
+    fetchStudents,
     fetchClassDetails,
     createClass,
     updateClass,
     deleteClass,
+    importClasses,
+    exportClassesCsv,
   } = useClassesApi();
   const [modalOpen, setModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [viewingClass, setViewingClass] = useState<ClassGroupDTO | null>(null);
   const [editingClass, setEditingClass] = useState<ClassGroupDTO | null>(null);
 
   useEffect(() => {
-    fetchClasses();
-    const handleSynced = () => fetchClasses();
+    void fetchClasses();
+    void fetchStudents();
+    const handleSynced = () => {
+      void fetchClasses();
+      void fetchStudents();
+    };
     window.addEventListener("aksaventra:synced", handleSynced);
     return () => window.removeEventListener("aksaventra:synced", handleSynced);
-  }, [fetchClasses]);
+  }, [fetchClasses, fetchStudents]);
+
+  const handleDownloadSample = () => {
+    triggerCsvDownload("sample_import_kelas.csv", SAMPLE_CLASSES_CSV);
+  };
+
+  const handleExportCsv = async () => {
+    const csvData = await exportClassesCsv();
+    if (csvData) {
+      triggerCsvDownload("data_rombel_kelas.csv", csvData);
+      showSuccessToast("Data kelas berhasil diekspor ke CSV");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-5 w-full">
@@ -46,16 +98,50 @@ export const ClassListGrid: FC = () => {
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="filled"
-          color="primary"
-          size="sm"
-          leftIcon={Plus}
-          onClick={() => setModalOpen(true)}
-        >
-          Tambah Kelas Baru
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={Download}
+            onClick={handleDownloadSample}
+            title="Unduh contoh format CSV import kelas"
+          >
+            Contoh CSV
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={FileUp}
+            onClick={() => setImportModalOpen(true)}
+          >
+            Import CSV
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={FileDown}
+            onClick={() => void handleExportCsv()}
+            disabled={isLoading}
+          >
+            Export CSV
+          </Button>
+          <Button
+            type="button"
+            variant="filled"
+            color="primary"
+            size="sm"
+            leftIcon={Plus}
+            onClick={() => setModalOpen(true)}
+          >
+            Tambah Kelas Baru
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -76,8 +162,8 @@ export const ClassListGrid: FC = () => {
             Belum ada rombel kelas terdaftar.
           </p>
           <p className="text-xs mt-1">
-            Klik tombol &quot;Tambah Kelas Baru&quot; untuk membuat kelompok
-            belajar.
+            Klik tombol &quot;Tambah Kelas Baru&quot; atau &quot;Import
+            CSV&quot; untuk membuat kelompok belajar.
           </p>
         </div>
       ) : (
@@ -146,7 +232,7 @@ export const ClassListGrid: FC = () => {
                     iconOnly
                     onClick={() => {
                       if (confirm(`Hapus kelas "${cls.name}"?`)) {
-                        deleteClass(cls.id);
+                        void deleteClass(cls.id);
                       }
                     }}
                     leftIcon={Trash2}
@@ -163,7 +249,22 @@ export const ClassListGrid: FC = () => {
       <CreateClassModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSubmit={createClass}
+        students={students}
+        onSubmit={async (data) => {
+          const ok = await createClass(data);
+          if (ok && data.studentIds && data.studentIds.length > 0) {
+            await fetchStudents();
+          }
+          return ok;
+        }}
+      />
+
+      {/* Import Classes CSV Modal */}
+      <ImportClassesModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={importClasses}
+        onDownloadSample={handleDownloadSample}
       />
 
       {/* View Class Members Modal */}
@@ -179,8 +280,16 @@ export const ClassListGrid: FC = () => {
       <EditClassModal
         open={Boolean(editingClass)}
         classGroup={editingClass}
+        students={students}
         onClose={() => setEditingClass(null)}
-        onSave={async (id, data) => Boolean(await updateClass(id, data))}
+        onSave={async (id, data) => {
+          const updated = await updateClass(id, data);
+          if (updated) {
+            await fetchStudents();
+            return true;
+          }
+          return false;
+        }}
       />
     </div>
   );

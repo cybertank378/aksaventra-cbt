@@ -25,12 +25,25 @@ export interface CreateClassGroupInputDTO {
   name: string;
   code?: string;
   description?: string;
+  studentIds?: string[];
 }
 
 export interface UpdateClassGroupInputDTO {
   name?: string;
   code?: string | null;
   description?: string | null;
+  studentIds?: string[];
+}
+
+export interface BatchImportClassesInputDTO {
+  csvText: string;
+}
+
+export interface BatchImportClassesResultDTO {
+  processedCount: number;
+  assignedStudentsCount: number;
+  moodleSyncedCount: number;
+  errors: string[];
 }
 
 export interface CreateStudentInputDTO {
