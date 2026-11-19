@@ -272,4 +272,42 @@ describe("MoodleSyncService Bidirectional Sync", () => {
       }),
     });
   });
+
+  it("enrollStudentsInMoodle calls mod_cbt_manage_groups enroll_students with resolved course, cohorts, and users", async () => {
+    const db = createMockDb();
+    db.subject.findFirst.mockResolvedValueOnce({ moodleCourseId: 12 });
+    const callMoodle = vi.fn().mockResolvedValue({
+      success: true,
+      message: "Enrolled",
+      record_id: 2,
+    });
+
+    const service = new MoodleSyncService(
+      db as unknown as PrismaClient,
+      callMoodle,
+    );
+
+    const res = await service.enrollStudentsInMoodle({
+      courseName: "Matematika",
+      moodleCbtId: 5,
+      cohortMoodleIds: [10],
+      userMoodleIds: [101, 102],
+      roomCode: "LAB-02",
+      seatPrefix: "A",
+    });
+
+    expect(res.synced).toBe(true);
+    expect(callMoodle).toHaveBeenCalledWith("mod_cbt_manage_groups", {
+      action: "enroll_students",
+      payload: JSON.stringify({
+        course_id: 12,
+        course_name: "Matematika",
+        cbt_id: 5,
+        cohort_ids: [10],
+        user_ids: [101, 102],
+        room_code: "LAB-02",
+        seat_prefix: "A",
+      }),
+    });
+  });
 });

@@ -9,7 +9,6 @@ import {
   FolderKanban,
   HelpCircle,
   Image as ImageIcon,
-  LineChart,
   Plus,
   Trash2,
   UploadCloud,
@@ -323,13 +322,6 @@ export const QuestionsListGrid: FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(q.id)}
-                      onChange={() => toggleSelectQuestion(q.id)}
-                      aria-label={`Pilih soal ${q.code}`}
-                      className="h-4 w-4 rounded border-slate-300 text-[#0097a7]"
-                    />
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(q.id)}

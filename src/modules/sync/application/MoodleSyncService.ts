@@ -158,6 +158,18 @@ export class MoodleSyncService {
     }
     return await this.repository.deleteEntityInMoodle(entity, moodleId);
   }
+
+  public async enrollStudentsInMoodle(input: {
+    courseName?: string | null;
+    moodleCourseId?: number | null;
+    moodleCbtId?: number | null;
+    cohortMoodleIds?: number[];
+    userMoodleIds?: number[];
+    roomCode?: string;
+    seatPrefix?: string;
+  }): Promise<OutboundSyncResult> {
+    return await this.repository.enrollStudentsInMoodle(input);
+  }
 }
 
 export const moodleSyncService = new MoodleSyncService();

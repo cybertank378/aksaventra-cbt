@@ -715,6 +715,57 @@ export class SyncRepository implements SyncRepositoryInterface {
     }
   }
 
+  public async enrollStudentsInMoodle(input: {
+    courseName?: string | null;
+    moodleCourseId?: number | null;
+    moodleCbtId?: number | null;
+    cohortMoodleIds?: number[];
+    userMoodleIds?: number[];
+    roomCode?: string;
+    seatPrefix?: string;
+  }): Promise<OutboundSyncResult> {
+    try {
+      let courseId = input.moodleCourseId ?? 0;
+      if (courseId <= 1 && input.courseName) {
+        const sub = await this.db.subject
+          .findFirst({
+            where: { name: input.courseName },
+            select: { moodleCourseId: true },
+          })
+          .catch(() => null);
+        if (sub?.moodleCourseId && sub.moodleCourseId > 1) {
+          courseId = sub.moodleCourseId;
+        }
+      }
+
+      const res = await this.callMoodle<MoodleManageGroupsResponse>(
+        "mod_cbt_manage_groups",
+        {
+          action: "enroll_students",
+          payload: JSON.stringify({
+            course_id: courseId,
+            course_name: input.courseName ?? "",
+            cbt_id: input.moodleCbtId ?? 0,
+            cohort_ids: (input.cohortMoodleIds ?? []).filter((id) => id > 0),
+            user_ids: (input.userMoodleIds ?? []).filter((id) => id > 0),
+            room_code: input.roomCode ?? "LAB-01",
+            seat_prefix: input.seatPrefix ?? "M",
+          }),
+        },
+      );
+
+      return { synced: Boolean(res?.success), moodleId: res?.record_id };
+    } catch (err) {
+      return {
+        synced: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to enroll students in Moodle",
+      };
+    }
+  }
+
   public async pushPendingLocalToMoodle(): Promise<void> {
     try {
       const pendingSubjects = await this.db.subject.findMany({
