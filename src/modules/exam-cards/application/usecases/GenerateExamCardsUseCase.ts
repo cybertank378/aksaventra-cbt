@@ -1,4 +1,5 @@
 import { prisma } from "@/libs/prisma";
+import { parseStoredRoomAndSeat } from "@/libs/roomSeatUtils";
 import type {
   ExamCardItemDTO,
   ExamCardsQueryDTO,
@@ -36,7 +37,11 @@ export class GenerateExamCardsUseCase {
     }
 
     return students.map((s, idx) => {
-      const seatNum = idx + 1 < 10 ? `M-0${idx + 1}` : `M-${idx + 1}`;
+      const fallbackSeat = idx + 1 < 10 ? `M-0${idx + 1}` : `M-${idx + 1}`;
+      const { roomCode, seatNumber } = parseStoredRoomAndSeat(
+        s.roomCode,
+        fallbackSeat,
+      );
       const hash = `${s.username}-${s.id.slice(0, 4)}`.toUpperCase();
 
       return {
@@ -44,8 +49,8 @@ export class GenerateExamCardsUseCase {
         nisn: s.username,
         fullName: s.fullName,
         className: s.classGroup?.name || s.className || "Kelas Reguler",
-        roomCode: s.roomCode || "LAB-01",
-        seatNumber: seatNum,
+        roomCode,
+        seatNumber: seatNumber || fallbackSeat,
         examTitle,
         sessionTime: "07:30 - 09:30 WIB",
         verificationCode: `AKSA-${hash}`,

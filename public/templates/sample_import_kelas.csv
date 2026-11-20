@@ -1,6 +1,6 @@
-fullname,lastname
-A SIFA CHECILIA EKA PUTRI,IX-1
-AHMAD DAHLAN,IX-1
-BUDI SANTOSO,IX-2
-CITRA LESTARI,IX-2
-DEWI SARTIKA,IX-3
+username,firstname,lastname,email,password
+ngaji92627001,A SIFA CHECILIA EKA PUTRI,IX-1,ngaji92627001@smpn29jkt.sch.id,Student123!
+ngaji92627002,ACHMAD HADI RUSMANA,IX-1,ngaji92627002@smpn29jkt.sch.id,Student123!
+ngaji82627037,ABID AQILA PRANAJA,VII-2,ngaji82627037@smpn29jkt.sch.id,Student123!
+ngaji82627038,ABIDZAR NAILUN NABHAN,VII-2,ngaji82627038@smpn29jkt.sch.id,Student123!
+ngaji82627072,ABIDZHAR ADWA FIRDAUS,VII-3,ngaji82627072@smpn29jkt.sch.id,Student123!

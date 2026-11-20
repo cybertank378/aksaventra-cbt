@@ -17,6 +17,7 @@ export interface StudentDTO {
   className?: string | null;
   classGroupId?: string | null;
   roomCode?: string | null;
+  seatNumber?: string | null;
   isActive: boolean;
   createdAt: string;
 }
@@ -54,6 +55,7 @@ export interface CreateStudentInputDTO {
   classGroupId?: string;
   className?: string;
   roomCode?: string;
+  seatNumber?: string;
 }
 
 export interface UpdateStudentInputDTO {
@@ -63,7 +65,17 @@ export interface UpdateStudentInputDTO {
   classGroupId?: string | null;
   className?: string | null;
   roomCode?: string | null;
+  seatNumber?: string | null;
   isActive?: boolean;
+}
+
+export interface BulkAssignRoomSeatsInputDTO {
+  assignments: Array<{
+    studentId: string;
+    roomCode: string;
+    seatNumber: string;
+  }>;
+  examId?: string | null;
 }
 
 export interface BulkAssignStudentsClassInputDTO {

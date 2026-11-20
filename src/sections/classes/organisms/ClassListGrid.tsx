@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  Building2,
   Download,
   Edit3,
   Eye,
   FileDown,
   FileUp,
   GraduationCap,
+  LayoutGrid,
   Plus,
   Trash2,
   Users,
@@ -22,13 +24,14 @@ import CreateClassModal from "../molecules/CreateClassModal";
 import EditClassModal from "../molecules/EditClassModal";
 import ImportClassesModal from "../molecules/ImportClassesModal";
 import ViewClassModal from "../molecules/ViewClassModal";
+import ExamRoomSeatLayoutManager from "./ExamRoomSeatLayoutManager";
 
-const SAMPLE_CLASSES_CSV = `fullname,lastname
-A SIFA CHECILIA EKA PUTRI,IX-1
-AHMAD DAHLAN,IX-1
-BUDI SANTOSO,IX-2
-CITRA LESTARI,IX-2
-DEWI SARTIKA,IX-3`;
+const SAMPLE_CLASSES_CSV = `username,firstname,lastname,email,password
+ngaji92627001,A SIFA CHECILIA EKA PUTRI,IX-1,ngaji92627001@smpn29jkt.sch.id,Student123!
+ngaji92627002,ACHMAD HADI RUSMANA,IX-1,ngaji92627002@smpn29jkt.sch.id,Student123!
+ngaji82627037,ABID AQILA PRANAJA,VII-2,ngaji82627037@smpn29jkt.sch.id,Student123!
+ngaji82627038,ABIDZAR NAILUN NABHAN,VII-2,ngaji82627038@smpn29jkt.sch.id,Student123!
+ngaji82627072,ABIDZHAR ADWA FIRDAUS,VII-3,ngaji82627072@smpn29jkt.sch.id,Student123!`;
 
 function triggerCsvDownload(filename: string, content: string) {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
@@ -56,7 +59,11 @@ export const ClassListGrid: FC = () => {
     deleteClass,
     importClasses,
     exportClassesCsv,
+    bulkAssignRoomAndSeats,
   } = useClassesApi();
+  const [activeTab, setActiveTab] = useState<"CLASSES" | "ROOMS_SEATS">(
+    "CLASSES",
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [viewingClass, setViewingClass] = useState<ClassGroupDTO | null>(null);
@@ -99,6 +106,33 @@ export const ClassListGrid: FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center rounded-2xl bg-slate-100 p-1 mr-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("CLASSES")}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                activeTab === "CLASSES"
+                  ? "bg-[#0d2b5c] text-white shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              Rombel Kelas ({classes.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("ROOMS_SEATS")}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                activeTab === "ROOMS_SEATS"
+                  ? "bg-[#0097a7] text-white shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Ruang &amp; Tata Letak Meja
+            </button>
+          </div>
+
           <Button
             type="button"
             variant="outline"
@@ -106,7 +140,7 @@ export const ClassListGrid: FC = () => {
             size="sm"
             leftIcon={Download}
             onClick={handleDownloadSample}
-            title="Unduh contoh format CSV import kelas"
+            title="Unduh contoh format CSV Moodle v5 (username,firstname,lastname,email,password)"
           >
             Contoh CSV
           </Button>
@@ -150,8 +184,14 @@ export const ClassListGrid: FC = () => {
         </div>
       )}
 
-      {/* Grid of Classes */}
-      {isLoading && classes.length === 0 ? (
+      {activeTab === "ROOMS_SEATS" ? (
+        <ExamRoomSeatLayoutManager
+          classes={classes}
+          students={students}
+          isLoading={isLoading}
+          onAssignRoomAndSeats={bulkAssignRoomAndSeats}
+        />
+      ) : isLoading && classes.length === 0 ? (
         <div className="flex items-center justify-center p-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-[#0097a7]" />
         </div>

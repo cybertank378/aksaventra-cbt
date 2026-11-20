@@ -3,6 +3,7 @@ import type {
   BatchImportClassesResultDTO,
   BatchImportStudentsInputDTO,
   BatchImportStudentsResultDTO,
+  BulkAssignRoomSeatsInputDTO,
   BulkAssignStudentsClassInputDTO,
   ClassGroupDTO,
   CreateClassGroupInputDTO,
@@ -126,5 +127,16 @@ export class ClassesService {
       throw new Error("Export CSV kelas tidak didukung oleh repository");
     }
     return await this.classesRepo.exportClassesCsv();
+  }
+
+  async bulkAssignRoomAndSeats(
+    input: BulkAssignRoomSeatsInputDTO,
+  ): Promise<number> {
+    if (!this.classesRepo.bulkAssignRoomAndSeats) {
+      throw new Error(
+        "Penempatan ruang & nomor meja massal tidak didukung oleh repository",
+      );
+    }
+    return await this.classesRepo.bulkAssignRoomAndSeats(input);
   }
 }

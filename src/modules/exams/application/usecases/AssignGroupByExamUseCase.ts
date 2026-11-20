@@ -1,4 +1,5 @@
 import { prisma } from "@/libs/prisma";
+import { formatStoredRoomAndSeat } from "@/libs/roomSeatUtils";
 import { moodleSyncService } from "@/modules/sync/application/MoodleSyncService";
 import type {
   AssignGroupInputDTO,
@@ -43,10 +44,10 @@ export class AssignGroupByExamUseCase {
       const paddedIndex = seatIndex < 10 ? `0${seatIndex}` : `${seatIndex}`;
       const seatNumber = `${seatPrefix}-${paddedIndex}`;
 
-      // Update student's current room assignment
+      // Update student's current room and seat assignment
       await prisma.user.update({
         where: { id: student.id },
-        data: { roomCode },
+        data: { roomCode: formatStoredRoomAndSeat(roomCode, seatNumber) },
       });
 
       // Upsert attempt / roster entry

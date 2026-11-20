@@ -3,6 +3,7 @@ import type {
   BatchImportClassesResultDTO,
   BatchImportStudentsInputDTO,
   BatchImportStudentsResultDTO,
+  BulkAssignRoomSeatsInputDTO,
   ClassGroupDTO,
   CreateClassGroupInputDTO,
   CreateStudentInputDTO,
@@ -52,4 +53,5 @@ export interface ClassesRepositoryInterface {
     input: BatchImportClassesInputDTO,
   ): Promise<BatchImportClassesResultDTO>;
   exportClassesCsv?(): Promise<string>;
+  bulkAssignRoomAndSeats?(input: BulkAssignRoomSeatsInputDTO): Promise<number>;
 }

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/shared-ui/component/Toast";
 import type {
   BatchImportClassesResultDTO,
+  BulkAssignRoomSeatsInputDTO,
   BulkAssignStudentsClassInputDTO,
   ClassGroupDTO,
   CreateClassGroupInputDTO,
@@ -515,6 +516,42 @@ export function useClassesApi() {
     }
   }, []);
 
+  const bulkAssignRoomAndSeats = useCallback(
+    async (input: BulkAssignRoomSeatsInputDTO): Promise<boolean> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/students/assign-seats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const json = await res.json();
+        if (json.success) {
+          showSuccessToast(
+            json.message ||
+              `Berhasil menyimpan ruang & nomor meja untuk ${json.data?.updatedCount ?? input.assignments.length} siswa.`,
+          );
+          await fetchStudents();
+          return true;
+        }
+        const msg =
+          json.error?.message || "Gagal menyimpan tata letak nomor meja";
+        showErrorToast(msg);
+        setError(msg);
+        return false;
+      } catch {
+        const msg = "Gangguan jaringan saat menyimpan tata letak nomor meja";
+        showErrorToast(msg);
+        setError(msg);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchStudents],
+  );
+
   return {
     classes,
     students,
@@ -530,6 +567,7 @@ export function useClassesApi() {
     updateStudent,
     deleteStudent,
     bulkAssignStudentsClass,
+    bulkAssignRoomAndSeats,
     importStudents,
     enrollStudents,
     exportStudents,
