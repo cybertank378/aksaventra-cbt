@@ -19,6 +19,7 @@ export const createStudentSchema = z.object({
   classGroupId: z.string().optional(),
   className: z.string().optional(),
   roomCode: z.string().optional(),
+  seatNumber: z.string().optional(),
 });
 
 export const assignStudentSchema = z.object({
@@ -49,7 +50,21 @@ export const updateStudentSchema = z.object({
   classGroupId: z.string().nullable().optional(),
   className: z.string().nullable().optional(),
   roomCode: z.string().nullable().optional(),
+  seatNumber: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
+});
+
+export const bulkAssignRoomSeatsSchema = z.object({
+  assignments: z
+    .array(
+      z.object({
+        studentId: z.string().min(1),
+        roomCode: z.string().min(1),
+        seatNumber: z.string().min(1),
+      }),
+    )
+    .min(1, "Minimal 1 penempatan meja siswa diperlukan"),
+  examId: z.string().nullable().optional(),
 });
 
 export const bulkAssignStudentClassSchema = z.object({

@@ -17,12 +17,12 @@ export interface ImportClassesModalProps {
   onDownloadSample: () => void;
 }
 
-const SAMPLE_CSV_PREVIEW = `fullname,lastname
-A SIFA CHECILIA EKA PUTRI,IX-1
-AHMAD DAHLAN,IX-1
-BUDI SANTOSO,IX-2
-CITRA LESTARI,IX-2
-DEWI SARTIKA,IX-3`;
+const SAMPLE_CSV_PREVIEW = `username,firstname,lastname,email,password
+ngaji92627001,A SIFA CHECILIA EKA PUTRI,IX-1,ngaji92627001@smpn29jkt.sch.id,Student123!
+ngaji92627002,ACHMAD HADI RUSMANA,IX-1,ngaji92627002@smpn29jkt.sch.id,Student123!
+ngaji82627037,ABID AQILA PRANAJA,VII-2,ngaji82627037@smpn29jkt.sch.id,Student123!
+ngaji82627038,ABIDZAR NAILUN NABHAN,VII-2,ngaji82627038@smpn29jkt.sch.id,Student123!
+ngaji82627072,ABIDZHAR ADWA FIRDAUS,VII-3,ngaji82627072@smpn29jkt.sch.id,Student123!`;
 
 export const ImportClassesModal: FC<ImportClassesModalProps> = ({
   open,
@@ -76,16 +76,16 @@ export const ImportClassesModal: FC<ImportClassesModalProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-xs font-bold text-slate-800">
-                Format CSV Rombongan Belajar (Kelas)
+                Format CSV Moodle v5 (Upload Users &amp; Pengelompokan Kelas)
               </p>
               <p className="text-[11px] text-slate-500">
-                Gunakan header{" "}
+                Gunakan header standar Moodle v5{" "}
                 <code className="font-mono font-semibold text-slate-700">
-                  fullname,lastname
+                  username,firstname,lastname,email,password
                 </code>{" "}
                 di mana kolom <code className="font-mono">lastname</code>{" "}
-                digunakan untuk memfilter dan mengelompokkan siswa ke dalam
-                rombel kelas secara otomatis.
+                otomatis digunakan sebagai nama kelas/rombel untuk memfilter dan
+                mengelompokkan siswa.
               </p>
             </div>
 

@@ -1,10 +1,15 @@
 import { prisma } from "@/libs/prisma";
+import {
+  formatStoredRoomAndSeat,
+  parseStoredRoomAndSeat,
+} from "@/libs/roomSeatUtils";
 import { moodleSyncService } from "@/modules/sync/application/MoodleSyncService";
 import type {
   BatchImportClassesInputDTO,
   BatchImportClassesResultDTO,
   BatchImportStudentsInputDTO,
   BatchImportStudentsResultDTO,
+  BulkAssignRoomSeatsInputDTO,
   ClassGroupDTO,
   CreateClassGroupInputDTO,
   CreateStudentInputDTO,
@@ -81,6 +86,30 @@ function parseCsvRecords(rawCsv: string): Array<Record<string, string>> {
 }
 
 export class ClassesRepository implements ClassesRepositoryInterface {
+  private mapStudentRecord(s: {
+    id: string;
+    username: string;
+    fullName: string;
+    className: string | null;
+    classGroupId: string | null;
+    roomCode: string | null;
+    isActive: boolean;
+    createdAt: Date;
+  }): StudentDTO {
+    const { roomCode, seatNumber } = parseStoredRoomAndSeat(s.roomCode);
+    return {
+      id: s.id,
+      username: s.username,
+      fullName: s.fullName,
+      className: s.className,
+      classGroupId: s.classGroupId,
+      roomCode,
+      seatNumber,
+      isActive: s.isActive,
+      createdAt: s.createdAt.toISOString(),
+    };
+  }
+
   async getAllClasses(): Promise<ClassGroupDTO[]> {
     const records = await prisma.classGroup.findMany({
       include: {
@@ -126,16 +155,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       studentCount: record.students.length,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
-      students: record.students.map((s) => ({
-        id: s.id,
-        username: s.username,
-        fullName: s.fullName,
-        className: s.className,
-        classGroupId: s.classGroupId,
-        roomCode: s.roomCode,
-        isActive: s.isActive,
-        createdAt: s.createdAt.toISOString(),
-      })),
+      students: record.students.map((s) => this.mapStudentRecord(s)),
     };
   }
 
@@ -301,19 +321,14 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       orderBy: { username: "asc" },
     });
 
-    return records.map((s) => ({
-      id: s.id,
-      username: s.username,
-      fullName: s.fullName,
-      className: s.className,
-      classGroupId: s.classGroupId,
-      roomCode: s.roomCode,
-      isActive: s.isActive,
-      createdAt: s.createdAt.toISOString(),
-    }));
+    return records.map((s) => this.mapStudentRecord(s));
   }
 
   async createStudent(data: CreateStudentInputDTO): Promise<StudentDTO> {
+    const storedRoom = formatStoredRoomAndSeat(
+      data.roomCode || "LAB-01",
+      data.seatNumber,
+    );
     const created = await prisma.user.create({
       data: {
         username: data.username,
@@ -322,7 +337,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         role: "STUDENT",
         className: data.className,
         classGroupId: data.classGroupId,
-        roomCode: data.roomCode || "LAB-01",
+        roomCode: storedRoom,
       },
     });
 
@@ -336,16 +351,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       });
     }
 
-    return {
-      id: created.id,
-      username: created.username,
-      fullName: created.fullName,
-      className: created.className,
-      classGroupId: created.classGroupId,
-      roomCode: created.roomCode,
-      isActive: created.isActive,
-      createdAt: created.createdAt.toISOString(),
-    };
+    return this.mapStudentRecord(created);
   }
 
   async assignStudentToClass(
@@ -384,16 +390,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
     });
     if (!s || s.role !== "STUDENT") return null;
 
-    return {
-      id: s.id,
-      username: s.username,
-      fullName: s.fullName,
-      className: s.className,
-      classGroupId: s.classGroupId,
-      roomCode: s.roomCode,
-      isActive: s.isActive,
-      createdAt: s.createdAt.toISOString(),
-    };
+    return this.mapStudentRecord(s);
   }
 
   async updateStudent(
@@ -416,6 +413,24 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         }
       }
 
+      let storedRoomCode: string | null | undefined;
+      if (data.roomCode !== undefined || data.seatNumber !== undefined) {
+        const current = await prisma.user.findUnique({
+          where: { id },
+          select: { roomCode: true },
+        });
+        const parsedCurrent = parseStoredRoomAndSeat(current?.roomCode);
+        const nextRoom =
+          data.roomCode !== undefined
+            ? data.roomCode || "LAB-01"
+            : parsedCurrent.roomCode;
+        const nextSeat =
+          data.seatNumber !== undefined
+            ? data.seatNumber
+            : parsedCurrent.seatNumber;
+        storedRoomCode = formatStoredRoomAndSeat(nextRoom, nextSeat);
+      }
+
       const updated = await prisma.user.update({
         where: { id },
         data: {
@@ -430,7 +445,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
           ...(resolvedClassName !== undefined
             ? { className: resolvedClassName }
             : {}),
-          ...(data.roomCode !== undefined ? { roomCode: data.roomCode } : {}),
+          ...(storedRoomCode !== undefined ? { roomCode: storedRoomCode } : {}),
           ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
         },
       });
@@ -448,16 +463,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         });
       }
 
-      return {
-        id: updated.id,
-        username: updated.username,
-        fullName: updated.fullName,
-        className: updated.className,
-        classGroupId: updated.classGroupId,
-        roomCode: updated.roomCode,
-        isActive: updated.isActive,
-        createdAt: updated.createdAt.toISOString(),
-      };
+      return this.mapStudentRecord(updated);
     } catch {
       return null;
     }
@@ -590,12 +596,20 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         row.mapel ||
         ""
       ).trim();
-      const roomCode = (
+      const rawRoomCode = (
         row.ruang_ujian ||
+        row.room_code ||
         row.ruangan ||
         input.roomCode ||
         "LAB-01"
       ).trim();
+      const rawSeatNumber = (
+        row.nomor_meja ||
+        row.seat_number ||
+        row.meja ||
+        ""
+      ).trim();
+      const roomCode = formatStoredRoomAndSeat(rawRoomCode, rawSeatNumber);
 
       if (!username || !fullName) {
         errors.push(
@@ -930,6 +944,14 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         description: string | null;
         fullnames: string[];
         usernames: string[];
+        studentRows: Array<{
+          username: string;
+          firstname: string;
+          lastname: string;
+          password: string;
+          roomCode: string;
+          seatNumber: string;
+        }>;
       }
     >();
 
@@ -937,11 +959,15 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       const row = records[idx];
       const rowNumber = idx + 2;
 
+      const rawUsername = (row.username || row.nis_username || row.nis || "")
+        .trim()
+        .toLowerCase();
+
       const rawFullname = (
+        row.firstname ||
         row.fullname ||
         row.full_name ||
         row.nama_lengkap ||
-        row.firstname ||
         row.nama ||
         ""
       ).trim();
@@ -949,6 +975,8 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       let rawLastname = (
         row.lastname ||
         row.last_name ||
+        row.cohort1 ||
+        row.cohort ||
         row.kelas ||
         row.rombel ||
         row.name ||
@@ -1002,6 +1030,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
         description,
         fullnames: [],
         usernames: [],
+        studentRows: [],
       };
 
       if (code && !existingEntry.code) existingEntry.code = code;
@@ -1011,6 +1040,48 @@ export class ClassesRepository implements ClassesRepositoryInterface {
 
       if (rawFullname) {
         existingEntry.fullnames.push(rawFullname);
+      }
+
+      if (rawUsername && rawFullname) {
+        existingEntry.studentRows.push({
+          username: rawUsername,
+          firstname: rawFullname,
+          lastname: rawLastname,
+          password: (row.password || "Student123!").trim(),
+          roomCode: (
+            row.room_code ||
+            row.ruang_ujian ||
+            row.ruangan ||
+            "LAB-01"
+          ).trim(),
+          seatNumber: (
+            row.seat_number ||
+            row.nomor_meja ||
+            row.meja ||
+            ""
+          ).trim(),
+        });
+      }
+
+      if (rawUsername && rawFullname) {
+        existingEntry.studentRows.push({
+          username: rawUsername,
+          firstname: rawFullname,
+          lastname: rawLastname,
+          password: (row.password || "Student123!").trim(),
+          roomCode: (
+            row.room_code ||
+            row.ruang_ujian ||
+            row.ruangan ||
+            "LAB-01"
+          ).trim(),
+          seatNumber: (
+            row.seat_number ||
+            row.nomor_meja ||
+            row.meja ||
+            ""
+          ).trim(),
+        });
       }
 
       if (rawStudents) {
@@ -1124,6 +1195,37 @@ export class ClassesRepository implements ClassesRepositoryInterface {
           }
         }
 
+        if (groupInfo.studentRows.length > 0) {
+          for (const sRow of groupInfo.studentRows) {
+            const baseName = stripTrailingLastname(sRow.firstname, lastname);
+            const combinedFullName = `${baseName} ${lastname}`.trim();
+            const storedRoom = formatStoredRoomAndSeat(
+              sRow.roomCode,
+              sRow.seatNumber,
+            );
+            const upsertedStudent = await prisma.user.upsert({
+              where: { username: sRow.username },
+              create: {
+                username: sRow.username,
+                fullName: combinedFullName,
+                passwordHash: sRow.password || "Student123!",
+                role: "STUDENT",
+                classGroupId: upserted.id,
+                className: upserted.name,
+                roomCode: storedRoom,
+                isActive: true,
+              },
+              update: {
+                fullName: combinedFullName,
+                classGroupId: upserted.id,
+                className: upserted.name,
+                ...(sRow.seatNumber ? { roomCode: storedRoom } : {}),
+              },
+            });
+            matchedStudentIds.add(upsertedStudent.id);
+          }
+        }
+
         if (matchedStudentIds.size > 0) {
           const assigned = await prisma.user.updateMany({
             where: {
@@ -1225,7 +1327,7 @@ export class ClassesRepository implements ClassesRepositoryInterface {
       };
     };
 
-    const lines = ["fullname,lastname"];
+    const lines = ["username,firstname,lastname,email,password"];
     if (students.length > 0) {
       for (const s of students) {
         const resolvedClass = s.classGroup?.name || s.className || null;
@@ -1233,17 +1335,70 @@ export class ClassesRepository implements ClassesRepositoryInterface {
           s.fullName,
           resolvedClass,
         );
-        lines.push([escapeCsv(fullname), escapeCsv(lastname)].join(","));
+        lines.push(
+          [
+            escapeCsv(s.username),
+            escapeCsv(fullname),
+            escapeCsv(lastname),
+            escapeCsv(`${s.username}@smpn29jkt.sch.id`),
+            "Student123!",
+          ].join(","),
+        );
       }
     } else {
       const classes = await prisma.classGroup.findMany({
         orderBy: { name: "asc" },
       });
       for (const cls of classes) {
-        lines.push(["", escapeCsv(cls.name)].join(","));
+        lines.push(["", "", escapeCsv(cls.name), "", ""].join(","));
       }
     }
 
     return lines.join("\n");
+  }
+
+  async bulkAssignRoomAndSeats(
+    input: BulkAssignRoomSeatsInputDTO,
+  ): Promise<number> {
+    let updatedCount = 0;
+
+    for (const item of input.assignments) {
+      const storedRoom = formatStoredRoomAndSeat(
+        item.roomCode,
+        item.seatNumber,
+      );
+      await prisma.user.updateMany({
+        where: { id: item.studentId, role: "STUDENT" },
+        data: { roomCode: storedRoom },
+      });
+
+      if (input.examId) {
+        const existingAttempt = await prisma.attempt.findUnique({
+          where: {
+            examId_userId: {
+              examId: input.examId,
+              userId: item.studentId,
+            },
+          },
+        });
+        if (!existingAttempt) {
+          await prisma.attempt.create({
+            data: {
+              examId: input.examId,
+              userId: item.studentId,
+              status: "IN_PROGRESS",
+              deviceHash: "unbound",
+              ipAddress: "0.0.0.0",
+              questionOrder: [],
+              answersJson: {},
+            },
+          });
+        }
+      }
+
+      updatedCount++;
+    }
+
+    return updatedCount;
   }
 }

@@ -1,4 +1,8 @@
 import { prisma } from "@/libs/prisma";
+import {
+  formatStoredRoomAndSeat,
+  parseStoredRoomAndSeat,
+} from "@/libs/roomSeatUtils";
 import type {
   ExamParticipantDTO,
   UpdateSeatNumberInputDTO,
@@ -16,7 +20,11 @@ export class ManageRosterUseCase {
 
     return attempts.map((att, index) => {
       const padded = index + 1 < 10 ? `0${index + 1}` : `${index + 1}`;
-      const seatNumber = `M-${padded}`;
+      const fallbackSeat = `M-${padded}`;
+      const { roomCode, seatNumber } = parseStoredRoomAndSeat(
+        att.user.roomCode,
+        fallbackSeat,
+      );
 
       return {
         attemptId: att.id,
@@ -24,8 +32,8 @@ export class ManageRosterUseCase {
         username: att.user.username,
         fullName: att.user.fullName,
         className: att.user.className,
-        roomCode: att.user.roomCode || "LAB-01",
-        seatNumber,
+        roomCode,
+        seatNumber: seatNumber || fallbackSeat,
         status: att.status as ExamParticipantDTO["status"],
         score: att.finalScore,
         assignedAt: att.createdAt.toISOString(),
@@ -34,11 +42,11 @@ export class ManageRosterUseCase {
   }
 
   async updateSeatNumber(input: UpdateSeatNumberInputDTO): Promise<boolean> {
-    const { studentId, roomCode } = input;
+    const { studentId, roomCode, seatNumber } = input;
     try {
       await prisma.user.update({
         where: { id: studentId },
-        data: { roomCode },
+        data: { roomCode: formatStoredRoomAndSeat(roomCode, seatNumber) },
       });
       return true;
     } catch {

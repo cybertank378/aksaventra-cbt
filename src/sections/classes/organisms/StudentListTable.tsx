@@ -132,16 +132,29 @@ export const StudentListTable: FC = () => {
       // Fallback to local students export
     }
 
-    // 2. Client fallback from loaded students
-    const headers = ["nis_username", "nama_lengkap", "kelas", "email"];
-    const rows = filteredStudents.map((s) => [
-      s.username,
-      s.fullName,
-      classes.find((c) => c.id === s.classGroupId)?.name || "-",
-      `${s.username}@cbt.local`,
-    ]);
+    // 2. Client fallback from loaded students (Moodle v5 format: username,firstname,lastname,email,password)
+    const headers = ["username", "firstname", "lastname", "email", "password"];
+    const rows = filteredStudents.map((s) => {
+      const className =
+        classes.find((c) => c.id === s.classGroupId)?.name || s.className || "";
+      const trimmed = s.fullName.trim();
+      const suffix = className ? ` ${className}` : "";
+      const firstname =
+        suffix &&
+        trimmed.toLowerCase().endsWith(suffix.toLowerCase()) &&
+        trimmed.length > suffix.length
+          ? trimmed.slice(0, trimmed.length - suffix.length).trim()
+          : trimmed;
+      return [
+        s.username,
+        firstname,
+        className || "-",
+        `${s.username}@smpn29jkt.sch.id`,
+        "Student123!",
+      ];
+    });
     const csvContent = generateExcelCsv(headers, rows);
-    downloadCsvBlob(csvContent, "daftar_siswa_cbt.csv");
+    downloadCsvBlob(csvContent, "daftar_siswa_moodle_v5.csv");
     setIsExporting(false);
   };
 
