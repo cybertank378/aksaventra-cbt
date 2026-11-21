@@ -73,28 +73,6 @@ export function normalizeQuestionType(
     return "multichoice";
   }
 
-
-  if (lower === "match") {
-    return "matching";
-  }
-  if (lower === "gapselect" || lower === "ddwtos") {
-    return "cloze";
-  }
-  if (lower === "multichoice_multi") {
-    return "mcma";
-  }
-  if (lower === "multichoice_single" || lower === "multichoice") {
-    if (Array.isArray(options)) {
-      const correctCount = options.filter(
-        (opt) => opt.isCorrect === true || (typeof opt.fraction === "number" && opt.fraction > 0),
-      ).length;
-      if (correctCount > 1) {
-        return "mcma";
-      }
-    }
-    return "multichoice";
-  }
-
   if (VALID_QUESTION_TYPES.has(lower)) {
     return lower;
   }
@@ -105,7 +83,7 @@ export class SyncRepository implements SyncRepositoryInterface {
   constructor(
     private readonly db: PrismaClient = defaultPrisma,
     private readonly callMoodle: MoodleApiCaller = defaultCallMoodleApi,
-  ) { }
+  ) {}
 
   public async pullFromMoodle(action: string): Promise<MoodlePullPayload> {
     const res = await this.callMoodle<MoodleSyncMasterResponse>(
@@ -266,10 +244,22 @@ export class SyncRepository implements SyncRepositoryInterface {
       const username = s.username?.trim().toLowerCase();
       if (!username) continue;
 
-      let classGroupId: string | null = null;
-      let className: string | null = s.class_name?.trim() || null;
+      const rawRole = s.role?.toUpperCase();
+      const incomingRole: "ADMIN" | "TEACHER" | "PROCTOR" | "STUDENT" =
+        rawRole === "ADMIN" ||
+        rawRole === "TEACHER" ||
+        rawRole === "PROCTOR" ||
+        rawRole === "STUDENT"
+          ? rawRole
+          : username === "admin"
+            ? "ADMIN"
+            : "STUDENT";
 
-      if (s.class_id && s.class_id > 0) {
+      let classGroupId: string | null = null;
+      let className: string | null =
+        incomingRole === "STUDENT" ? s.class_name?.trim() || null : null;
+
+      if (incomingRole === "STUDENT" && s.class_id && s.class_id > 0) {
         const cls = await this.db.classGroup.findUnique({
           where: { moodleId: s.class_id },
         });
@@ -286,13 +276,22 @@ export class SyncRepository implements SyncRepositoryInterface {
       });
 
       if (existing) {
+        const resolvedRole =
+          existing.role === "ADMIN" || incomingRole === "ADMIN"
+            ? "ADMIN"
+            : s.role
+              ? incomingRole
+              : existing.role;
+
         await this.db.user.update({
           where: { id: existing.id },
           data: {
             moodleUserId: s.user_id,
             fullName: s.full_name?.trim() || existing.fullName,
-            classGroupId,
-            className,
+            role: resolvedRole,
+            ...(resolvedRole === "STUDENT"
+              ? { classGroupId, className }
+              : { classGroupId: null, className: null }),
             isActive: true,
           },
         });
@@ -302,11 +301,11 @@ export class SyncRepository implements SyncRepositoryInterface {
             moodleUserId: s.user_id,
             username,
             fullName: s.full_name?.trim() || username,
-            passwordHash: "Siswa123*",
-            role: "STUDENT",
+            passwordHash: incomingRole === "ADMIN" ? "Admin123*" : "Siswa123*",
+            role: incomingRole,
             classGroupId,
             className,
-            roomCode: "LAB-01",
+            roomCode: incomingRole === "STUDENT" ? "LAB-01" : null,
             isActive: true,
           },
         });
@@ -467,6 +466,7 @@ export class SyncRepository implements SyncRepositoryInterface {
     username: string;
     fullName: string;
     password?: string;
+    role?: string;
     classGroupId?: string | null;
     isActive?: boolean;
     replaceCohort?: boolean;
@@ -513,6 +513,9 @@ export class SyncRepository implements SyncRepositoryInterface {
             firstname,
             lastname,
             password: input.password || "",
+            ...(input.role && input.role !== "STUDENT"
+              ? { role: input.role }
+              : {}),
             class_id: moodleClassId,
             replace_cohort: input.replaceCohort ?? true,
             ...(input.isActive !== undefined
@@ -833,12 +836,12 @@ export class SyncRepository implements SyncRepositoryInterface {
         pendingClasses.map((cls) => this.pushClassToMoodle(cls)),
       );
 
-      const pendingStudents = await this.db.user.findMany({
-        where: { role: "STUDENT", moodleUserId: null, isActive: true },
+      const pendingUsers = await this.db.user.findMany({
+        where: { moodleUserId: null, isActive: true },
         take: 25,
       });
       await Promise.allSettled(
-        pendingStudents.map((student) => this.pushStudentToMoodle(student)),
+        pendingUsers.map((u) => this.pushStudentToMoodle(u)),
       );
 
       const pendingQuestions = await this.db.question.findMany({
