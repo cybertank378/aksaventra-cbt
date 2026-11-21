@@ -59,7 +59,7 @@ export const DEFAULT_EXAM_CARD_SETTINGS: ExamCardSettings = {
   address: "Jl. Pendidikan Nasional No. 45",
   contactText: "Telepon (021) 7890123 • E-mail : info@aksaventra.sch.id",
   postalCode: "12345",
-  logoUrl: undefined,
+  logoUrl: "/assets/images/logo/web-app-manifest-192x192.png",
   stampUrl: undefined,
   showStamp: false,
 

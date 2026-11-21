@@ -112,6 +112,13 @@ function resolveCbtHeader(pathname: string): {
       subtitle: "Pengelolaan akun login dan pemetaan rombel belajar siswa",
     };
   }
+  if (pathname.includes("/rooms")) {
+    return {
+      title: "Kelola Ruang & Tata Letak Meja Ujian",
+      subtitle:
+        "Pengaturan ruang ujian, pembuatan nomor meja otomatis, denah 2D, dan cetak PDF meja",
+    };
+  }
   if (pathname.includes("/exam-cards")) {
     return {
       title: "Cetak Kartu Ujian Siswa",
