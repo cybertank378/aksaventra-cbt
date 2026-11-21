@@ -10,7 +10,6 @@ import {
   CreditCard,
   DoorOpen,
   FileText,
-  GraduationCap,
   HelpCircle,
   LayoutDashboard,
   LayoutGrid,
@@ -20,6 +19,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -216,19 +216,26 @@ export default function AppSidebar({
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
-        {/* SIDEBAR HEADER: CBT ONLINE LOGO */}
+        {/* SIDEBAR HEADER: AKSAVENTRA CBT LOGO */}
         <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4">
           <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#2563eb] text-white shadow-md shadow-blue-500/20">
-              <GraduationCap className="h-6 w-6" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white border border-slate-200/80 p-1 shadow-xs">
+              <Image
+                src="/assets/images/logo/web-app-manifest-192x192.png"
+                alt="Aksaventra CBT"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+                priority
+              />
             </div>
             {!collapsed && (
               <div className="truncate">
-                <span className="font-extrabold tracking-tight text-slate-900 text-base">
-                  CBT ONLINE
+                <span className="font-extrabold tracking-tight text-[#0d2b5c] text-base">
+                  Aksaventra <span className="text-[#0097a7]">CBT</span>
                 </span>
                 <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Aksaventra CBT
+                  Computer Based Test
                 </span>
               </div>
             )}

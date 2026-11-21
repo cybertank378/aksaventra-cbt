@@ -1,6 +1,7 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import type { FC } from "react";
 import Badge from "@/shared-ui/component/Badge";
 import LoginForm, { type LoginFormProps } from "../organisms/LoginForm";
@@ -17,15 +18,20 @@ export const AuthSection: FC<AuthSectionProps> = ({
     <div className="flex min-h-screen flex-col items-center justify-between bg-slate-50 px-4 py-8 sm:px-6">
       {/* Top Aksaventra Brand Bar */}
       <header className="flex flex-col items-center gap-2 pt-4 sm:pt-8 text-center">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0d2b5c] text-white shadow-md">
-            <span className="font-extrabold text-xl tracking-wider text-[#eab308]">
-              A
-            </span>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-slate-200/80 p-1.5 shadow-md">
+            <Image
+              src="/assets/images/logo/web-app-manifest-192x192.png"
+              alt="Aksaventra CBT"
+              width={40}
+              height={40}
+              className="h-9 w-9 object-contain"
+              priority
+            />
           </div>
           <div className="flex flex-col text-left">
             <span className="text-xl sm:text-2xl font-black tracking-tight text-[#0d2b5c]">
-              AKSAVENTRA<span className="text-[#0097a7]">CBT</span>
+              Aksaventra <span className="text-[#0097a7]">CBT</span>
             </span>
             <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
               Zero-Latency Exam Workspace

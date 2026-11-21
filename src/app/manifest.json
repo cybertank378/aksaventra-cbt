@@ -1,0 +1,22 @@
+{
+  "name": "Aksaventra CBT",
+  "short_name": "Aksaventra CBT",
+  "description": "High-Performance Zero-Latency Computer Based Testing System",
+  "icons": [
+    {
+      "src": "/assets/images/logo/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/images/logo/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#0d2b5c",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
