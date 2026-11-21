@@ -1,4 +1,5 @@
 import argon2 from "argon2";
+import { callMoodleApi } from "@/libs/moodleClient";
 import { prisma as defaultPrisma, type PrismaClient } from "@/libs/prisma";
 import type { UserRole } from "@/security/rbacConfig";
 import { UserSessionEntity } from "../domain/entities/UserSessionEntity";
@@ -331,7 +332,7 @@ export class AuthRepository implements AuthRepositoryInterface {
 
       if (res.ok) {
         const data = await res.json();
-        if (data && data.valid && data.userid) {
+        if (data?.valid && data.userid) {
           return {
             moodleUserId: Number(data.userid),
             username: data.username,
@@ -357,9 +358,56 @@ export class AuthRepository implements AuthRepositoryInterface {
     fullName: string;
     role: UserRole;
   } | null> {
+    // 0. Fast & reliable path via mod_cbt_sync_master (works for Site Admins, Teachers, Proctors, and Students!)
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        const wsVerify = await callMoodleApi<{
+          success: boolean;
+          record_id?: number;
+          data_json?: string;
+        }>("mod_cbt_sync_master", {
+          action: "verify_user_credentials",
+          payload: JSON.stringify({ username, password }),
+        });
+
+        if (wsVerify?.data_json) {
+          const parsed = JSON.parse(wsVerify.data_json) as {
+            valid?: boolean;
+            user_id?: number;
+            username?: string;
+            full_name?: string;
+            role?: UserRole;
+          };
+          if (parsed.valid && parsed.user_id) {
+            return {
+              moodleUserId: Number(parsed.user_id),
+              username: parsed.username || username,
+              fullName: parsed.full_name || username,
+              role:
+                parsed.role ||
+                (username.toLowerCase() === "admin" ? "ADMIN" : "STUDENT"),
+            };
+          }
+          if (parsed.valid === false) {
+            return null;
+          }
+        }
+      } catch {
+        // Fallback to /login/token.php and direct DB check
+      }
+    }
+
+    const wsEndpointBase = process.env.MOODLE_WS_ENDPOINT
+      ? process.env.MOODLE_WS_ENDPOINT.replace(
+          /\/webservice\/rest\/server\.php$/,
+          "",
+        )
+      : undefined;
+
     const candidateUrls = Array.from(
       new Set(
         [
+          wsEndpointBase,
           process.env.NEXT_PUBLIC_MOODLE_URL,
           "http://127.0.0.1:8080",
           "http://localhost:8080",
@@ -391,7 +439,9 @@ export class AuthRepository implements AuthRepositoryInterface {
               `${moodleBaseUrl}/webservice/rest/server.php`,
               {
                 method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
                 body: new URLSearchParams({
                   wstoken,
                   wsfunction: "core_webservice_get_site_info",
@@ -419,7 +469,7 @@ export class AuthRepository implements AuthRepositoryInterface {
             }
           }
 
-          // 2. Student password is valid, but Moodle restricts web service token generation
+          // 2. Password is valid, but Moodle restricts web service token generation (e.g., Site Admin or Student)
           if (data?.errorcode === "cannotcreatetoken") {
             try {
               const moodleUsers = (await this.db.$queryRawUnsafe(
@@ -434,14 +484,32 @@ export class AuthRepository implements AuthRepositoryInterface {
 
               if (moodleUsers && moodleUsers.length > 0) {
                 const mu = moodleUsers[0];
+                const moodleId = Number(mu.id);
                 const fullName =
                   `${mu.firstname || ""} ${mu.lastname || ""}`.trim() ||
                   mu.username;
+
+                let resolvedRole: UserRole =
+                  mu.username.toLowerCase() === "admin" ? "ADMIN" : "STUDENT";
+                try {
+                  const siteAdmins = (await this.db.$queryRawUnsafe(
+                    "SELECT value FROM moodle.mdl_config WHERE name = 'siteadmins' LIMIT 1",
+                  )) as Array<{ value: string }>;
+                  const adminIds =
+                    siteAdmins?.[0]?.value?.split(",")?.map((s) => s.trim()) ||
+                    [];
+                  if (adminIds.includes(String(moodleId))) {
+                    resolvedRole = "ADMIN";
+                  }
+                } catch {
+                  // Ignore siteadmins lookup error
+                }
+
                 return {
-                  moodleUserId: Number(mu.id),
+                  moodleUserId: moodleId,
                   username: mu.username,
                   fullName,
-                  role: "STUDENT",
+                  role: resolvedRole,
                 };
               }
             } catch {
