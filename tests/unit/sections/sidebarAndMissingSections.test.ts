@@ -31,6 +31,7 @@ describe("Sidebar Navigation Structure & Categories (Issue #27)", () => {
     expect(itemIds).toContain("create-question");
     expect(itemIds).toContain("questions");
     expect(itemIds).toContain("students");
+    expect(itemIds).toContain("exam-rooms");
     expect(itemIds).toContain("exam-cards");
 
     // KOMUNIKASI
@@ -39,7 +40,7 @@ describe("Sidebar Navigation Structure & Categories (Issue #27)", () => {
     // LAPORAN
     expect(itemIds).toContain("results");
 
-    expect(flatItems.length).toBe(11);
+    expect(flatItems.length).toBe(12);
   });
 });
 

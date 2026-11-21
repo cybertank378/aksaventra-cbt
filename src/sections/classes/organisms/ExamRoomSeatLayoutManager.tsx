@@ -21,6 +21,7 @@ import type {
   ClassGroupDTO,
   StudentDTO,
 } from "@/modules/classes/domain/dto/ClassGroupDTO";
+import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
@@ -64,11 +65,11 @@ const DEFAULT_ROOMS: ExamRoomConfig[] = [
 const ROOMS_STORAGE_KEY = "aksaventra_exam_rooms_config_v1";
 
 export interface ExamRoomSeatLayoutManagerProps {
-  classes: ClassGroupDTO[];
-  students: StudentDTO[];
+  classes?: ClassGroupDTO[];
+  students?: StudentDTO[];
   isLoading?: boolean;
   examId?: string | null;
-  onAssignRoomAndSeats: (input: {
+  onAssignRoomAndSeats?: (input: {
     assignments: Array<{
       studentId: string;
       roomCode: string;
@@ -79,12 +80,34 @@ export interface ExamRoomSeatLayoutManagerProps {
 }
 
 export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
-  classes,
-  students,
-  isLoading = false,
+  classes: propClasses,
+  students: propStudents,
+  isLoading: propIsLoading,
   examId = null,
-  onAssignRoomAndSeats,
+  onAssignRoomAndSeats: propOnAssign,
 }) => {
+  const {
+    classes: hookClasses,
+    students: hookStudents,
+    isLoading: hookIsLoading,
+    fetchClasses,
+    fetchStudents,
+    bulkAssignRoomAndSeats,
+  } = useClassesApi();
+
+  const classes = propClasses ?? hookClasses;
+  const students = propStudents ?? hookStudents;
+  const isLoading = propIsLoading ?? hookIsLoading;
+  const onAssignRoomAndSeats = propOnAssign ?? bulkAssignRoomAndSeats;
+
+  useEffect(() => {
+    if (!propClasses) {
+      void fetchClasses();
+    }
+    if (!propStudents) {
+      void fetchStudents();
+    }
+  }, [propClasses, propStudents, fetchClasses, fetchStudents]);
   const [rooms, setRooms] = useState<ExamRoomConfig[]>(DEFAULT_ROOMS);
   const [activeRoomCode, setActiveRoomCode] = useState<string>("LAB-01");
   const [targetClassFilter, setTargetClassFilter] = useState<string>("ALL");

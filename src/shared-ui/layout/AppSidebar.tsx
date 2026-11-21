@@ -8,6 +8,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   CreditCard,
+  DoorOpen,
   FileText,
   GraduationCap,
   HelpCircle,
@@ -17,6 +18,7 @@ import {
   Megaphone,
   Radio,
   Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -115,6 +117,13 @@ export const DEFAULT_NAVIGATION_CATEGORIES: NavigationCategory[] = [
         allowedRoles: ["ADMIN", "TEACHER"],
       },
       {
+        id: "exam-rooms",
+        title: "Ruang & Meja Ujian",
+        path: "/dashboard/rooms",
+        icon: DoorOpen,
+        allowedRoles: ["ADMIN", "TEACHER"],
+      },
+      {
         id: "exam-cards",
         title: "Kartu Ujian",
         path: "/dashboard/exam-cards",
@@ -195,16 +204,16 @@ export default function AppSidebar({
           type="button"
           aria-label="Tutup navigasi sidebar"
           onClick={onClose}
-          className="fixed inset-0 z-40 h-full w-full cursor-default border-none bg-black/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 h-full w-full cursor-default border-none bg-black/40 backdrop-blur-sm md:hidden"
         />
       )}
 
       {/* SIDEBAR CONTAINER */}
       <aside
         className={clsx(
-          "fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200/90 text-slate-700 shadow-xl lg:shadow-xs transition-all duration-300 lg:static",
+          "fixed top-0 bottom-0 left-0 z-50 flex shrink-0 flex-col bg-white border-r border-slate-200/90 text-slate-700 shadow-xl md:shadow-xs transition-all duration-300 md:static",
           collapsed ? "w-20" : "w-64",
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
         {/* SIDEBAR HEADER: CBT ONLINE LOGO */}
@@ -225,18 +234,31 @@ export default function AppSidebar({
             )}
           </Link>
 
-          <button
-            type="button"
-            onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? "Perlebar navigasi" : "Ciutkan navigasi"}
-            className="hidden lg:flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-          >
-            {collapsed ? (
-              <ChevronsRight className="h-4 w-4" />
-            ) : (
-              <ChevronsLeft className="h-4 w-4" />
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setCollapsed(!collapsed)}
+              aria-label={collapsed ? "Perlebar navigasi" : "Ciutkan navigasi"}
+              className="hidden md:flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            >
+              {collapsed ? (
+                <ChevronsRight className="h-4 w-4" />
+              ) : (
+                <ChevronsLeft className="h-4 w-4" />
+              )}
+            </button>
+
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Tutup menu sidebar"
+                className="flex md:hidden h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
-          </button>
+          </div>
         </div>
 
         {/* NAVIGATION LIST GROUPED BY CATEGORY */}
