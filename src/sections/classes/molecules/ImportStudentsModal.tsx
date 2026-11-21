@@ -221,13 +221,15 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800">
-                  Mendukung Template Aksaventra &amp; Moodle Batch Upload Users
+                  Format Standar Moodle v5 Batch Upload Users
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  Aksaventra:
-                  nis_username;nama_lengkap;password;kelas;ruang_ujian;nomor_meja;email
-                  {" · "}Moodle:
-                  username,password,firstname,lastname,email,cohort1,course1
+                  Moodle v5:{" "}
+                  <code className="font-mono font-semibold text-slate-700">
+                    username,firstname,lastname,email,password
+                  </code>{" "}
+                  (kolom <code className="font-mono">lastname</code> otomatis
+                  dikelompokkan sebagai Kelas / Cohort)
                 </p>
               </div>
             </div>
@@ -438,13 +440,21 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
                             "-"}
                         </TableCell>
                         <TableCell className="px-3 py-2 text-xs">
-                          {r.cohort || r.cohort1 || r.kelas || r.class || "-"}
+                          {r.cohort ||
+                            r.cohort1 ||
+                            r.kelas ||
+                            r.class ||
+                            r.lastname ||
+                            "-"}
                         </TableCell>
                         <TableCell className="px-3 py-2 text-xs">
                           {r.course1 || r.course || r.mata_pelajaran || "-"}
                         </TableCell>
                         <TableCell className="px-3 py-2 text-xs">
-                          {r.ruang_ujian || r.ruangan || "-"}
+                          {r.room_code ||
+                            r.ruang_ujian ||
+                            r.ruangan ||
+                            "LAB-01"}
                         </TableCell>
                       </TableRow>
                     ))}

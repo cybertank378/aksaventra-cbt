@@ -5,6 +5,7 @@ import {
   assignStudentSchema,
   batchImportClassesSchema,
   batchImportStudentsSchema,
+  bulkAssignRoomSeatsSchema,
   bulkAssignStudentClassSchema,
   createClassSchema,
   createStudentSchema,
@@ -463,6 +464,47 @@ export class ClassesController extends BaseController {
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Gagal mengekspor data kelas";
+      return NextResponse.json(
+        { success: false, error: { message: msg } },
+        { status: 500 },
+      );
+    }
+  }
+
+  public async bulkAssignRoomAndSeats(
+    request: NextRequest,
+  ): Promise<NextResponse> {
+    try {
+      const body = await request.json();
+      const parsed = bulkAssignRoomSeatsSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              message:
+                parsed.error.issues[0]?.message ||
+                "Validasi penempatan ruang & nomor meja gagal",
+              details: parsed.error.issues,
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      const updatedCount = await this.classesService.bulkAssignRoomAndSeats(
+        parsed.data,
+      );
+      return NextResponse.json({
+        success: true,
+        data: { updatedCount },
+        message: `Berhasil menyimpan ruang & nomor meja untuk ${updatedCount} siswa.`,
+      });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Gagal menyimpan penempatan ruang & nomor meja";
       return NextResponse.json(
         { success: false, error: { message: msg } },
         { status: 500 },
