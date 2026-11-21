@@ -47,6 +47,13 @@ export const SIDEBAR_MENU_ITEMS: MenuItem[] = [
     allowedRoles: ["ADMIN", "TEACHER"],
   },
   {
+    id: "exam-rooms",
+    title: "Ruang & Meja Ujian",
+    path: "/dashboard/rooms",
+    icon: "DoorOpen",
+    allowedRoles: ["ADMIN", "TEACHER"],
+  },
+  {
     id: "audit-reports",
     title: "Laporan & Audit",
     path: "/dashboard/reports",

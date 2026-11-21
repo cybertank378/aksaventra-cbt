@@ -10,7 +10,7 @@ import { DEFAULT_EXAM_CARD_SETTINGS } from "@/modules/exam-cards/domain/dto/Exam
  */
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
-    if (!src) {
+    if (!src || typeof Image === "undefined") {
       resolve(null);
       return;
     }
@@ -155,7 +155,9 @@ export async function generateExamCardsPdf(
       doc.text("CBT", logoX + 4.75, logoY + 3.2, { align: "center" });
       doc.circle(logoX + 4.75, logoY + 6.2, 1.8);
       doc.setFontSize(3.0);
-      const abbr = settings.institutionName ? settings.institutionName.slice(0, 6) : "AKSA";
+      const abbr = settings.institutionName
+        ? settings.institutionName.slice(0, 6)
+        : "AKSA";
       doc.text(abbr, logoX + 4.75, logoY + 9.5, { align: "center" });
     }
 
@@ -231,9 +233,14 @@ export async function generateExamCardsPdf(
 
     if (settings.academicYear) {
       doc.setFontSize(5.0);
-      doc.text(`TAHUN PELAJARAN ${settings.academicYear}`, cardCenter, titleY + 5.2, {
-        align: "center",
-      });
+      doc.text(
+        `TAHUN PELAJARAN ${settings.academicYear}`,
+        cardCenter,
+        titleY + 5.2,
+        {
+          align: "center",
+        },
+      );
     }
 
     // 4. DATA SISWA
@@ -278,15 +285,24 @@ export async function generateExamCardsPdf(
     doc.setFont("times", "normal");
     doc.text("Kelas / Ruang", labelX, dataStartY + lineSpacing * 3);
     doc.text(":", colonX, dataStartY + lineSpacing * 3);
-    doc.text(`${card.className} / ${card.roomCode}`, valX, dataStartY + lineSpacing * 3);
+    doc.text(
+      `${card.className} / ${card.roomCode}`,
+      valX,
+      dataStartY + lineSpacing * 3,
+    );
 
     // 5. TABEL JADWAL UJIAN
     const tableTitleY = dataStartY + lineSpacing * 3 + 2.8;
     doc.setFont("times", "bold");
     doc.setFontSize(5.4);
-    doc.text(`JADWAL ${settings.examTitle || card.examTitle}`, cardCenter, tableTitleY, {
-      align: "center",
-    });
+    doc.text(
+      `JADWAL ${settings.examTitle || card.examTitle}`,
+      cardCenter,
+      tableTitleY,
+      {
+        align: "center",
+      },
+    );
 
     // Table Layout
     const tableX = x + 2.5;
@@ -310,8 +326,12 @@ export async function generateExamCardsPdf(
 
     doc.setFont("times", "bold");
     doc.setFontSize(4.8);
-    doc.text("Hari/Tanggal", colX1 + colW1 / 2, tableTop + 2.2, { align: "center" });
-    doc.text("Mata Pelajaran", colX2 + colW2 / 2, tableTop + 2.2, { align: "center" });
+    doc.text("Hari/Tanggal", colX1 + colW1 / 2, tableTop + 2.2, {
+      align: "center",
+    });
+    doc.text("Mata Pelajaran", colX2 + colW2 / 2, tableTop + 2.2, {
+      align: "center",
+    });
     doc.text("Waktu", colX3 + colW3 / 2, tableTop + 2.2, { align: "center" });
     doc.text("TTD", colX4 + colW4 / 2, tableTop + 2.2, { align: "center" });
 
@@ -349,10 +369,16 @@ export async function generateExamCardsPdf(
         doc.setFontSize(4.4);
         const lines = item.dayDate.split("\n");
         if (lines.length > 1) {
-          doc.text(lines[0], colX1 + colW1 / 2, currentY + 1.8, { align: "center" });
-          doc.text(lines[1], colX1 + colW1 / 2, currentY + 3.8, { align: "center" });
+          doc.text(lines[0], colX1 + colW1 / 2, currentY + 1.8, {
+            align: "center",
+          });
+          doc.text(lines[1], colX1 + colW1 / 2, currentY + 3.8, {
+            align: "center",
+          });
         } else {
-          doc.text(item.dayDate, colX1 + colW1 / 2, currentY + 2.8, { align: "center" });
+          doc.text(item.dayDate, colX1 + colW1 / 2, currentY + 2.8, {
+            align: "center",
+          });
         }
       }
 
@@ -360,18 +386,26 @@ export async function generateExamCardsPdf(
       doc.setFont("times", "normal");
       doc.setFontSize(4.4);
       if (subj1?.name) {
-        doc.text(subj1.name, colX2 + 1.5, currentY + 1.8, { maxWidth: colW2 - 2 });
+        doc.text(subj1.name, colX2 + 1.5, currentY + 1.8, {
+          maxWidth: colW2 - 2,
+        });
       }
       if (subj2?.name) {
-        doc.text(subj2.name, colX2 + 1.5, currentY + subRowH + 1.8, { maxWidth: colW2 - 2 });
+        doc.text(subj2.name, colX2 + 1.5, currentY + subRowH + 1.8, {
+          maxWidth: colW2 - 2,
+        });
       }
 
       // Col 3: Waktu (Blank if empty)
       if (subj1?.time) {
-        doc.text(subj1.time, colX3 + colW3 / 2, currentY + 1.8, { align: "center" });
+        doc.text(subj1.time, colX3 + colW3 / 2, currentY + 1.8, {
+          align: "center",
+        });
       }
       if (subj2?.time) {
-        doc.text(subj2.time, colX3 + colW3 / 2, currentY + subRowH + 1.8, { align: "center" });
+        doc.text(subj2.time, colX3 + colW3 / 2, currentY + subRowH + 1.8, {
+          align: "center",
+        });
       }
 
       currentY += rowH;

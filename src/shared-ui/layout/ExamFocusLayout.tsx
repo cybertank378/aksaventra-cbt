@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 export interface ExamFocusLayoutProps {
@@ -17,7 +18,7 @@ export interface ExamFocusLayoutProps {
 
 export default function ExamFocusLayout({
   children,
-  examTitle = "Ujian CBT Online",
+  examTitle = "Aksaventra CBT",
   courseName,
   studentName,
   studentId,
@@ -32,9 +33,16 @@ export default function ExamFocusLayout({
       <header className="sticky top-0 z-40 h-16 w-full bg-[#0d2b5c] text-white shadow-md border-b border-[#163b78] px-4 md:px-6 flex items-center justify-between">
         {/* LEFT: BRAND & EXAM INFO */}
         <div className="flex items-center gap-3 md:gap-4 min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-[#0097a7] flex items-center justify-center font-black text-white text-base shadow-sm">
-              A
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-white p-1 flex items-center justify-center shadow-sm">
+              <Image
+                src="/assets/images/logo/web-app-manifest-192x192.png"
+                alt="Aksaventra CBT"
+                width={28}
+                height={28}
+                className="h-7 w-7 object-contain"
+                priority
+              />
             </div>
             <div className="hidden sm:block">
               <span className="font-bold tracking-tight text-white text-sm md:text-base">
