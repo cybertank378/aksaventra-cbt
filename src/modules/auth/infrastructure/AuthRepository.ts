@@ -1,5 +1,6 @@
 import argon2 from "argon2";
 import { callMoodleApi } from "@/libs/moodleClient";
+import { verifyStoredPasswordHash } from "@/libs/passwordVerifier";
 import { prisma as defaultPrisma, type PrismaClient } from "@/libs/prisma";
 import type { UserRole } from "@/security/rbacConfig";
 import { UserSessionEntity } from "../domain/entities/UserSessionEntity";
@@ -156,10 +157,36 @@ export class AuthRepository implements AuthRepositoryInterface {
 
     if (!user) return false;
 
-    // 1. If user is a Moodle account or has no local password hash, authenticate with Moodle token.php
+    // 1. Fast local verification first (Argon2id / Argon2i or Moodle synced $6$ SHA-512 crypt)
+    if (user.passwordHash) {
+      const localCheck = await verifyStoredPasswordHash(
+        user.passwordHash,
+        plainTextPassword,
+      );
+      if (localCheck.valid) {
+        if (localCheck.needsArgon2Upgrade) {
+          try {
+            const upgradedHash = await argon2.hash(plainTextPassword);
+            await this.db.user.update({
+              where: { id: userId },
+              data: { passwordHash: upgradedHash },
+            });
+          } catch {
+            // Ignore upgrade failure
+          }
+        }
+        return true;
+      }
+    }
+
+    // 2. Fallback: If user is a Moodle account or has no valid local password hash, authenticate with Moodle token.php
     if (user.moodleUserId !== null || !user.passwordHash) {
-      const moodleBaseUrl =
-        process.env.NEXT_PUBLIC_MOODLE_URL || "http://127.0.0.1:8080";
+      const moodleBaseUrl = (
+        process.env.MOODLE_INTERNAL_URL ||
+        process.env.MOODLE_URL ||
+        process.env.NEXT_PUBLIC_MOODLE_URL ||
+        "http://127.0.0.1:8080"
+      ).replace(/\/+$/, "");
       try {
         const res = await fetch(
           `${moodleBaseUrl}/login/token.php?username=${encodeURIComponent(
@@ -167,24 +194,24 @@ export class AuthRepository implements AuthRepositoryInterface {
           )}&password=${encodeURIComponent(
             plainTextPassword,
           )}&service=mod_cbt_service`,
+          {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (compatible; AksaventraCBT/1.0)",
+            },
+            signal: AbortSignal.timeout(2000),
+          },
         );
         if (res.ok) {
           const data = await res.json();
-          if (data?.token && !data.error) {
+          if (
+            (data?.token && !data.error) ||
+            data?.errorcode === "cannotcreatetoken"
+          ) {
             return true;
           }
         }
       } catch {
-        // Fallback to local hash verify
-      }
-    }
-
-    // 2. Fallback to argon2 verification for local passwords
-    if (user.passwordHash) {
-      try {
-        return await argon2.verify(user.passwordHash, plainTextPassword);
-      } catch (_err) {
-        return false;
+        // Fallback failed
       }
     }
 
@@ -358,7 +385,42 @@ export class AuthRepository implements AuthRepositoryInterface {
     fullName: string;
     role: UserRole;
   } | null> {
-    // 0. Fast & reliable path via mod_cbt_sync_master (works for Site Admins, Teachers, Proctors, and Students!)
+    // 0a. Ultra-fast local DB verification (< 20ms, zero network latency) when user already has a valid Argon2 or $6$ hash
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        const localUser = await this.db.user.findUnique({
+          where: { username },
+          select: {
+            moodleUserId: true,
+            username: true,
+            fullName: true,
+            role: true,
+            passwordHash: true,
+            isActive: true,
+          },
+        });
+        if (localUser?.isActive && localUser.passwordHash) {
+          const check = await verifyStoredPasswordHash(
+            localUser.passwordHash,
+            password,
+          );
+          if (check.valid) {
+            return {
+              moodleUserId:
+                localUser.moodleUserId ??
+                (localUser.role === "ADMIN" ? 2 : 0),
+              username: localUser.username,
+              fullName: localUser.fullName,
+              role: localUser.role as UserRole,
+            };
+          }
+        }
+      } catch {
+        // Proceed to Moodle web service check
+      }
+    }
+
+    // 0b. Fast & reliable path via mod_cbt_sync_master (works for Site Admins, Teachers, Proctors, and Students!)
     if (process.env.NODE_ENV !== "test") {
       try {
         const wsVerify = await callMoodleApi<{
@@ -404,15 +466,20 @@ export class AuthRepository implements AuthRepositoryInterface {
         )
       : undefined;
 
+    const configuredUrls = [
+      process.env.MOODLE_INTERNAL_URL,
+      process.env.MOODLE_URL,
+      wsEndpointBase,
+      process.env.NEXT_PUBLIC_MOODLE_URL,
+    ]
+      .filter((u): u is string => Boolean(u))
+      .map((u) => u.replace(/\/+$/, ""));
+
     const candidateUrls = Array.from(
       new Set(
-        [
-          wsEndpointBase,
-          process.env.NEXT_PUBLIC_MOODLE_URL,
-          "http://127.0.0.1:8080",
-          "http://localhost:8080",
-          "http://192.168.0.4:8080",
-        ].filter((u): u is string => Boolean(u)),
+        configuredUrls.length > 0
+          ? configuredUrls
+          : ["http://127.0.0.1:8080", "http://localhost:8080"],
       ),
     );
 
@@ -420,13 +487,16 @@ export class AuthRepository implements AuthRepositoryInterface {
       try {
         const res = await fetch(`${moodleBaseUrl}/login/token.php`, {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "Mozilla/5.0 (compatible; AksaventraCBT/1.0)",
+          },
           body: new URLSearchParams({
             username,
             password,
             service: "mod_cbt_service",
           }).toString(),
-          signal: AbortSignal.timeout(2500),
+          signal: AbortSignal.timeout(2000),
         });
 
         if (res.ok) {
@@ -441,13 +511,14 @@ export class AuthRepository implements AuthRepositoryInterface {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded",
+                  "User-Agent": "Mozilla/5.0 (compatible; AksaventraCBT/1.0)",
                 },
                 body: new URLSearchParams({
                   wstoken,
                   wsfunction: "core_webservice_get_site_info",
                   moodlewsrestformat: "json",
                 }).toString(),
-                signal: AbortSignal.timeout(2500),
+                signal: AbortSignal.timeout(2000),
               },
             );
 
@@ -515,6 +586,31 @@ export class AuthRepository implements AuthRepositoryInterface {
             } catch {
               // Database query fallback error
             }
+
+            const localUser = await this.db.user
+              .findUnique({
+                where: { username },
+                select: {
+                  moodleUserId: true,
+                  username: true,
+                  fullName: true,
+                  role: true,
+                },
+              })
+              .catch(() => null);
+
+            const isDefaultAdmin = username.toLowerCase() === "admin";
+            return {
+              moodleUserId:
+                localUser?.moodleUserId ?? (isDefaultAdmin ? 2 : 0),
+              username: localUser?.username ?? username,
+              fullName:
+                localUser?.fullName ??
+                (isDefaultAdmin ? "Administrator" : username),
+              role:
+                (localUser?.role as UserRole | undefined) ??
+                (isDefaultAdmin ? "ADMIN" : "STUDENT"),
+            };
           }
 
           // 3. Invalid credentials
