@@ -57,6 +57,9 @@ export async function callMoodleApi<T = unknown>(
     }
   }
 
+  const isAuthCheck = params.action === "verify_user_credentials";
+  const timeoutMs = isAuthCheck ? 2500 : 8000;
+
   const response = await fetch(wsEndpoint, {
     method: "POST",
     headers: {
@@ -66,7 +69,7 @@ export async function callMoodleApi<T = unknown>(
     body: formData.toString(),
     cache: "no-store",
     ...(process.env.NODE_ENV !== "test"
-      ? { signal: AbortSignal.timeout(2500) }
+      ? { signal: AbortSignal.timeout(timeoutMs) }
       : {}),
   });
 

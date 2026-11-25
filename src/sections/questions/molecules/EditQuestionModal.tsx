@@ -1,7 +1,11 @@
 "use client";
 
-import { Check, Plus, Save, Trash2, X } from "lucide-react";
+import { Check, Eye, EyeOff, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
+import {
+  cleanHtmlForEditor,
+  hasRichContent,
+} from "@/libs/htmlEditorUtils";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import type {
   CBTQuestionType,
@@ -12,6 +16,7 @@ import type {
 import { useQuestionsApi } from "@/modules/questions/presentation/useQuestionsApi";
 import Button from "@/shared-ui/component/Button";
 import ImageUploader from "@/shared-ui/component/ImageUploader";
+import MathRenderer from "@/shared-ui/component/MathRenderer";
 import Modal from "@/shared-ui/component/Modal";
 import SelectField from "@/shared-ui/component/SelectField";
 import TextAreaField from "@/shared-ui/component/TextAreaField";
@@ -54,21 +59,35 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [diagramModalOpen, setDiagramModalOpen] = useState(false);
+  const [showVisualPreview, setShowVisualPreview] = useState(true);
 
   useEffect(() => {
     if (question) {
       setSubject(question.subject);
       setGradeLevel(question.gradeLevel);
       setType(question.type);
-      setStem(question.stem);
+      setStem(cleanHtmlForEditor(question.stem));
       setImageUrl(question.imageUrl);
       setPoints(question.points);
       setTolerance(question.tolerance);
-      setOptions(question.options || []);
-      setExplanation(question.explanation || "");
+      setOptions(
+        (question.options || []).map((opt) => ({
+          ...opt,
+          text: cleanHtmlForEditor(opt.text),
+        })),
+      );
+      setExplanation(cleanHtmlForEditor(question.explanation || ""));
       setErrorMessage(null);
     }
   }, [question]);
+
+  const handleCleanAllHtml = () => {
+    setStem((prev) => cleanHtmlForEditor(prev));
+    setOptions((prev) =>
+      prev.map((opt) => ({ ...opt, text: cleanHtmlForEditor(opt.text) })),
+    );
+    setExplanation((prev) => cleanHtmlForEditor(prev));
+  };
 
   if (!question) return null;
 
@@ -246,13 +265,33 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
 
         {/* Stem Pertanyaan */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <label className="text-xs font-bold text-slate-800">
               Stem Pertanyaan / Teks Soal
             </label>
-            <span className="text-[11px] text-slate-400">
-              Mendukung KaTeX $...$, Kurva & Diagram SVG
-            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                color="secondary"
+                size="xs"
+                leftIcon={Sparkles}
+                onClick={handleCleanAllHtml}
+                title="Bersihkan tag HTML pembungkus (<div>, <span>, <p>) & decode karakter"
+              >
+                Bersihkan Tag HTML
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                color="primary"
+                size="xs"
+                leftIcon={showVisualPreview ? EyeOff : Eye}
+                onClick={() => setShowVisualPreview((prev) => !prev)}
+              >
+                {showVisualPreview ? "Sembunyikan Pratinjau" : "Pratinjau Visual"}
+              </Button>
+            </div>
           </div>
 
           <MathFormulaToolbar
@@ -266,6 +305,18 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
             onChange={(e) => setStem(e.target.value)}
             placeholder="Tuliskan stem pertanyaan soal... (Mendukung rumus LaTeX math seperti $E=mc^2$ atau kurva SVG)"
           />
+
+          {showVisualPreview && stem.trim() && (
+            <div className="p-3.5 rounded-2xl border border-[#0097a7]/30 bg-teal-50/30">
+              <span className="text-[10px] font-bold text-[#0097a7] uppercase tracking-wider block mb-1.5">
+                Pratinjau Visual Soal (Hasil Render HTML / KaTeX / Gambar):
+              </span>
+              <MathRenderer
+                content={stem}
+                className="text-xs font-medium leading-relaxed text-slate-800"
+              />
+            </div>
+          )}
 
           <ImageUploader
             value={imageUrl}
@@ -315,50 +366,58 @@ export const EditQuestionModal: FC<EditQuestionModalProps> = ({
               {options.map((opt, index) => (
                 <div
                   key={opt.id}
-                  className={`flex items-center gap-2 p-3 rounded-2xl border transition-colors ${
+                  className={`flex flex-col gap-2 p-3 rounded-2xl border transition-colors ${
                     opt.isCorrect
                       ? "bg-emerald-50/70 border-emerald-300"
                       : "bg-slate-50/60 border-slate-200"
                   }`}
                 >
-                  <Button
-                    type="button"
-                    variant={opt.isCorrect ? "filled" : "outline"}
-                    color={opt.isCorrect ? "success" : "secondary"}
-                    size="sm"
-                    onClick={() => handleToggleCorrect(index)}
-                    title={
-                      opt.isCorrect
-                        ? "Kunci Jawaban Benar"
-                        : "Klik untuk jadikan Kunci Jawaban"
-                    }
-                    className="w-8 h-8 rounded-xl shrink-0 font-bold"
-                  >
-                    {opt.isCorrect ? <Check className="w-4 h-4" /> : opt.label}
-                  </Button>
-
-                  <div className="flex-1">
-                    <TextField
-                      value={opt.text}
-                      onChange={(e) =>
-                        handleOptionTextChange(index, e.target.value)
-                      }
-                      placeholder={`Teks pilihan jawaban ${opt.label}...`}
-                      size="sm"
-                    />
-                  </div>
-
-                  {options.length > 2 && type !== "truefalse" && (
+                  <div className="flex items-center gap-2">
                     <Button
                       type="button"
-                      variant="ghost"
-                      color="error"
+                      variant={opt.isCorrect ? "filled" : "outline"}
+                      color={opt.isCorrect ? "success" : "secondary"}
                       size="sm"
-                      leftIcon={Trash2}
-                      onClick={() => handleRemoveOption(index)}
-                      title="Hapus opsi ini"
-                      className="shrink-0"
-                    />
+                      onClick={() => handleToggleCorrect(index)}
+                      title={
+                        opt.isCorrect
+                          ? "Kunci Jawaban Benar"
+                          : "Klik untuk jadikan Kunci Jawaban"
+                      }
+                      className="w-8 h-8 rounded-xl shrink-0 font-bold"
+                    >
+                      {opt.isCorrect ? <Check className="w-4 h-4" /> : opt.label}
+                    </Button>
+
+                    <div className="flex-1">
+                      <TextField
+                        value={opt.text}
+                        onChange={(e) =>
+                          handleOptionTextChange(index, e.target.value)
+                        }
+                        placeholder={`Teks pilihan jawaban ${opt.label}...`}
+                        size="sm"
+                      />
+                    </div>
+
+                    {options.length > 2 && type !== "truefalse" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        color="error"
+                        size="sm"
+                        leftIcon={Trash2}
+                        onClick={() => handleRemoveOption(index)}
+                        title="Hapus opsi ini"
+                        className="shrink-0"
+                      />
+                    )}
+                  </div>
+
+                  {showVisualPreview && hasRichContent(opt.text) && (
+                    <div className="ml-10 px-3 py-2 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-800">
+                      <MathRenderer content={opt.text} />
+                    </div>
                   )}
                 </div>
               ))}

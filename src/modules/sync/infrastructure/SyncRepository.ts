@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { cleanHtmlForEditor } from "@/libs/htmlEditorUtils";
 import { callMoodleApi as defaultCallMoodleApi } from "@/libs/moodleClient";
 import { prisma as defaultPrisma } from "@/libs/prisma";
 import type {
@@ -240,6 +241,7 @@ export class SyncRepository implements SyncRepositoryInterface {
     students: NonNullable<MoodlePullPayload["students"]>,
   ): Promise<number> {
     let count = 0;
+    const classCache = new Map<number, { id: string; name: string } | null>();
     for (const s of students) {
       const username = s.username?.trim().toLowerCase();
       if (!username) continue;
@@ -260,9 +262,14 @@ export class SyncRepository implements SyncRepositoryInterface {
         incomingRole === "STUDENT" ? s.class_name?.trim() || null : null;
 
       if (incomingRole === "STUDENT" && s.class_id && s.class_id > 0) {
-        const cls = await this.db.classGroup.findUnique({
-          where: { moodleId: s.class_id },
-        });
+        let cls = classCache.get(s.class_id);
+        if (cls === undefined) {
+          const found = await this.db.classGroup.findUnique({
+            where: { moodleId: s.class_id },
+          });
+          cls = found ? { id: found.id, name: found.name } : null;
+          classCache.set(s.class_id, cls);
+        }
         if (cls) {
           classGroupId = cls.id;
           className = cls.name;
@@ -283,12 +290,20 @@ export class SyncRepository implements SyncRepositoryInterface {
               ? incomingRole
               : existing.role;
 
+        const incomingHash = s.password_hash?.trim() || "";
+        const existingHash = existing.passwordHash || "";
+        const shouldUpdateHash =
+          incomingHash !== "" &&
+          (!existingHash.startsWith("$argon2") ||
+            incomingHash.startsWith("$argon2"));
+
         await this.db.user.update({
           where: { id: existing.id },
           data: {
             moodleUserId: s.user_id,
             fullName: s.full_name?.trim() || existing.fullName,
             role: resolvedRole,
+            ...(shouldUpdateHash ? { passwordHash: incomingHash } : {}),
             ...(resolvedRole === "STUDENT"
               ? { classGroupId, className }
               : { classGroupId: null, className: null }),
@@ -301,7 +316,9 @@ export class SyncRepository implements SyncRepositoryInterface {
             moodleUserId: s.user_id,
             username,
             fullName: s.full_name?.trim() || username,
-            passwordHash: incomingRole === "ADMIN" ? "Admin123*" : "Siswa123*",
+            passwordHash:
+              s.password_hash?.trim() ||
+              (incomingRole === "ADMIN" ? "Admin123*" : "Siswa123*"),
             role: incomingRole,
             classGroupId,
             className,
@@ -380,7 +397,17 @@ export class SyncRepository implements SyncRepositoryInterface {
     for (const q of questions) {
       const code = q.code?.trim() || `MDL-Q-${q.id}`;
       const type = normalizeQuestionType(q.type || "multichoice", q.options);
-      const optionsJson = (q.options ?? []) as unknown as Prisma.InputJsonValue;
+      const cleanedStem = q.stem ? cleanHtmlForEditor(q.stem) : "";
+      const cleanedExplanation = q.explanation
+        ? cleanHtmlForEditor(q.explanation)
+        : null;
+      const cleanedOptions = Array.isArray(q.options)
+        ? q.options.map((opt) => ({
+            ...opt,
+            text: opt.text ? cleanHtmlForEditor(opt.text) : "",
+          }))
+        : [];
+      const optionsJson = cleanedOptions as unknown as Prisma.InputJsonValue;
 
       const existing = await this.db.question.findFirst({
         where: {
@@ -396,10 +423,10 @@ export class SyncRepository implements SyncRepositoryInterface {
             subject: q.subject || existing.subject,
             gradeLevel: q.grade_level || existing.gradeLevel,
             type,
-            stem: q.stem || existing.stem,
+            stem: cleanedStem || existing.stem,
             points: q.points ?? existing.points,
             optionsJson,
-            explanation: q.explanation ?? existing.explanation,
+            explanation: cleanedExplanation ?? existing.explanation,
           },
         });
       } else {
@@ -410,10 +437,10 @@ export class SyncRepository implements SyncRepositoryInterface {
             subject: q.subject || "Umum",
             gradeLevel: q.grade_level || "X",
             type,
-            stem: q.stem || "",
+            stem: cleanedStem,
             points: q.points ?? 1,
             optionsJson,
-            explanation: q.explanation || null,
+            explanation: cleanedExplanation,
           },
         });
       }
@@ -822,49 +849,51 @@ export class SyncRepository implements SyncRepositoryInterface {
     try {
       const pendingSubjects = await this.db.subject.findMany({
         where: { moodleCourseId: null },
-        take: 25,
+        take: 5,
       });
-      await Promise.allSettled(
-        pendingSubjects.map((sub) => this.pushSubjectToMoodle(sub)),
-      );
+      for (const sub of pendingSubjects) {
+        const res = await this.pushSubjectToMoodle(sub);
+        if (!res.synced && res.error) return;
+      }
 
       const pendingClasses = await this.db.classGroup.findMany({
         where: { moodleId: null },
-        take: 25,
+        take: 5,
       });
-      await Promise.allSettled(
-        pendingClasses.map((cls) => this.pushClassToMoodle(cls)),
-      );
+      for (const cls of pendingClasses) {
+        const res = await this.pushClassToMoodle(cls);
+        if (!res.synced && res.error) return;
+      }
 
       const pendingUsers = await this.db.user.findMany({
         where: { moodleUserId: null, isActive: true },
-        take: 25,
+        take: 5,
       });
-      await Promise.allSettled(
-        pendingUsers.map((u) => this.pushStudentToMoodle(u)),
-      );
+      for (const u of pendingUsers) {
+        const res = await this.pushStudentToMoodle(u);
+        if (!res.synced && res.error) return;
+      }
 
       const pendingQuestions = await this.db.question.findMany({
         where: { moodleQuestionId: null },
-        take: 25,
+        take: 5,
       });
-      await Promise.allSettled(
-        pendingQuestions.map((q) => {
-          const options = Array.isArray(q.optionsJson)
-            ? (q.optionsJson as Array<{ text: string; isCorrect?: boolean }>)
-            : [];
-          return this.pushQuestionToMoodle({
-            id: q.id,
-            moodleQuestionId: q.moodleQuestionId,
-            code: q.code,
-            type: q.type,
-            stem: q.stem,
-            points: q.points,
-            explanation: q.explanation,
-            options,
-          });
-        }),
-      );
+      for (const q of pendingQuestions) {
+        const options = Array.isArray(q.optionsJson)
+          ? (q.optionsJson as Array<{ text: string; isCorrect?: boolean }>)
+          : [];
+        const res = await this.pushQuestionToMoodle({
+          id: q.id,
+          moodleQuestionId: q.moodleQuestionId,
+          code: q.code,
+          type: q.type,
+          stem: q.stem,
+          points: q.points,
+          explanation: q.explanation,
+          options,
+        });
+        if (!res.synced && res.error) return;
+      }
     } catch {
       // Never block inbound pull if outbound pre-push encounters offline Moodle
     }

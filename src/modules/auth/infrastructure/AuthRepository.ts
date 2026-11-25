@@ -13,12 +13,85 @@ import type {
 export class AuthRepository implements AuthRepositoryInterface {
   constructor(private readonly db: PrismaClient = defaultPrisma) {}
 
+  private async resolveMoodleUserRole(
+    moodleUserId: number,
+    username: string,
+    isSiteAdminHint?: boolean,
+  ): Promise<UserRole> {
+    if (isSiteAdminHint === true || username.toLowerCase() === "admin") {
+      return "ADMIN";
+    }
+
+    // 1. Check local CBT database for existing elevated role (ADMIN, TEACHER, PROCTOR)
+    let localRole: UserRole | undefined;
+    try {
+      const existing = await this.db.user.findUnique({
+        where: { username },
+        select: { role: true },
+      });
+      if (
+        existing?.role === "ADMIN" ||
+        existing?.role === "TEACHER" ||
+        existing?.role === "PROCTOR"
+      ) {
+        localRole = existing.role;
+      }
+    } catch {
+      // Ignore local lookup error
+    }
+
+    // 2. Check Moodle siteadmins & mdl_role_assignments if Moodle DB is directly queryable
+    try {
+      const siteAdmins = (await this.db.$queryRawUnsafe(
+        "SELECT value FROM moodle.mdl_config WHERE name = 'siteadmins' LIMIT 1",
+      )) as Array<{ value: string }>;
+      const adminIds =
+        siteAdmins?.[0]?.value?.split(",")?.map((s) => s.trim()) || [];
+      if (adminIds.includes(String(moodleUserId))) {
+        return "ADMIN";
+      }
+
+      const roleRows = (await this.db.$queryRawUnsafe(
+        "SELECT r.shortname FROM moodle.mdl_role_assignments ra JOIN moodle.mdl_role r ON r.id = ra.roleid WHERE ra.userid = ?",
+        moodleUserId,
+      )) as Array<{ shortname: string }>;
+
+      let hasProctor = false;
+      for (const rr of roleRows ?? []) {
+        const short = (rr.shortname || "").trim().toLowerCase();
+        if (
+          short === "manager" ||
+          short === "coursecreator" ||
+          short === "editingteacher"
+        ) {
+          return "TEACHER";
+        }
+        if (short === "teacher") {
+          hasProctor = true;
+        }
+      }
+      if (hasProctor) {
+        return "PROCTOR";
+      }
+    } catch {
+      // Ignore cross-database lookup error
+    }
+
+    return localRole ?? "STUDENT";
+  }
+
   public async findUserByUsername(
     username: string,
   ): Promise<UserSessionEntity | null> {
-    const user = await this.db.user.findUnique({
-      where: { username },
+    const trimmed = username.trim();
+    let user = await this.db.user.findUnique({
+      where: { username: trimmed },
     });
+    if (!user && trimmed !== trimmed.toLowerCase()) {
+      user = await this.db.user.findUnique({
+        where: { username: trimmed.toLowerCase() },
+      });
+    }
 
     if (user) {
       return new UserSessionEntity({
@@ -37,14 +110,15 @@ export class AuthRepository implements AuthRepositoryInterface {
     // Fallback: Query Moodle database directly if user not yet synced in local DB
     try {
       const moodleUsers = (await this.db.$queryRawUnsafe(
-        "SELECT id, username, firstname, lastname, email, auth FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
-        username,
+        "SELECT id, username, firstname, lastname, email, password, auth FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
+        trimmed.toLowerCase(),
       )) as Array<{
         id: bigint | number;
         username: string;
         firstname: string;
         lastname: string;
         email: string;
+        password?: string;
       }>;
 
       if (moodleUsers && moodleUsers.length > 0) {
@@ -53,19 +127,7 @@ export class AuthRepository implements AuthRepositoryInterface {
         const fullName =
           `${mu.firstname || ""} ${mu.lastname || ""}`.trim() || mu.username;
 
-        let role: UserRole = "STUDENT";
-        try {
-          const siteAdmins = (await this.db.$queryRawUnsafe(
-            "SELECT value FROM moodle.mdl_config WHERE name = 'siteadmins' LIMIT 1",
-          )) as Array<{ value: string }>;
-          const adminIds =
-            siteAdmins?.[0]?.value?.split(",")?.map((s) => s.trim()) || [];
-          if (adminIds.includes(String(moodleId))) {
-            role = "ADMIN";
-          }
-        } catch {
-          // Ignore role lookup error
-        }
+        const role = await this.resolveMoodleUserRole(moodleId, mu.username);
 
         const syncedUser = await this.db.user.upsert({
           where: { username: mu.username },
@@ -73,13 +135,14 @@ export class AuthRepository implements AuthRepositoryInterface {
             username: mu.username,
             fullName,
             role,
-            passwordHash: "",
+            passwordHash: mu.password || "",
             moodleUserId: moodleId,
             isActive: true,
           },
           update: {
             fullName,
             role,
+            ...(mu.password ? { passwordHash: mu.password } : {}),
             moodleUserId: moodleId,
             isActive: true,
           },
@@ -205,8 +268,19 @@ export class AuthRepository implements AuthRepositoryInterface {
           const data = await res.json();
           if (
             (data?.token && !data.error) ||
-            data?.errorcode === "cannotcreatetoken"
+            data?.errorcode === "cannotcreatetoken" ||
+            data?.errorcode === "usernotallowed" ||
+            data?.errorcode === "nowsaccess"
           ) {
+            try {
+              const upgradedHash = await argon2.hash(plainTextPassword);
+              await this.db.user.update({
+                where: { id: userId },
+                data: { passwordHash: upgradedHash },
+              });
+            } catch {
+              // Ignore hash save error
+            }
             return true;
           }
         }
@@ -385,11 +459,12 @@ export class AuthRepository implements AuthRepositoryInterface {
     fullName: string;
     role: UserRole;
   } | null> {
-    // 0a. Ultra-fast local DB verification (< 20ms, zero network latency) when user already has a valid Argon2 or $6$ hash
+    // 0a. Ultra-fast local DB verification (< 20ms, zero network latency) when user already has a valid Argon2, $2y$ Bcrypt, or $6$ hash
     if (process.env.NODE_ENV !== "test") {
       try {
-        const localUser = await this.db.user.findUnique({
-          where: { username },
+        const trimmed = username.trim();
+        let localUser = await this.db.user.findUnique({
+          where: { username: trimmed },
           select: {
             moodleUserId: true,
             username: true,
@@ -399,6 +474,19 @@ export class AuthRepository implements AuthRepositoryInterface {
             isActive: true,
           },
         });
+        if (!localUser && trimmed !== trimmed.toLowerCase()) {
+          localUser = await this.db.user.findUnique({
+            where: { username: trimmed.toLowerCase() },
+            select: {
+              moodleUserId: true,
+              username: true,
+              fullName: true,
+              role: true,
+              passwordHash: true,
+              isActive: true,
+            },
+          });
+        }
         if (localUser?.isActive && localUser.passwordHash) {
           const check = await verifyStoredPasswordHash(
             localUser.passwordHash,
@@ -441,13 +529,22 @@ export class AuthRepository implements AuthRepositoryInterface {
             role?: UserRole;
           };
           if (parsed.valid && parsed.user_id) {
+            const moodleId = Number(parsed.user_id);
+            const resolvedRole =
+              parsed.role === "ADMIN" ||
+              parsed.role === "TEACHER" ||
+              parsed.role === "PROCTOR" ||
+              parsed.role === "STUDENT"
+                ? parsed.role
+                : await this.resolveMoodleUserRole(
+                    moodleId,
+                    parsed.username || username,
+                  );
             return {
-              moodleUserId: Number(parsed.user_id),
+              moodleUserId: moodleId,
               username: parsed.username || username,
               fullName: parsed.full_name || username,
-              role:
-                parsed.role ||
-                (username.toLowerCase() === "admin" ? "ADMIN" : "STUDENT"),
+              role: resolvedRole,
             };
           }
           if (parsed.valid === false) {
@@ -525,13 +622,16 @@ export class AuthRepository implements AuthRepositoryInterface {
             if (siteInfoRes.ok) {
               const siteInfo = await siteInfoRes.json();
               if (siteInfo && !siteInfo.errorcode && siteInfo.userid) {
-                const role: UserRole = siteInfo.userissiteadmin
-                  ? "ADMIN"
-                  : "STUDENT";
+                const moodleId = Number(siteInfo.userid);
+                const role = await this.resolveMoodleUserRole(
+                  moodleId,
+                  siteInfo.username || username,
+                  Boolean(siteInfo.userissiteadmin),
+                );
 
                 return {
                   token: wstoken,
-                  moodleUserId: Number(siteInfo.userid),
+                  moodleUserId: moodleId,
                   username: siteInfo.username,
                   fullName: siteInfo.fullname || siteInfo.username,
                   role,
@@ -541,7 +641,11 @@ export class AuthRepository implements AuthRepositoryInterface {
           }
 
           // 2. Password is valid, but Moodle restricts web service token generation (e.g., Site Admin or Student)
-          if (data?.errorcode === "cannotcreatetoken") {
+          if (
+            data?.errorcode === "cannotcreatetoken" ||
+            data?.errorcode === "usernotallowed" ||
+            data?.errorcode === "nowsaccess"
+          ) {
             try {
               const moodleUsers = (await this.db.$queryRawUnsafe(
                 "SELECT id, username, firstname, lastname FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
@@ -560,21 +664,10 @@ export class AuthRepository implements AuthRepositoryInterface {
                   `${mu.firstname || ""} ${mu.lastname || ""}`.trim() ||
                   mu.username;
 
-                let resolvedRole: UserRole =
-                  mu.username.toLowerCase() === "admin" ? "ADMIN" : "STUDENT";
-                try {
-                  const siteAdmins = (await this.db.$queryRawUnsafe(
-                    "SELECT value FROM moodle.mdl_config WHERE name = 'siteadmins' LIMIT 1",
-                  )) as Array<{ value: string }>;
-                  const adminIds =
-                    siteAdmins?.[0]?.value?.split(",")?.map((s) => s.trim()) ||
-                    [];
-                  if (adminIds.includes(String(moodleId))) {
-                    resolvedRole = "ADMIN";
-                  }
-                } catch {
-                  // Ignore siteadmins lookup error
-                }
+                const resolvedRole = await this.resolveMoodleUserRole(
+                  moodleId,
+                  mu.username,
+                );
 
                 return {
                   moodleUserId: moodleId,
@@ -600,6 +693,13 @@ export class AuthRepository implements AuthRepositoryInterface {
               .catch(() => null);
 
             const isDefaultAdmin = username.toLowerCase() === "admin";
+            const resolvedRole =
+              (localUser?.role as UserRole | undefined) ??
+              (await this.resolveMoodleUserRole(
+                localUser?.moodleUserId ?? (isDefaultAdmin ? 2 : 0),
+                localUser?.username ?? username,
+                isDefaultAdmin,
+              ));
             return {
               moodleUserId:
                 localUser?.moodleUserId ?? (isDefaultAdmin ? 2 : 0),
@@ -607,9 +707,7 @@ export class AuthRepository implements AuthRepositoryInterface {
               fullName:
                 localUser?.fullName ??
                 (isDefaultAdmin ? "Administrator" : username),
-              role:
-                (localUser?.role as UserRole | undefined) ??
-                (isDefaultAdmin ? "ADMIN" : "STUDENT"),
+              role: resolvedRole,
             };
           }
 
@@ -633,7 +731,24 @@ export class AuthRepository implements AuthRepositoryInterface {
     role?: UserRole;
     rawPassword?: string;
   }): Promise<UserSessionEntity> {
-    const role = params.role || "STUDENT";
+    let role: UserRole = params.role || "STUDENT";
+    if (!params.role || params.role === "STUDENT") {
+      try {
+        const existing = await this.db.user.findUnique({
+          where: { username: params.username },
+          select: { role: true },
+        });
+        if (
+          existing?.role === "ADMIN" ||
+          existing?.role === "TEACHER" ||
+          existing?.role === "PROCTOR"
+        ) {
+          role = existing.role;
+        }
+      } catch {
+        // Ignore lookup error
+      }
+    }
     let passwordHash: string | undefined;
     if (params.rawPassword) {
       try {
