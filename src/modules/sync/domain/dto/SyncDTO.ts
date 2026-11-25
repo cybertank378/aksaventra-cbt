@@ -138,6 +138,7 @@ export interface MoodlePullPayload {
     username: string;
     full_name: string;
     email?: string;
+    password_hash?: string;
     role?: "ADMIN" | "TEACHER" | "PROCTOR" | "STUDENT";
     class_id?: number;
     class_name?: string;
