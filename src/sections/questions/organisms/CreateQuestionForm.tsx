@@ -7,10 +7,12 @@ import {
   EyeOff,
   HelpCircle,
   Plus,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
+import { cleanHtmlForEditor } from "@/libs/htmlEditorUtils";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import type {
   CBTQuestionType,
@@ -249,23 +251,44 @@ export const CreateQuestionForm: FC = () => {
 
       {/* Stem, Diagram & Image Upload Card */}
       <Card bodyClassName="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <label
             htmlFor="stem-textarea"
             className="block text-xs font-bold text-slate-700"
           >
             Teks Pertanyaan / Soal (Mendukung KaTeX $...$, Diagram & Kurva Vektor SVG):
           </label>
-          <Button
-            type="button"
-            variant="ghost"
-            color="primary"
-            size="xs"
-            leftIcon={previewMode ? EyeOff : Eye}
-            onClick={() => setPreviewMode(!previewMode)}
-          >
-            {previewMode ? "Tutup Pratinjau" : "Lihat Pratinjau KaTeX / Kurva"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              color="secondary"
+              size="xs"
+              leftIcon={Sparkles}
+              onClick={() => {
+                setStem((prev) => cleanHtmlForEditor(prev));
+                setOptions((prev) =>
+                  prev.map((opt) => ({
+                    ...opt,
+                    text: cleanHtmlForEditor(opt.text),
+                  })),
+                );
+                setExplanation((prev) => cleanHtmlForEditor(prev));
+              }}
+            >
+              Bersihkan Tag HTML
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              color="primary"
+              size="xs"
+              leftIcon={previewMode ? EyeOff : Eye}
+              onClick={() => setPreviewMode(!previewMode)}
+            >
+              {previewMode ? "Tutup Pratinjau" : "Lihat Pratinjau KaTeX / Kurva"}
+            </Button>
+          </div>
         </div>
 
         {/* Math Quick Toolbar */}

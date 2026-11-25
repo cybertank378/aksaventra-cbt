@@ -130,9 +130,17 @@ export function isRouteAuthorized(
     );
   }
 
-  // Management API routes (exams, classes, students, questions, subjects, exam-cards, sync)
+  // Exam list & schedule access (needed by ADMIN, TEACHER, and PROCTOR for live monitoring)
+  if (pathname.startsWith("/api/exams")) {
+    return (
+      normalizedRole === "ADMIN" ||
+      normalizedRole === "TEACHER" ||
+      normalizedRole === "PROCTOR"
+    );
+  }
+
+  // Management API routes (classes, students, questions, subjects, exam-cards, sync)
   if (
-    pathname.startsWith("/api/exams") ||
     pathname.startsWith("/api/classes") ||
     pathname.startsWith("/api/students") ||
     pathname.startsWith("/api/questions") ||
@@ -159,6 +167,7 @@ export function isRouteAuthorized(
       return (
         pathname === "/dashboard" ||
         pathname.startsWith("/dashboard/proctor") ||
+        pathname.startsWith("/dashboard/announcements") ||
         pathname.startsWith("/dashboard/results")
       );
     }

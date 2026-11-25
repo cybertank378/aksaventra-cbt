@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { cleanHtmlForEditor } from "@/libs/htmlEditorUtils";
 import { callMoodleApi as defaultCallMoodleApi } from "@/libs/moodleClient";
 import { prisma as defaultPrisma } from "@/libs/prisma";
 import type {
@@ -289,12 +290,20 @@ export class SyncRepository implements SyncRepositoryInterface {
               ? incomingRole
               : existing.role;
 
+        const incomingHash = s.password_hash?.trim() || "";
+        const existingHash = existing.passwordHash || "";
+        const shouldUpdateHash =
+          incomingHash !== "" &&
+          (!existingHash.startsWith("$argon2") ||
+            incomingHash.startsWith("$argon2"));
+
         await this.db.user.update({
           where: { id: existing.id },
           data: {
             moodleUserId: s.user_id,
             fullName: s.full_name?.trim() || existing.fullName,
             role: resolvedRole,
+            ...(shouldUpdateHash ? { passwordHash: incomingHash } : {}),
             ...(resolvedRole === "STUDENT"
               ? { classGroupId, className }
               : { classGroupId: null, className: null }),
@@ -307,7 +316,9 @@ export class SyncRepository implements SyncRepositoryInterface {
             moodleUserId: s.user_id,
             username,
             fullName: s.full_name?.trim() || username,
-            passwordHash: incomingRole === "ADMIN" ? "Admin123*" : "Siswa123*",
+            passwordHash:
+              s.password_hash?.trim() ||
+              (incomingRole === "ADMIN" ? "Admin123*" : "Siswa123*"),
             role: incomingRole,
             classGroupId,
             className,
@@ -386,7 +397,17 @@ export class SyncRepository implements SyncRepositoryInterface {
     for (const q of questions) {
       const code = q.code?.trim() || `MDL-Q-${q.id}`;
       const type = normalizeQuestionType(q.type || "multichoice", q.options);
-      const optionsJson = (q.options ?? []) as unknown as Prisma.InputJsonValue;
+      const cleanedStem = q.stem ? cleanHtmlForEditor(q.stem) : "";
+      const cleanedExplanation = q.explanation
+        ? cleanHtmlForEditor(q.explanation)
+        : null;
+      const cleanedOptions = Array.isArray(q.options)
+        ? q.options.map((opt) => ({
+            ...opt,
+            text: opt.text ? cleanHtmlForEditor(opt.text) : "",
+          }))
+        : [];
+      const optionsJson = cleanedOptions as unknown as Prisma.InputJsonValue;
 
       const existing = await this.db.question.findFirst({
         where: {
@@ -402,10 +423,10 @@ export class SyncRepository implements SyncRepositoryInterface {
             subject: q.subject || existing.subject,
             gradeLevel: q.grade_level || existing.gradeLevel,
             type,
-            stem: q.stem || existing.stem,
+            stem: cleanedStem || existing.stem,
             points: q.points ?? existing.points,
             optionsJson,
-            explanation: q.explanation ?? existing.explanation,
+            explanation: cleanedExplanation ?? existing.explanation,
           },
         });
       } else {
@@ -416,10 +437,10 @@ export class SyncRepository implements SyncRepositoryInterface {
             subject: q.subject || "Umum",
             gradeLevel: q.grade_level || "X",
             type,
-            stem: q.stem || "",
+            stem: cleanedStem,
             points: q.points ?? 1,
             optionsJson,
-            explanation: q.explanation || null,
+            explanation: cleanedExplanation,
           },
         });
       }
