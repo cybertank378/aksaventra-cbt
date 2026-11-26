@@ -1,7 +1,9 @@
-import type { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/domain/Result";
 import { handleZodError } from "@/core/errors/handleZodError";
+import { prisma } from "@/libs/prisma";
+import { verifyRequestSession } from "@/security/serverAuth";
 import type { AttemptService } from "../application/service/AttemptService";
 import type {
   SubmitAttemptInputDTO,
@@ -19,11 +21,69 @@ export class AttemptController extends BaseController {
     super();
   }
 
+  private async verifyAttemptOwnership(
+    req: NextRequest,
+    attemptId: string,
+  ): Promise<NextResponse | null> {
+    const session = await verifyRequestSession(req);
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Sesi tidak valid. Silakan login kembali.",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    if (session.role === "ADMIN" || session.role === "PROCTOR") {
+      return null;
+    }
+
+    const attempt = await prisma.attempt.findUnique({
+      where: { id: attemptId },
+      select: { userId: true },
+    });
+
+    if (attempt && attempt.userId !== session.userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "FORBIDDEN",
+            message: "Anda tidak memiliki akses ke sesi ujian peserta lain.",
+          },
+        },
+        { status: 403 },
+      );
+    }
+
+    return null;
+  }
+
   public async startAttempt(
     req: NextRequest,
     context?: { userId?: string; deviceHash?: string; ipAddress?: string },
   ): Promise<NextResponse> {
     try {
+      const session = await verifyRequestSession(req);
+      const userId = context?.userId || session?.userId;
+      if (!userId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "UNAUTHORIZED",
+              message: "Autentikasi diperlukan untuk memulai ujian.",
+            },
+          },
+          { status: 401 },
+        );
+      }
+
       const body = await req.json();
       const parsed = startAttemptSchema.safeParse(body);
 
@@ -34,8 +94,6 @@ export class AttemptController extends BaseController {
         );
       }
 
-      const userId =
-        context?.userId || req.headers.get("x-user-id") || "guest-user";
       const deviceHash =
         context?.deviceHash ||
         req.headers.get("x-device-fingerprint") ||
@@ -62,6 +120,11 @@ export class AttemptController extends BaseController {
     attemptId: string,
   ): Promise<NextResponse> {
     try {
+      const ownershipError = await this.verifyAttemptOwnership(req, attemptId);
+      if (ownershipError) {
+        return ownershipError;
+      }
+
       const body = await req.json();
       const parsed = syncBatchSchema.safeParse({ ...body, attemptId });
 
@@ -86,6 +149,11 @@ export class AttemptController extends BaseController {
     attemptId: string,
   ): Promise<NextResponse> {
     try {
+      const ownershipError = await this.verifyAttemptOwnership(req, attemptId);
+      if (ownershipError) {
+        return ownershipError;
+      }
+
       const body = await req.json();
       const parsed = recordViolationSchema.safeParse({ ...body, attemptId });
 
@@ -108,6 +176,11 @@ export class AttemptController extends BaseController {
     attemptId: string,
   ): Promise<NextResponse> {
     try {
+      const ownershipError = await this.verifyAttemptOwnership(req, attemptId);
+      if (ownershipError) {
+        return ownershipError;
+      }
+
       const body = await req.json().catch(() => ({}));
       const parsed = submitAttemptSchema.safeParse({ ...body, attemptId });
 

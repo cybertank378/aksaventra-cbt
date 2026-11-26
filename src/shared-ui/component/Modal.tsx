@@ -1,9 +1,9 @@
-// Files: src/shared-ui/component/Modal.tsx
 "use client";
 
 import clsx from "clsx";
+import { X } from "lucide-react";
 import type { FC, MouseEvent, ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import Button, { type ButtonColor } from "@/shared-ui/component/Button";
 
 interface ModalProps {
@@ -56,16 +56,31 @@ export const Modal: FC<ModalProps> = ({
   submitDisabled = false,
   submitLoading = false,
 }) => {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
 
+    const previousFocus = document.activeElement as HTMLElement | null;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    dialogRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = originalOverflow;
+      previousFocus?.focus?.();
     };
-  }, [open]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -77,10 +92,12 @@ export const Modal: FC<ModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={title ? titleId : undefined}
       tabIndex={-1}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 outline-none"
       onClick={handleOverlayClick}
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();
@@ -88,18 +105,27 @@ export const Modal: FC<ModalProps> = ({
     >
       <div
         className={clsx(
-          "w-full rounded-2xl bg-white p-8",
-          "border border-gray-100", // ✅ tambah ini
-          "shadow-2xl", // ✅ lebih kuat
+          "relative w-full rounded-2xl bg-white p-6 sm:p-8",
+          "border border-gray-100",
+          "shadow-2xl",
           "max-h-[90vh] overflow-y-auto scrollbar-modern",
           sizeMap[size],
           className,
         )}
       >
-        {/* ✅ HEADER (conditional) */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Tutup dialog"
+          className="absolute right-4 top-4 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7]"
+        >
+          <X className="h-5 w-5" aria-hidden="true" />
+        </button>
+
         {title && (
-          <div className="mb-6 text-center">
+          <div className="mb-6 pr-10 text-center">
             <h2
+              id={titleId}
               className={clsx(
                 "text-xl font-semibold text-gray-900",
                 titleClassName,
@@ -114,10 +140,8 @@ export const Modal: FC<ModalProps> = ({
           </div>
         )}
 
-        {/* CONTENT */}
         <div>{children}</div>
 
-        {/* FOOTER */}
         {onSubmit && (
           <div className="mt-8 flex justify-center gap-4">
             <Button

@@ -204,7 +204,7 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
       open={open}
       onClose={handleClose}
       title="Batch Upload Siswa, Cohort & Enrollment (Excel / CSV)"
-      subtitle="Mendukung format Aksaventra & Moodle Upload Users CSV — otomatis tersimpan di Aksaventra CBT dan tersinkron ke Moodle"
+      subtitle="Mendukung format Aksaventra & Moodle Upload Users CSV, otomatis tersimpan di Aksaventra CBT dan tersinkron ke Moodle"
       size="lg"
     >
       <div className="flex flex-col gap-5 py-2">

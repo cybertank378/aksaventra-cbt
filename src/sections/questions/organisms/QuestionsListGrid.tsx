@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
+import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import type {
   CBTQuestionType,
   CreateQuestionInputDTO,
@@ -25,6 +26,7 @@ import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
 import MathRenderer from "@/shared-ui/component/MathRenderer";
+import Pagination from "@/shared-ui/component/Pagination";
 import SelectField from "@/shared-ui/component/SelectField";
 import QuestionTypeBadge from "../atoms/QuestionTypeBadge";
 import EditQuestionModal from "../molecules/EditQuestionModal";
@@ -46,6 +48,7 @@ export const QuestionsListGrid: FC = () => {
     deleteQuestion,
     bulkGroupQuestions,
   } = useQuestionsApi();
+  const { classes, fetchClasses } = useClassesApi();
 
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("ALL");
@@ -62,12 +65,16 @@ export const QuestionsListGrid: FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkGrade, setBulkGrade] = useState("");
   const [bulkSubject, setBulkSubject] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   useEffect(() => {
     fetchSubjects();
-  }, [fetchSubjects]);
+    fetchClasses();
+  }, [fetchSubjects, fetchClasses]);
 
   useEffect(() => {
+    setCurrentPage(1);
     const load = () =>
       fetchQuestions({
         subject: subject === "ALL" ? undefined : subject,
@@ -79,6 +86,20 @@ export const QuestionsListGrid: FC = () => {
     window.addEventListener("aksaventra:synced", load);
     return () => window.removeEventListener("aksaventra:synced", load);
   }, [fetchQuestions, subject, grade, type, search]);
+
+  const totalPages = Math.max(1, Math.ceil(questions.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedQuestions = questions.slice(
+    (safeCurrentPage - 1) * itemsPerPage,
+    safeCurrentPage * itemsPerPage,
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const toggleSelectQuestion = (id: string) => {
     setSelectedIds((prev) =>
@@ -255,12 +276,11 @@ export const QuestionsListGrid: FC = () => {
               size="sm"
             >
               <option value="">-- Ubah Kelas (Opsional) --</option>
-              <option value="X">Kelas X</option>
-              <option value="XI">Kelas XI</option>
-              <option value="XII">Kelas XII</option>
-              <option value="VII">Kelas VII</option>
-              <option value="VIII">Kelas VIII</option>
-              <option value="IX">Kelas IX</option>
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.name}>
+                  {cls.name}
+                </option>
+              ))}
             </SelectField>
             <Button
               type="button"
@@ -313,8 +333,9 @@ export const QuestionsListGrid: FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {questions.map((q) => (
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {paginatedQuestions.map((q) => (
             <Card
               key={q.id}
               className="flex flex-col justify-between p-5 hover:shadow-md transition-shadow"
@@ -369,7 +390,11 @@ export const QuestionsListGrid: FC = () => {
 
                 <MathRenderer
                   content={q.stem}
-                  className="text-xs font-medium text-slate-800 leading-relaxed line-clamp-3"
+                  className={`text-xs font-medium text-slate-800 leading-relaxed ${
+                    q.stem.includes("<img") || q.stem.includes("<svg")
+                      ? "max-h-56 overflow-y-auto pr-1 [&_img]:max-h-44 [&_img]:rounded-lg [&_img]:my-1"
+                      : "line-clamp-3"
+                  }`}
                 />
 
                 {q.options && q.options.length > 0 && (
@@ -418,6 +443,35 @@ export const QuestionsListGrid: FC = () => {
               </div>
             </Card>
           ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-2.5 shadow-2xs">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-medium text-slate-500">
+                Per halaman:
+              </span>
+              <SelectField
+                value={String(itemsPerPage)}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                size="sm"
+              >
+                <option value="12">12</option>
+                <option value="24">24</option>
+                <option value="50">50</option>
+              </SelectField>
+            </div>
+            <div className="flex-1 w-full">
+              <Pagination
+                currentPage={safeCurrentPage}
+                totalItems={questions.length}
+                itemsPerPage={itemsPerPage}
+                onPageChangeAction={handlePageChange}
+              />
+            </div>
+          </div>
         </div>
       )}
 

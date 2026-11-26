@@ -1,3 +1,0 @@
-{
-  "/(protected)/dashboard/exams/[id]/questions/page": "app/(protected)/dashboard/exams/[id]/questions/page.js"
-}

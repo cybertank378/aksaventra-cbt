@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Bell,
   ChevronDown,
   LogOut,
   type LucideIcon,
@@ -152,7 +151,7 @@ function resolveCbtHeader(pathname: string): {
   }
   return {
     title: "Aksaventra CBT",
-    subtitle: "High-Performance Zero-Latency Exam Workspace",
+    subtitle: "Sistem Ujian Berbasis Komputer",
   };
 }
 
@@ -224,11 +223,19 @@ const AppTopbar: FC<AppTopbarProps> = ({
       }
     }
 
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
 
@@ -242,16 +249,15 @@ const AppTopbar: FC<AppTopbarProps> = ({
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 backdrop-blur-md md:px-6">
-      {/* LEFT SECTION: HAMBURGER & DYNAMIC TITLE */}
       <div className="flex items-center gap-3">
         {onMenuClick && (
           <button
             type="button"
             onClick={onMenuClick}
             aria-label="Buka navigasi sidebar"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 md:hidden"
+            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7] md:hidden"
           >
-            <Menu size={18} />
+            <Menu size={20} />
           </button>
         )}
 
@@ -265,26 +271,24 @@ const AppTopbar: FC<AppTopbarProps> = ({
         </div>
       </div>
 
-      {/* RIGHT SECTION: SEARCH, ACTIONS, NOTIFICATIONS, PROFILE */}
       <div className="flex items-center gap-3">
-        {/* Search Input */}
-        <div className="hidden h-9 w-48 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 transition-colors focus-within:border-[#0097a7] focus-within:bg-white lg:flex xl:w-64">
-          <Search size={14} className="shrink-0 text-slate-400" />
-          <input
-            type="text"
-            value={searchValue}
-            onChange={handleSearchChange}
-            placeholder={searchPlaceholder}
-            className="min-w-0 flex-1 bg-transparent text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400"
-          />
-        </div>
+        {onSearch && (
+          <div className="hidden h-9 w-48 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 transition-colors focus-within:border-[#0097a7] focus-within:bg-white lg:flex xl:w-64">
+            <Search size={14} className="shrink-0 text-slate-400" />
+            <input
+              type="text"
+              value={searchValue}
+              onChange={handleSearchChange}
+              placeholder={searchPlaceholder}
+              className="min-w-0 flex-1 bg-transparent text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400"
+            />
+          </div>
+        )}
 
-        {/* Quick Action Slot */}
         {quickActionSlot && (
           <div className="hidden items-center sm:flex">{quickActionSlot}</div>
         )}
 
-        {/* Moodle Full Bidirectional Sync Button */}
         {canSyncMoodle && (
           <Button
             type="button"
@@ -307,24 +311,14 @@ const AppTopbar: FC<AppTopbarProps> = ({
           </Button>
         )}
 
-        {/* Notification Bell */}
-        <button
-          type="button"
-          title="Notifikasi"
-          aria-label="Notifikasi"
-          className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 hover:text-[#0d2b5c]"
-        >
-          <Bell size={16} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />
-        </button>
-
-        {/* USER PROFILE PILL & DROPDOWN */}
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
             aria-label="Menu pengguna"
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-1 pr-2.5 transition-all hover:bg-slate-100 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#0097a7]"
+            aria-expanded={isOpen}
+            aria-haspopup="menu"
+            className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-1 pr-2.5 transition-all hover:bg-slate-100 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7]"
           >
             <Avatar
               name={username}

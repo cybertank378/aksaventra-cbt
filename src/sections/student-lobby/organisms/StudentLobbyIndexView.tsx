@@ -255,7 +255,7 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
                       <div className="col-span-2 flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5 text-slate-400" />
                         <span>
-                          {formatDateTime(exam.timeOpen)} —{" "}
+                          {formatDateTime(exam.timeOpen)} -{" "}
                           {formatDateTime(exam.timeClose)}
                         </span>
                       </div>
@@ -273,7 +273,9 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
                       <Button
                         className="w-full"
                         onClick={() =>
-                          router.push(`/student/exam/${exam.attempt?.id}`)
+                          router.push(
+                            `/student/exam/${exam.attempt?.id}?examId=${exam.id}`,
+                          )
                         }
                       >
                         Lanjutkan Ujian
@@ -282,7 +284,7 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
                     ) : attemptStatus === "LOCKED" ? (
                       <Button variant="outline" className="w-full" disabled>
                         <Lock className="mr-1.5 h-4 w-4" />
-                        Terkunci — Hubungi Pengawas
+                        Terkunci: Hubungi Pengawas
                       </Button>
                     ) : attemptStatus === "SUBMITTED" ? (
                       <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">

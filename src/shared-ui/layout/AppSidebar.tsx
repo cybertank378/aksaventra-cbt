@@ -198,17 +198,15 @@ export default function AppSidebar({
 
   return (
     <>
-      {/* MOBILE BACKDROP */}
       {mobileOpen && (
         <button
           type="button"
           aria-label="Tutup navigasi sidebar"
           onClick={onClose}
-          className="fixed inset-0 z-40 h-full w-full cursor-default border-none bg-black/40 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 h-full w-full cursor-pointer border-none bg-black/40 backdrop-blur-sm md:hidden"
         />
       )}
 
-      {/* SIDEBAR CONTAINER */}
       <aside
         className={clsx(
           "fixed top-0 bottom-0 left-0 z-50 flex shrink-0 flex-col bg-white border-r border-slate-200/90 text-slate-700 shadow-xl md:shadow-xs transition-all duration-300 md:static",
@@ -216,7 +214,6 @@ export default function AppSidebar({
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
-        {/* SIDEBAR HEADER: AKSAVENTRA CBT LOGO */}
         <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4">
           <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white border border-slate-200/80 p-1 shadow-xs">
@@ -246,7 +243,7 @@ export default function AppSidebar({
               type="button"
               onClick={() => setCollapsed(!collapsed)}
               aria-label={collapsed ? "Perlebar navigasi" : "Ciutkan navigasi"}
-              className="hidden md:flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              className="hidden md:flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7]"
             >
               {collapsed ? (
                 <ChevronsRight className="h-4 w-4" />
@@ -260,15 +257,14 @@ export default function AppSidebar({
                 type="button"
                 onClick={onClose}
                 aria-label="Tutup menu sidebar"
-                className="flex md:hidden h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                className="flex md:hidden h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7]"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             )}
           </div>
         </div>
 
-        {/* NAVIGATION LIST GROUPED BY CATEGORY */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
           {categories.map((group) => {
             const filteredItems = group.items.filter(
@@ -281,7 +277,7 @@ export default function AppSidebar({
               <div key={group.category} className="space-y-1">
                 {!collapsed && (
                   <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400/90">
-                    — {group.category}
+                    {group.category}
                   </p>
                 )}
 
@@ -330,7 +326,6 @@ export default function AppSidebar({
           })}
         </nav>
 
-        {/* SIDEBAR FOOTER: USER & LOGOUT BUTTON */}
         <div className="border-t border-slate-100 p-3 space-y-2">
           {!collapsed && (
             <div className="flex items-center gap-2.5 rounded-2xl bg-slate-50 p-2 border border-slate-100">
@@ -352,7 +347,7 @@ export default function AppSidebar({
             type="button"
             onClick={handleLogoutClick}
             className={clsx(
-              "w-full flex items-center justify-center gap-2 rounded-2xl py-2 px-3 text-xs font-bold text-rose-600 bg-rose-50/80 hover:bg-rose-100 transition-colors",
+              "w-full flex cursor-pointer items-center justify-center gap-2 rounded-2xl py-2.5 px-3 text-xs font-bold text-rose-600 bg-rose-50/80 hover:bg-rose-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500",
               collapsed && "px-0",
             )}
             title="Keluar"

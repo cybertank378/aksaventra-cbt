@@ -146,14 +146,15 @@ export function isRouteAuthorized(
     );
   }
 
-  // Management API routes (classes, students, questions, subjects, exam-cards, sync)
+  // Management API routes (classes, students, questions, subjects, exam-cards, sync, upload)
   if (
     pathname.startsWith("/api/classes") ||
     pathname.startsWith("/api/students") ||
     pathname.startsWith("/api/questions") ||
     pathname.startsWith("/api/subjects") ||
     pathname.startsWith("/api/exam-cards") ||
-    pathname.startsWith("/api/sync")
+    pathname.startsWith("/api/sync") ||
+    pathname.startsWith("/api/upload")
   ) {
     return normalizedRole === "ADMIN" || normalizedRole === "TEACHER";
   }

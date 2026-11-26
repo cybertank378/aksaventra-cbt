@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type FC, useEffect, useState } from "react";
 import type { QuestionItemDTO } from "@/modules/exams/domain/dto/ExamSnapshotDTO";
 import { useExamApi } from "@/modules/exams/presentation/useExamApi";
@@ -35,8 +35,13 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
   maxStrikes = 3,
 }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { fetchExamSnapshot } = useExamApi();
 
+  const queryExamId = searchParams.get("examId") || undefined;
+  const [resolvedExamId, setResolvedExamId] = useState(
+    examId || queryExamId || attemptId,
+  );
   const [questions, setQuestions] = useState<QuestionItemDTO[] | null>(
     initialQuestions && initialQuestions.length > 0 ? initialQuestions : null,
   );
@@ -47,11 +52,13 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
   const [serverTimestampSec, setServerTimestampSec] = useState(
     initialServerTimestampSec || Math.floor(Date.now() / 1000),
   );
-  const [timeStartSec, setTimeStartSec] = useState(
+  const [timeStartSec] = useState(
     initialTimeStartSec || Math.floor(Date.now() / 1000),
   );
   const [studentName] = useState(initialStudentName || "Peserta Ujian");
-  const [isLoading, setIsLoading] = useState(!initialQuestions || initialQuestions.length === 0);
+  const [isLoading, setIsLoading] = useState(
+    !initialQuestions || initialQuestions.length === 0,
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,13 +73,18 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
       setIsLoading(true);
       setErrorMessage(null);
       try {
-        const targetExamId = examId || attemptId;
+        const targetExamId = examId || queryExamId || attemptId;
         const snapshot = await fetchExamSnapshot(targetExamId);
         if (!isMounted) return;
 
-        if (snapshot && snapshot.questions && snapshot.questions.length > 0) {
+        if (snapshot?.questions && snapshot.questions.length > 0) {
+          if (snapshot.examId) {
+            setResolvedExamId(String(snapshot.examId));
+          }
           setQuestions(snapshot.questions);
-          setExamTitle(snapshot.title || snapshot.courseName || `Ujian #${targetExamId}`);
+          setExamTitle(
+            snapshot.title || snapshot.courseName || `Ujian #${targetExamId}`,
+          );
           if (snapshot.durationSeconds) {
             setDurationSeconds(snapshot.durationSeconds);
           }
@@ -102,7 +114,7 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [attemptId, examId, initialQuestions, fetchExamSnapshot]);
+  }, [attemptId, examId, queryExamId, initialQuestions, fetchExamSnapshot]);
 
   if (isLoading) {
     return (
@@ -134,9 +146,9 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
             variant="filled"
             color="primary"
             fullWidth
-            onClick={() => router.replace("/dashboard")}
+            onClick={() => router.replace("/student/lobby")}
           >
-            Kembali ke Dashboard
+            Kembali ke Lobi Ujian
           </Button>
         </Card>
       </main>
@@ -147,7 +159,7 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
     <main className="min-h-screen bg-slate-100/90 py-4 sm:py-6 px-4 md:px-6 select-none">
       <ExamWorkspaceView
         attemptId={attemptId}
-        examId={examId || attemptId}
+        examId={resolvedExamId}
         examTitle={examTitle || "Asesmen CBT"}
         studentName={studentName}
         durationSeconds={durationSeconds}

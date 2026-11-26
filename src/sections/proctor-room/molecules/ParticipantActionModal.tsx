@@ -114,7 +114,7 @@ export const ParticipantActionModal: FC<ParticipantActionModalProps> = ({
               <ul className="text-xs text-rose-700 space-y-1 pl-4 list-disc">
                 {participant.recentViolations.map((v) => (
                   <li key={v.id}>
-                    <span className="font-semibold">{v.eventType}</span> —{" "}
+                    <span className="font-semibold">{v.eventType}</span> -{" "}
                     {new Date(v.createdAt).toLocaleTimeString()}
                   </li>
                 ))}

@@ -195,7 +195,7 @@ export function generateRoomLayoutPdf(
     doc.setFontSize(11);
     doc.setTextColor(255, 255, 255);
     doc.text(
-      `DAFTAR NOMOR MEJA & HADIR PESERTA — RUANG ${config.roomCode} (${config.roomName})`,
+      `DAFTAR NOMOR MEJA & HADIR PESERTA - RUANG ${config.roomCode} (${config.roomName})`,
       marginX + 5,
       19.5,
     );

@@ -66,7 +66,16 @@ export class ExamRepository implements ExamRepositoryInterface {
     const exam = await this.db.exam.findUnique({
       where: { id },
     });
-    return exam ? this.mapToEntity(exam) : null;
+    if (exam) {
+      return this.mapToEntity(exam);
+    }
+
+    // Fallback when a client route passes an Attempt ID instead of an Exam ID
+    const attempt = await this.db.attempt.findUnique({
+      where: { id },
+      include: { exam: true },
+    });
+    return attempt?.exam ? this.mapToEntity(attempt.exam) : null;
   }
 
   public async findByMoodleCbtId(

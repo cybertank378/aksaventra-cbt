@@ -95,7 +95,9 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
             maxStrikes: examData.maxStrikes ?? 3,
           });
         } else if (!initialExam) {
-          setLoadError("Informasi ujian tidak ditemukan dari server atau telah ditutup.");
+          setLoadError(
+            "Informasi ujian tidak ditemukan dari server atau telah ditutup.",
+          );
         }
 
         if (userData) {
@@ -107,8 +109,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
               (userData as unknown as { nisn?: string }).nisn ||
               userData.username,
             roomName:
-              (userData as unknown as { roomName?: string }).roomName ||
-              "-",
+              (userData as unknown as { roomName?: string }).roomName || "-",
           });
         } else if (!initialStudent) {
           setLoadError("Sesi peserta tidak valid. Silakan login kembali.");
@@ -143,7 +144,8 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
     if (onAttemptStarted) {
       onAttemptStarted(attemptId);
     } else {
-      router.replace(`/student/exam/${attemptId}`);
+      const targetExamId = exam?.id || examId;
+      router.replace(`/student/exam/${attemptId}?examId=${targetExamId}`);
     }
   };
 
@@ -191,7 +193,7 @@ export const StudentLobbyView: FC<StudentLobbyViewProps> = ({
   const activeStudent = student;
 
   return (
-    <div className={`flex flex-col gap-6 max-w-5xl mx-auto ${className || ""}`}>
+    <div className={`flex flex-col gap-6 mx-auto ${className || ""}`}>
       {/* 1. Header Banner & Exam Details */}
       <div className="flex flex-col gap-4 rounded-2xl bg-[#0d2b5c] p-6 text-white shadow-xl sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">

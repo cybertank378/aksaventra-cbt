@@ -18,6 +18,7 @@ import type { StudentDTO } from "@/modules/classes/domain/dto/ClassGroupDTO";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Pagination from "@/shared-ui/component/Pagination";
 import SelectField from "@/shared-ui/component/SelectField";
 import {
   Table,
@@ -52,6 +53,8 @@ export const StudentListTable: FC = () => {
 
   const [search, setSearch] = useState("");
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -175,6 +178,24 @@ export const StudentListTable: FC = () => {
       return true;
     });
   }, [students, search, selectedClassFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedClassFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredStudents.length / itemsPerPage),
+  );
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedStudents = useMemo(
+    () =>
+      filteredStudents.slice(
+        (safeCurrentPage - 1) * itemsPerPage,
+        safeCurrentPage * itemsPerPage,
+      ),
+    [filteredStudents, safeCurrentPage, itemsPerPage],
+  );
 
   const allFilteredSelected =
     filteredStudents.length > 0 &&
@@ -494,7 +515,7 @@ export const StudentListTable: FC = () => {
               </TableCell>
             </TableRow>
           ) : (
-            filteredStudents.map((s) => (
+            paginatedStudents.map((s) => (
               <TableRow
                 key={s.id}
                 className="hover:bg-slate-50/80 transition-colors"
@@ -586,6 +607,41 @@ export const StudentListTable: FC = () => {
           )}
         </TableBody>
       </Table>
+
+      {filteredStudents.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-2.5 shadow-2xs">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-medium text-slate-500">
+              Per halaman:
+            </span>
+            <SelectField
+              value={String(itemsPerPage)}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              size="sm"
+            >
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </SelectField>
+          </div>
+          <div className="flex-1 w-full">
+            <Pagination
+              currentPage={safeCurrentPage}
+              totalItems={filteredStudents.length}
+              itemsPerPage={itemsPerPage}
+              onPageChangeAction={(page) => {
+                setCurrentPage(page);
+                if (typeof window !== "undefined") {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Create Student Modal */}
       <CreateStudentModal

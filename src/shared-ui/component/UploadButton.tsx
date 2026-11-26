@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import Button from "@/shared-ui/component/Button";
 
 interface SingleUploadProps {
-  hasImage?: boolean; // 🔥 tambahkan ini
+  hasImage?: boolean;
   onUpload: (
     file: File,
     onProgress: (percent: number) => void,
