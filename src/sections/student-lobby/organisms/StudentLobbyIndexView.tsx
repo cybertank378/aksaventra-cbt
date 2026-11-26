@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ArrowRight,
+  Award,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -11,12 +12,14 @@ import {
   GraduationCap,
   Lock,
   LogOut,
+  Megaphone,
   RefreshCw,
   ShieldCheck,
   User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type FC, useCallback, useEffect, useState } from "react";
+import { type FC, useCallback, useEffect, useMemo, useState } from "react";
+import { useAnnouncementsApi } from "@/modules/announcements/presentation/useAnnouncementsApi";
 import { useAuthApi } from "@/modules/auth/presentation/useAuthApi";
 import type { StudentAvailableExamDTO } from "@/modules/exams/domain/dto/ExamSnapshotDTO";
 import { useExamApi } from "@/modules/exams/presentation/useExamApi";
@@ -52,6 +55,7 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
   const { fetchStudentExams } = useExamApi();
   const { fetchCurrentUser } = useUsersApi();
   const { logout } = useAuthApi();
+  const { announcements, fetchAnnouncements } = useAnnouncementsApi();
 
   const [student, setStudent] = useState<StudentProfileSummary | null>(
     initialStudent ?? null,
@@ -68,6 +72,7 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
       const [userData, examList] = await Promise.all([
         fetchCurrentUser().catch(() => null),
         fetchStudentExams(),
+        fetchAnnouncements().catch(() => undefined),
       ]);
 
       if (userData) {
@@ -96,7 +101,42 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [fetchCurrentUser, fetchStudentExams]);
+  }, [fetchCurrentUser, fetchStudentExams, fetchAnnouncements]);
+
+  const studentAnnouncements = useMemo(
+    () =>
+      announcements.filter(
+        (a) =>
+          a.isActive && (a.targetRole === "ALL" || a.targetRole === "STUDENTS"),
+      ),
+    [announcements],
+  );
+
+  const completedExamResults = useMemo(
+    () =>
+      exams.filter(
+        (exam) => exam.attempt && exam.attempt.status === "SUBMITTED",
+      ),
+    [exams],
+  );
+
+  const studentAnnouncements = useMemo(
+    () =>
+      announcements.filter(
+        (a) =>
+          a.isActive &&
+          (a.targetRole === "ALL" || a.targetRole === "STUDENTS"),
+      ),
+    [announcements],
+  );
+
+  const completedExamResults = useMemo(
+    () =>
+      exams.filter(
+        (exam) => exam.attempt && exam.attempt.status === "SUBMITTED",
+      ),
+    [exams],
+  );
 
   useEffect(() => {
     void loadData();
@@ -174,6 +214,150 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
           </div>
         </Card>
       )}
+
+      {/* Pengumuman & Hasil Ujian Siswa */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Pengumuman Hasil Ujian */}
+        <Card className="border-slate-200/90 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-[#0d2b5c]">
+              <Award className="h-4 w-4 text-[#0097a7]" />
+              Pengumuman Hasil Ujian
+            </h3>
+            <Badge color="teal" variant="soft" size="sm">
+              {completedExamResults.length} Selesai
+            </Badge>
+          </div>
+
+          {isLoading ? (
+            <p className="py-6 text-center text-xs text-slate-500">
+              Memuat pengumuman hasil ujian...
+            </p>
+          ) : completedExamResults.length === 0 ? (
+            <div className="py-5 text-xs leading-relaxed text-slate-600">
+              Belum ada hasil ujian yang diumumkan untuk akun Anda. Nilai dan
+              status kelulusan akan muncul otomatis di sini setelah Anda
+              menyelesaikan dan mengumpulkan ujian.
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2.5">
+              {completedExamResults.map((exam) => {
+                const attempt = exam.attempt;
+                const hasScore =
+                  attempt?.finalScore !== null &&
+                  attempt?.finalScore !== undefined;
+                return (
+                  <div
+                    key={`result-${exam.id}`}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11px] font-semibold text-[#0097a7]">
+                        {exam.courseName || "Ujian CBT"}
+                      </p>
+                      <p className="truncate text-xs font-bold text-slate-900">
+                        {exam.title}
+                      </p>
+                      {attempt?.finishedAt && (
+                        <p className="mt-0.5 text-[11px] text-slate-500">
+                          Dikumpulkan: {formatDateTime(attempt.finishedAt)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2.5">
+                      {hasScore ? (
+                        <div className="rounded-lg bg-[#0d2b5c] px-3 py-1 text-center text-white">
+                          <span className="block text-[10px] uppercase tracking-wider text-slate-300">
+                            Nilai
+                          </span>
+                          <span className="font-mono text-sm font-black">
+                            {Number(attempt.finalScore).toFixed(2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <Badge color="warning" variant="soft" size="sm">
+                          Menunggu Penilaian
+                        </Badge>
+                      )}
+
+                      {attempt?.id && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          color="primary"
+                          size="sm"
+                          onClick={() =>
+                            router.push(`/student/exam/${attempt.id}/result`)
+                          }
+                        >
+                          Lihat Hasil
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* Pengumuman Resmi Panitia / Pengawas */}
+        <Card className="border-slate-200/90 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-[#0d2b5c]">
+              <Megaphone className="h-4 w-4 text-[#0097a7]" />
+              Pengumuman Panitia &amp; Pengawas
+            </h3>
+            <Badge color="primary" variant="soft" size="sm">
+              {studentAnnouncements.length} Info
+            </Badge>
+          </div>
+
+          {isLoading ? (
+            <p className="py-6 text-center text-xs text-slate-500">
+              Memuat pengumuman...
+            </p>
+          ) : studentAnnouncements.length === 0 ? (
+            <div className="py-5 text-xs leading-relaxed text-slate-600">
+              Belum ada pengumuman terbaru dari panitia atau pengawas ujian.
+              Pastikan Anda membaca tata tertib sebelum memulai sesi ujian.
+            </div>
+          ) : (
+            <div className="mt-3 max-h-56 space-y-2.5 overflow-y-auto pr-1">
+              {studentAnnouncements.map((item) => {
+                const priorityColor =
+                  item.priority === "URGENT"
+                    ? "error"
+                    : item.priority === "HIGH"
+                      ? "warning"
+                      : "teal";
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-bold text-slate-900">
+                        {item.title}
+                      </p>
+                      <Badge color={priorityColor} variant="soft" size="sm">
+                        {item.priority}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-600">
+                      {item.content}
+                    </p>
+                    <p className="mt-1.5 text-[11px] text-slate-400">
+                      {item.authorName} · {formatDateTime(item.createdAt)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
 
       {/* Exam List */}
       <div className="space-y-3">
