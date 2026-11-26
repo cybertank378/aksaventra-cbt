@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s | Aksaventra CBT",
   },
   description:
-    "Aksaventra CBT — High-Performance Zero-Latency Computer Based Testing System",
+    "Aksaventra CBT: Sistem Ujian Berbasis Komputer terintegrasi Moodle untuk sekolah.",
   applicationName: "Aksaventra CBT",
   icons: {
     icon: [

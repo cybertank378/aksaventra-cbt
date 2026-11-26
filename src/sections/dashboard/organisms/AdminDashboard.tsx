@@ -39,8 +39,11 @@ interface ActiveExamItem {
 
 export const AdminDashboard: FC = () => {
   const router = useRouter();
-  const { examsList, fetchExamsList, isLoading: isExamsLoading } =
-    useExamManagementApi();
+  const {
+    examsList,
+    fetchExamsList,
+    isLoading: isExamsLoading,
+  } = useExamManagementApi();
   const {
     classes,
     students,
@@ -73,9 +76,9 @@ export const AdminDashboard: FC = () => {
       totalParticipants: e.questions?.length || 0,
       startTime: raw.timeOpen
         ? new Date(raw.timeOpen).toLocaleTimeString("id-ID", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+            hour: "2-digit",
+            minute: "2-digit",
+          })
         : "-",
       status,
     };
@@ -149,7 +152,7 @@ export const AdminDashboard: FC = () => {
             <Users className="w-4 h-4 text-slate-400" />
           </div>
           <span className="text-2xl sm:text-3xl font-black text-slate-800">
-            {studentCount > 0 ? studentCount : "—"}
+            {studentCount > 0 ? studentCount : "-"}
           </span>
           <p className="text-[11px] text-slate-500 font-medium mt-1">
             Peserta Ujian CBT
@@ -164,7 +167,7 @@ export const AdminDashboard: FC = () => {
             <Building2 className="w-4 h-4 text-emerald-500" />
           </div>
           <span className="text-2xl sm:text-3xl font-black text-slate-800">
-            {classCount > 0 ? classCount : "—"}
+            {classCount > 0 ? classCount : "-"}
           </span>
           <p className="text-[11px] text-emerald-600 font-semibold mt-1">
             Kelas Tersinkron
@@ -214,23 +217,33 @@ export const AdminDashboard: FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell className="px-6 py-3.5">Nama Ujian &amp; Mata Pelajaran</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-3.5">
+                Nama Ujian &amp; Mata Pelajaran
+              </TableHeaderCell>
               <TableHeaderCell className="px-6 py-3.5">Mulai</TableHeaderCell>
               <TableHeaderCell className="px-6 py-3.5">Status</TableHeaderCell>
-              <TableHeaderCell className="px-6 py-3.5 text-right">Aksi</TableHeaderCell>
+              <TableHeaderCell className="px-6 py-3.5 text-right">
+                Aksi
+              </TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading && activeExams.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-12 text-center text-slate-400">
+                <TableCell
+                  colSpan={4}
+                  className="py-12 text-center text-slate-400"
+                >
                   <RefreshCw className="w-6 h-6 animate-spin mx-auto text-teal-600 mb-2" />
                   Memuat data asesmen langsung...
                 </TableCell>
               </TableRow>
             ) : activeExams.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="py-12 text-center text-slate-400">
+                <TableCell
+                  colSpan={4}
+                  className="py-12 text-center text-slate-400"
+                >
                   Belum ada jadwal asesmen aktif saat ini.
                 </TableCell>
               </TableRow>
