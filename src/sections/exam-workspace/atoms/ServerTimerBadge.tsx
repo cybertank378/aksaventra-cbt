@@ -2,11 +2,8 @@
 
 import clsx from "clsx";
 import { AlertCircle, Clock } from "lucide-react";
-import { type FC, useEffect, useRef, useState } from "react";
-import {
-  calculateTrueRemainingSeconds,
-  type ServerDeltaTimer,
-} from "@/libs/serverDeltaTimer";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
+import { ServerDeltaTimer } from "@/libs/serverDeltaTimer";
 
 export interface ServerTimerBadgeProps {
   timer?: ServerDeltaTimer;
@@ -14,6 +11,7 @@ export interface ServerTimerBadgeProps {
   durationSeconds?: number;
   extraTimeSeconds?: number;
   serverTimestampSec?: number;
+  onRemainingChange?: (remainingSeconds: number) => void;
   onTimeExpired?: () => void;
   className?: string;
 }
@@ -38,40 +36,49 @@ export const ServerTimerBadge: FC<ServerTimerBadgeProps> = ({
   durationSeconds = 5400,
   extraTimeSeconds = 0,
   serverTimestampSec = Math.floor(Date.now() / 1000),
+  onRemainingChange,
   onTimeExpired,
   className,
 }) => {
-  // Self-contained ticking state: prevents parent canvas and nav grid from re-rendering every second
-  const [remainingSec, setRemainingSec] = useState<number>(() => {
-    if (timer) {
-      return timer.getRemainingSeconds();
-    }
-    return calculateTrueRemainingSeconds(
-      timeStartSec,
+  // Build an internal monotonic ServerDeltaTimer when no external timer instance is passed
+  const activeTimer = useMemo(() => {
+    if (timer) return timer;
+    return new ServerDeltaTimer({
+      serverTimestamp: serverTimestampSec,
+      timeStart: timeStartSec,
       durationSeconds,
       extraTimeSeconds,
-      serverTimestampSec,
-    );
-  });
+    });
+  }, [
+    timer,
+    serverTimestampSec,
+    timeStartSec,
+    durationSeconds,
+    extraTimeSeconds,
+  ]);
+
+  // Self-contained ticking state: prevents parent canvas and nav grid from re-rendering every second
+  const [remainingSec, setRemainingSec] = useState<number>(() =>
+    activeTimer.getRemainingSeconds(),
+  );
 
   const hasExpiredRef = useRef(false);
+  const onRemainingChangeRef = useRef(onRemainingChange);
+  onRemainingChangeRef.current = onRemainingChange;
+  const onTimeExpiredRef = useRef(onTimeExpired);
+  onTimeExpiredRef.current = onTimeExpired;
 
   useEffect(() => {
-    const updateCountdown = () => {
-      const current = timer
-        ? timer.getRemainingSeconds()
-        : calculateTrueRemainingSeconds(
-            timeStartSec,
-            durationSeconds,
-            extraTimeSeconds,
-            serverTimestampSec,
-          );
+    hasExpiredRef.current = false;
 
+    const updateCountdown = () => {
+      const current = activeTimer.getRemainingSeconds();
       setRemainingSec(current);
+      onRemainingChangeRef.current?.(current);
 
       if (current <= 0 && !hasExpiredRef.current) {
         hasExpiredRef.current = true;
-        onTimeExpired?.();
+        onTimeExpiredRef.current?.();
       }
     };
 
@@ -79,22 +86,19 @@ export const ServerTimerBadge: FC<ServerTimerBadgeProps> = ({
     const interval = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(interval);
-  }, [
-    timer,
-    timeStartSec,
-    durationSeconds,
-    extraTimeSeconds,
-    serverTimestampSec,
-    onTimeExpired,
-  ]);
+  }, [activeTimer]);
 
+  const totalMinutes = Math.max(1, Math.round(durationSeconds / 60));
+  const isFinalCountdown = remainingSec > 0 && remainingSec <= 15;
   const isUrgent = remainingSec <= 60;
   const isWarning = remainingSec <= 300 && remainingSec > 60;
 
   return (
     <div
       role="timer"
-      aria-label={`Sisa waktu pengerjaan: ${formatDuration(remainingSec)}`}
+      aria-live={isFinalCountdown ? "assertive" : "off"}
+      aria-label={`Sisa waktu pengerjaan: ${formatDuration(remainingSec)} dari ${totalMinutes} menit`}
+      title={`Durasi ujian: ${totalMinutes} menit`}
       className={clsx(
         "inline-flex items-center gap-2 rounded-xl px-3 py-1.5 font-mono text-sm sm:text-base font-bold shadow-xs select-none transition-colors duration-300",
         isUrgent
@@ -117,6 +121,9 @@ export const ServerTimerBadge: FC<ServerTimerBadgeProps> = ({
         />
       )}
       <span className="tracking-wider">{formatDuration(remainingSec)}</span>
+      <span className="hidden text-[11px] font-sans font-semibold opacity-80 sm:inline">
+        / {totalMinutes} mnt
+      </span>
     </div>
   );
 };

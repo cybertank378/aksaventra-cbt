@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { generateDeviceFingerprint } from "@/security/deviceFingerprint";
+import Button from "@/shared-ui/component/Button";
 
 function ExamLaunchContent() {
   const router = useRouter();
@@ -175,13 +176,16 @@ function ExamLaunchContent() {
               </p>
 
               <div className="mt-6 flex w-full flex-col gap-2.5">
-                <button
+                <Button
                   type="button"
-                  onClick={() => window.location.reload()}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0d2b5c] px-4 py-2.5 font-semibold text-sm text-white shadow hover:bg-[#0d2b5c]/90 transition"
+                  variant="filled"
+                  color="primary"
+                  size="md"
+                  fullWidth
+                  onClick={() => router.refresh()}
                 >
-                  <span>Coba Lagi</span>
-                </button>
+                  Coba Lagi
+                </Button>
 
                 <Link
                   href="/login"

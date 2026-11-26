@@ -52,7 +52,7 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
   const [serverTimestampSec, setServerTimestampSec] = useState(
     initialServerTimestampSec || Math.floor(Date.now() / 1000),
   );
-  const [timeStartSec] = useState(
+  const [timeStartSec, setTimeStartSec] = useState(
     initialTimeStartSec || Math.floor(Date.now() / 1000),
   );
   const [studentName] = useState(initialStudentName || "Peserta Ujian");
@@ -89,7 +89,14 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
             setDurationSeconds(snapshot.durationSeconds);
           }
           if (snapshot.serverTimestamp) {
-            setServerTimestampSec(snapshot.serverTimestamp);
+            const normalizedServerSec =
+              snapshot.serverTimestamp > 1_000_000_000_000
+                ? Math.floor(snapshot.serverTimestamp / 1000)
+                : snapshot.serverTimestamp;
+            setServerTimestampSec(normalizedServerSec);
+            if (!initialTimeStartSec) {
+              setTimeStartSec(normalizedServerSec);
+            }
           }
         } else {
           setQuestions([]);
@@ -114,7 +121,14 @@ export const ExamWorkspaceSection: FC<ExamWorkspaceSectionProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [attemptId, examId, queryExamId, initialQuestions, fetchExamSnapshot]);
+  }, [
+    attemptId,
+    examId,
+    queryExamId,
+    initialQuestions,
+    initialTimeStartSec,
+    fetchExamSnapshot,
+  ]);
 
   if (isLoading) {
     return (
