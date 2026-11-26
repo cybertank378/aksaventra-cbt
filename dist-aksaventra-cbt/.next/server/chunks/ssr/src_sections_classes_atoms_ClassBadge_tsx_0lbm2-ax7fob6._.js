@@ -1,3 +1,0 @@
-module.exports=[30040,a=>{"use strict";var b=a.i(87924),c=a.i(98621);a.s(["f",0,({name:a,className:d,size:e="md"})=>(0,b.jsx)("span",{className:(0,c.f)("inline-flex items-center rounded-lg font-bold bg-[#0d2b5c]/10 text-[#0d2b5c] border border-[#0d2b5c]/20","sm"===e?"px-2 py-0.5 text-[11px]":"px-2.5 py-1 text-xs",d),children:a})])}];
-
-//# sourceMappingURL=src_sections_classes_atoms_ClassBadge_tsx_0lbm2-ax7fob6._.js.map

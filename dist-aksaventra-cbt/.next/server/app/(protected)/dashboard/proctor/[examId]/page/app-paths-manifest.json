@@ -1,3 +1,0 @@
-{
-  "/(protected)/dashboard/proctor/[examId]/page": "app/(protected)/dashboard/proctor/[examId]/page.js"
-}

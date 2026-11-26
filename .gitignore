@@ -19,6 +19,8 @@
 
 # production
 /build
+/dist
+/dist-aksaventra-cbt/
 
 # misc
 .DS_Store
