@@ -7,8 +7,6 @@ import {
 } from "@/modules/proctor/application/usecases/ProctorChatStore";
 import { requireRequestRole } from "@/security/serverAuth";
 
-export const dynamic = "force-dynamic";
-
 const ALLOWED_ROLES = ["ADMIN", "TEACHER", "PROCTOR"] as const;
 
 export async function GET(request: NextRequest): Promise<Response> {
