@@ -48,7 +48,7 @@ export const AuthSection: FC<AuthSectionProps> = ({
       <footer className="flex flex-col items-center gap-2 text-center text-xs text-slate-500 pb-2">
         <div className="flex items-center gap-1.5 font-medium text-slate-600">
           <ShieldCheck size={15} className="text-emerald-600" />
-          <span>Koneksi Aman & Terproteksi Token Device Binding</span>
+          <span>Koneksi Aman & Terproteksi Sesi Terenkripsi</span>
         </div>
         <p className="text-[11px] text-slate-400">
           &copy; {new Date().getFullYear()} Aksaventra Computer-Based Testing
