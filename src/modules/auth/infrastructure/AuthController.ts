@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/base/Result";
 import { handleZodError } from "@/core/errors/handleZodError";
+import { checkRateLimit } from "@/security/rateLimiter";
 import type { AuthService } from "../application/service/AuthService";
 import {
   loginSchema,
@@ -52,11 +53,31 @@ export class AuthController extends BaseController {
     }
 
     try {
-      // Attach client IP if not passed in body
       const ipAddress =
         parseResult.data.ipAddress ||
         request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
         "127.0.0.1";
+
+      const rateLimit = checkRateLimit(
+        `auth:login:${ipAddress}:${parseResult.data.username.trim().toLowerCase()}`,
+        { limit: 15, windowMs: 5 * 60 * 1000 },
+      );
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "RATE_LIMIT_EXCEEDED",
+              message:
+                "Terlalu banyak percobaan login. Silakan coba lagi beberapa saat lagi.",
+            },
+          },
+          {
+            status: 429,
+            headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+          },
+        );
+      }
 
       const result = await this.authService.login({
         ...parseResult.data,
@@ -113,6 +134,30 @@ export class AuthController extends BaseController {
   }
 
   public async verifyExamToken(request: NextRequest): Promise<NextResponse> {
+    const ipAddress =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      "127.0.0.1";
+    const rateLimit = checkRateLimit(`auth:verify-token:${ipAddress}`, {
+      limit: 20,
+      windowMs: 5 * 60 * 1000,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message:
+              "Terlalu banyak percobaan verifikasi token. Silakan tunggu sebentar.",
+          },
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        },
+      );
+    }
+
     try {
       const body = await request.json();
       const parseResult = verifyExamTokenSchema.safeParse(body);
@@ -166,6 +211,27 @@ export class AuthController extends BaseController {
         parseResult.data.ipAddress ||
         request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
         "127.0.0.1";
+
+      const rateLimit = checkRateLimit(`auth:moodle-launch:${ipAddress}`, {
+        limit: 20,
+        windowMs: 5 * 60 * 1000,
+      });
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "RATE_LIMIT_EXCEEDED",
+              message:
+                "Terlalu banyak percobaan SSO launch. Silakan coba lagi beberapa saat lagi.",
+            },
+          },
+          {
+            status: 429,
+            headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+          },
+        );
+      }
 
       const result = await this.authService.exchangeMoodleLaunch({
         ...parseResult.data,

@@ -1,5 +1,6 @@
 import { jwtVerify } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
+import { getEncodedJwtSecret } from "./security/jwtConfig";
 import {
   getDefaultRedirectForRole,
   isPublicRoute,
@@ -17,22 +18,15 @@ export interface AuthJwtPayload {
   exp?: number;
 }
 
-const JWT_SECRET =
-  process.env.CBT_JWT_SECRET ||
-  "aksaventra_default_jwt_secret_dev_key_32_chars_long";
-const encodedSecret = new TextEncoder().encode(JWT_SECRET);
-
 /**
  * Extracts raw JWT token from Authorization header or cookies.
  */
 export function extractTokenFromRequest(request: NextRequest): string | null {
-  // 1. Try Bearer token in Authorization header
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     return authHeader.substring(7).trim();
   }
 
-  // 2. Try cookie
   const cookieToken = request.cookies.get("aksaventra_token")?.value;
   if (cookieToken) {
     return cookieToken.trim();
@@ -42,14 +36,14 @@ export function extractTokenFromRequest(request: NextRequest): string | null {
 }
 
 /**
- * Verifies JWT token and extracts AuthJwtPayload safely.
+ * Verifies JWT token and extracts AuthJwtPayload safely without caching
+ * so expired or invalidated tokens are rejected immediately.
  */
 export async function verifyAuthToken(
   token: string,
 ): Promise<AuthJwtPayload | null> {
-  "use cache";
   try {
-    const { payload } = await jwtVerify(token, encodedSecret);
+    const { payload } = await jwtVerify(token, getEncodedJwtSecret());
     if (!payload || typeof payload !== "object") {
       return null;
     }
@@ -70,16 +64,25 @@ export async function verifyAuthToken(
 
 /**
  * Edge proxy middleware handler for Aksaventra CBT.
- * Enforces JWT verification, RBAC permissions, and optional SEB verification.
+ * Strips spoofable identity headers, enforces JWT verification, and checks RBAC.
  */
 export async function proxyMiddleware(
   request: NextRequest,
 ): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // 1. Skip public assets and unrestricted routes
+  // Always strip client-supplied identity headers before routing
+  const sanitizedHeaders = new Headers(request.headers);
+  sanitizedHeaders.delete("x-user-id");
+  sanitizedHeaders.delete("x-user-username");
+  sanitizedHeaders.delete("x-user-role");
+
   if (isPublicRoute(pathname)) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: {
+        headers: sanitizedHeaders,
+      },
+    });
   }
 
   // 2. Extract and verify JWT token
@@ -148,15 +151,13 @@ export async function proxyMiddleware(
     return NextResponse.redirect(targetUrl);
   }
 
-  // 4. Inject authenticated user context into request headers for downstream handlers
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-user-id", String(authUser.userId));
-  requestHeaders.set("x-user-username", authUser.username);
-  requestHeaders.set("x-user-role", authUser.role);
+  sanitizedHeaders.set("x-user-id", String(authUser.userId));
+  sanitizedHeaders.set("x-user-username", authUser.username);
+  sanitizedHeaders.set("x-user-role", authUser.role);
 
   return NextResponse.next({
     request: {
-      headers: requestHeaders,
+      headers: sanitizedHeaders,
     },
   });
 }

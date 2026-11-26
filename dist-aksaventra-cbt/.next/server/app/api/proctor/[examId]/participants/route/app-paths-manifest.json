@@ -1,3 +1,0 @@
-{
-  "/api/proctor/[examId]/participants/route": "app/api/proctor/[examId]/participants/route.js"
-}

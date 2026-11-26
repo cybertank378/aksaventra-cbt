@@ -273,7 +273,9 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
                       <Button
                         className="w-full"
                         onClick={() =>
-                          router.push(`/student/exam/${exam.attempt?.id}`)
+                          router.push(
+                            `/student/exam/${exam.attempt?.id}?examId=${exam.id}`,
+                          )
                         }
                       >
                         Lanjutkan Ujian
