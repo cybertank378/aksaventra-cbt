@@ -1,11 +1,13 @@
 "use client";
 
-import { Megaphone, Plus, User } from "lucide-react";
+import { Eye, Megaphone, Plus, User } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
+import type { AnnouncementItemDTO } from "@/modules/announcements/domain/dto/AnnouncementDTO";
 import { useAnnouncementsApi } from "@/modules/announcements/presentation/useAnnouncementsApi";
 import Button from "@/shared-ui/component/Button";
 import PriorityBadge from "../atoms/PriorityBadge";
 import CreateAnnouncementModal from "../molecules/CreateAnnouncementModal";
+import ViewAnnouncementModal from "../molecules/ViewAnnouncementModal";
 
 export const AnnouncementList: FC = () => {
   const {
@@ -17,6 +19,8 @@ export const AnnouncementList: FC = () => {
   } = useAnnouncementsApi();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] =
+    useState<AnnouncementItemDTO | null>(null);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -78,11 +82,13 @@ export const AnnouncementList: FC = () => {
       ) : (
         <div className="space-y-3">
           {announcements.map((item) => (
-            <div
+            <button
               key={item.id}
-              className="flex flex-col gap-2 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs hover:shadow-md transition-shadow"
+              type="button"
+              onClick={() => setSelectedAnnouncement(item)}
+              className="flex w-full cursor-pointer flex-col gap-2 rounded-3xl border border-slate-200/90 bg-white p-5 text-left shadow-xs transition-all hover:border-[#0097a7]/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7]"
             >
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex w-full items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <PriorityBadge priority={item.priority} />
                   <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
@@ -95,25 +101,37 @@ export const AnnouncementList: FC = () => {
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-sm font-extrabold text-[#0d2b5c]">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  {item.content}
-                </p>
+              <div className="flex w-full flex-wrap items-end justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-extrabold text-[#0d2b5c]">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 line-clamp-2 whitespace-pre-line text-xs leading-relaxed text-slate-600">
+                    {item.content}
+                  </p>
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#0097a7]/30 bg-teal-50/70 px-3 py-1.5 text-xs font-semibold text-[#0097a7]">
+                  <Eye className="h-3.5 w-3.5" />
+                  Lihat Detail
+                </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modals */}
       <CreateAnnouncementModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSubmit={createAnnouncement}
         loading={isLoading}
+      />
+
+      <ViewAnnouncementModal
+        announcement={selectedAnnouncement}
+        onClose={() => setSelectedAnnouncement(null)}
       />
     </div>
   );
