@@ -242,6 +242,44 @@ export class SyncRepository implements SyncRepositoryInterface {
   ): Promise<number> {
     let count = 0;
     const classCache = new Map<number, { id: string; name: string } | null>();
+
+    // Pre-fetch existing users in 1 query to avoid N+1 round-trips & skip unchanged updates
+    type CachedUser = {
+      id: string;
+      moodleUserId: number | null;
+      username: string;
+      fullName: string;
+      role: "ADMIN" | "TEACHER" | "PROCTOR" | "STUDENT";
+      passwordHash: string;
+      classGroupId: string | null;
+      className: string | null;
+      isActive: boolean;
+    };
+    const existingByMoodleId = new Map<number, CachedUser>();
+    const existingByUsername = new Map<string, CachedUser>();
+    const hasBulkUserLookup = typeof this.db.user.findMany === "function";
+    if (hasBulkUserLookup && students.length > 1) {
+      const existingUsers = await this.db.user.findMany({
+        select: {
+          id: true,
+          moodleUserId: true,
+          username: true,
+          fullName: true,
+          role: true,
+          passwordHash: true,
+          classGroupId: true,
+          className: true,
+          isActive: true,
+        },
+      });
+      for (const u of existingUsers) {
+        if (u.moodleUserId !== null) {
+          existingByMoodleId.set(u.moodleUserId, u);
+        }
+        existingByUsername.set(u.username.toLowerCase(), u);
+      }
+    }
+
     for (const s of students) {
       const username = s.username?.trim().toLowerCase();
       if (!username) continue;
@@ -276,11 +314,16 @@ export class SyncRepository implements SyncRepositoryInterface {
         }
       }
 
-      const existing = await this.db.user.findFirst({
-        where: {
-          OR: [{ moodleUserId: s.user_id }, { username }],
-        },
-      });
+      const existing =
+        hasBulkUserLookup && students.length > 1
+          ? (existingByMoodleId.get(s.user_id) ??
+            existingByUsername.get(username) ??
+            null)
+          : await this.db.user.findFirst({
+              where: {
+                OR: [{ moodleUserId: s.user_id }, { username }],
+              },
+            });
 
       if (existing) {
         const resolvedRole =
@@ -290,26 +333,42 @@ export class SyncRepository implements SyncRepositoryInterface {
               ? incomingRole
               : existing.role;
 
+        const nextFullName = s.full_name?.trim() || existing.fullName;
+        const nextClassGroupId =
+          resolvedRole === "STUDENT" ? classGroupId : null;
+        const nextClassName = resolvedRole === "STUDENT" ? className : null;
+
         const incomingHash = s.password_hash?.trim() || "";
         const existingHash = existing.passwordHash || "";
         const shouldUpdateHash =
           incomingHash !== "" &&
+          incomingHash !== existingHash &&
           (!existingHash.startsWith("$argon2") ||
             incomingHash.startsWith("$argon2"));
 
-        await this.db.user.update({
-          where: { id: existing.id },
-          data: {
-            moodleUserId: s.user_id,
-            fullName: s.full_name?.trim() || existing.fullName,
-            role: resolvedRole,
-            ...(shouldUpdateHash ? { passwordHash: incomingHash } : {}),
-            ...(resolvedRole === "STUDENT"
-              ? { classGroupId, className }
-              : { classGroupId: null, className: null }),
-            isActive: true,
-          },
-        });
+        const isUnchanged =
+          existing.moodleUserId === s.user_id &&
+          existing.fullName === nextFullName &&
+          existing.role === resolvedRole &&
+          existing.classGroupId === nextClassGroupId &&
+          existing.className === nextClassName &&
+          existing.isActive === true &&
+          !shouldUpdateHash;
+
+        if (!isUnchanged) {
+          await this.db.user.update({
+            where: { id: existing.id },
+            data: {
+              moodleUserId: s.user_id,
+              fullName: nextFullName,
+              role: resolvedRole,
+              ...(shouldUpdateHash ? { passwordHash: incomingHash } : {}),
+              classGroupId: nextClassGroupId,
+              className: nextClassName,
+              isActive: true,
+            },
+          });
+        }
       } else {
         await this.db.user.create({
           data: {
@@ -394,6 +453,63 @@ export class SyncRepository implements SyncRepositoryInterface {
     questions: NonNullable<MoodlePullPayload["questions"]>,
   ): Promise<number> {
     let count = 0;
+
+    // Pre-fetch existing questions in 1 query to avoid 1,000+ sequential DB round-trips
+    const existingByMoodleId = new Map<
+      number,
+      {
+        id: string;
+        moodleQuestionId: number | null;
+        code: string;
+        subject: string;
+        gradeLevel: string;
+        type: string;
+        stem: string;
+        points: number;
+        optionsJson: unknown;
+        explanation: string | null;
+      }
+    >();
+    const existingByCode = new Map<
+      string,
+      {
+        id: string;
+        moodleQuestionId: number | null;
+        code: string;
+        subject: string;
+        gradeLevel: string;
+        type: string;
+        stem: string;
+        points: number;
+        optionsJson: unknown;
+        explanation: string | null;
+      }
+    >();
+    const hasBulkQuestionLookup =
+      typeof this.db.question.findMany === "function";
+    if (hasBulkQuestionLookup && questions.length > 1) {
+      const existingQuestions = await this.db.question.findMany({
+        select: {
+          id: true,
+          moodleQuestionId: true,
+          code: true,
+          subject: true,
+          gradeLevel: true,
+          type: true,
+          stem: true,
+          points: true,
+          optionsJson: true,
+          explanation: true,
+        },
+      });
+      for (const eq of existingQuestions) {
+        if (eq.moodleQuestionId !== null) {
+          existingByMoodleId.set(eq.moodleQuestionId, eq);
+        }
+        existingByCode.set(eq.code, eq);
+      }
+    }
+
     for (const q of questions) {
       const code = q.code?.trim() || `MDL-Q-${q.id}`;
       const type = normalizeQuestionType(q.type || "multichoice", q.options);
@@ -409,26 +525,48 @@ export class SyncRepository implements SyncRepositoryInterface {
         : [];
       const optionsJson = cleanedOptions as unknown as Prisma.InputJsonValue;
 
-      const existing = await this.db.question.findFirst({
-        where: {
-          OR: [{ moodleQuestionId: q.id }, { code }],
-        },
-      });
+      const existing =
+        hasBulkQuestionLookup && questions.length > 1
+          ? (existingByMoodleId.get(q.id) ?? existingByCode.get(code) ?? null)
+          : await this.db.question.findFirst({
+              where: {
+                OR: [{ moodleQuestionId: q.id }, { code }],
+              },
+            });
 
       if (existing) {
-        await this.db.question.update({
-          where: { id: existing.id },
-          data: {
-            moodleQuestionId: q.id,
-            subject: q.subject || existing.subject,
-            gradeLevel: q.grade_level || existing.gradeLevel,
-            type,
-            stem: cleanedStem || existing.stem,
-            points: q.points ?? existing.points,
-            optionsJson,
-            explanation: cleanedExplanation ?? existing.explanation,
-          },
-        });
+        const nextSubject = q.subject || existing.subject;
+        const nextGradeLevel = q.grade_level || existing.gradeLevel;
+        const nextStem = cleanedStem || existing.stem;
+        const nextPoints = q.points ?? existing.points;
+        const nextExplanation = cleanedExplanation ?? existing.explanation;
+
+        const isUnchanged =
+          existing.moodleQuestionId === q.id &&
+          existing.subject === nextSubject &&
+          existing.gradeLevel === nextGradeLevel &&
+          existing.type === type &&
+          existing.stem === nextStem &&
+          existing.points === nextPoints &&
+          existing.explanation === nextExplanation &&
+          JSON.stringify(existing.optionsJson ?? []) ===
+            JSON.stringify(cleanedOptions);
+
+        if (!isUnchanged) {
+          await this.db.question.update({
+            where: { id: existing.id },
+            data: {
+              moodleQuestionId: q.id,
+              subject: nextSubject,
+              gradeLevel: nextGradeLevel,
+              type,
+              stem: nextStem,
+              points: nextPoints,
+              optionsJson,
+              explanation: nextExplanation,
+            },
+          });
+        }
       } else {
         await this.db.question.create({
           data: {
