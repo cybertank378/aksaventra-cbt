@@ -111,7 +111,7 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 py-4">
+    <div className="mx-auto w-full space-y-6 py-4">
       {/* Student Identity Banner */}
       <Card className="border-slate-200/80 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
