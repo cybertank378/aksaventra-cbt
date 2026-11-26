@@ -15,6 +15,7 @@ import type { SubjectDTO } from "@/modules/subjects/domain/dto/SubjectDTO";
 import { useSubjectsApi } from "@/modules/subjects/presentation/useSubjectsApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
+import Pagination from "@/shared-ui/component/Pagination";
 import SelectField from "@/shared-ui/component/SelectField";
 import TextField from "@/shared-ui/component/TextField";
 import SubjectCodeBadge from "../atoms/SubjectCodeBadge";
@@ -36,6 +37,8 @@ export const SubjectsGrid: FC = () => {
 
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [createOpen, setCreateOpen] = useState(false);
   const [viewingSubject, setViewingSubject] = useState<SubjectDTO | null>(null);
   const [editingSubject, setEditingSubject] = useState<SubjectDTO | null>(null);
@@ -71,6 +74,24 @@ export const SubjectsGrid: FC = () => {
       return true;
     });
   }, [subjects, search, gradeFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, gradeFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredSubjects.length / itemsPerPage),
+  );
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedSubjects = useMemo(
+    () =>
+      filteredSubjects.slice(
+        (safeCurrentPage - 1) * itemsPerPage,
+        safeCurrentPage * itemsPerPage,
+      ),
+    [filteredSubjects, safeCurrentPage, itemsPerPage],
+  );
 
   return (
     <div className="flex flex-col gap-5 w-full">
@@ -145,8 +166,9 @@ export const SubjectsGrid: FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSubjects.map((s) => (
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginatedSubjects.map((s) => (
             <div
               key={s.id}
               className="flex flex-col justify-between p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:border-[#0097a7]/50 transition-all"
@@ -226,6 +248,40 @@ export const SubjectsGrid: FC = () => {
               </div>
             </div>
           ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-2.5 shadow-2xs">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-medium text-slate-500">
+                Per halaman:
+              </span>
+              <SelectField
+                value={String(itemsPerPage)}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                size="sm"
+              >
+                <option value="12">12</option>
+                <option value="24">24</option>
+                <option value="50">50</option>
+              </SelectField>
+            </div>
+            <div className="flex-1 w-full">
+              <Pagination
+                currentPage={safeCurrentPage}
+                totalItems={filteredSubjects.length}
+                itemsPerPage={itemsPerPage}
+                onPageChangeAction={(page) => {
+                  setCurrentPage(page);
+                  if (typeof window !== "undefined") {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
 
