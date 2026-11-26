@@ -185,6 +185,15 @@ export function renderAndSanitizeContent(content: string): string {
     '<img src="$2" alt="$1" class="cbt-question-diagram max-w-full h-auto rounded-xl my-3 border border-slate-200 shadow-2xs" loading="lazy" />',
   );
 
+  // Step 1.6: Prevent browser 404 requests on unresolved Moodle @@PLUGINFILE@@/ placeholders
+  withRenderedMath = withRenderedMath.replace(
+    /<img\b[^>]*\bsrc=["']@@PLUGINFILE@@\/([^"']+)["'][^>]*>/gi,
+    (_match, filename: string) => {
+      const safeName = filename.replace(/[<>"'&]/g, "");
+      return `<span class="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-amber-50 border border-amber-200 text-[11px] font-mono text-amber-800" title="Jalankan ulang sync.php di Moodle untuk memuat gambar ini">[Gambar Moodle: ${safeName}]</span>`;
+    },
+  );
+
   // Step 2: Sanitize HTML output to prevent XSS
   const sanitized = DOMPurify.sanitize(
     withRenderedMath,

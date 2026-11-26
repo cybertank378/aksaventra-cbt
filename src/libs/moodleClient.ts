@@ -58,20 +58,36 @@ export async function callMoodleApi<T = unknown>(
   }
 
   const isAuthCheck = params.action === "verify_user_credentials";
-  const timeoutMs = isAuthCheck ? 2500 : 8000;
+  const isBulkPull =
+    params.action === "pull_all" || params.action === "pull_questions";
+  const timeoutMs = isAuthCheck ? 2500 : isBulkPull ? 25000 : 10000;
 
-  const response = await fetch(wsEndpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "Mozilla/5.0 (compatible; AksaventraCBT/1.0)",
-    },
-    body: formData.toString(),
-    cache: "no-store",
-    ...(process.env.NODE_ENV !== "test"
-      ? { signal: AbortSignal.timeout(timeoutMs) }
-      : {}),
-  });
+  let response: Response;
+  try {
+    response = await fetch(wsEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "Mozilla/5.0 (compatible; AksaventraCBT/1.0)",
+      },
+      body: formData.toString(),
+      cache: "no-store",
+      ...(process.env.NODE_ENV !== "test"
+        ? { signal: AbortSignal.timeout(timeoutMs) }
+        : {}),
+    });
+  } catch (err) {
+    const cause =
+      err instanceof Error && "cause" in err
+        ? (err.cause as { code?: string; message?: string } | undefined)
+        : undefined;
+    const causeDetail = cause
+      ? `${cause.code ? `${cause.code}: ` : ""}${cause.message || String(cause)}`
+      : err instanceof Error
+        ? err.message
+        : String(err);
+    throw new Error(`Moodle fetch failed (${wsEndpoint}): ${causeDetail}`);
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
