@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, Maximize2, ShieldAlert } from "lucide-react";
+import { AlertTriangle, KeyRound, Maximize2, ShieldAlert } from "lucide-react";
 import { type FC, useState } from "react";
 import TokenPinInput from "@/sections/auth/atoms/TokenPinInput";
 import { enterExamFullscreenSafe } from "@/security/quizFocusGuard";
@@ -26,7 +26,7 @@ export const TokenVerificationCard: FC<TokenVerificationCardProps> = ({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleStartExam = async () => {
-    // ⚠️ CRITICAL: Must trigger fullscreen request synchronously on line 1 of user gesture handler
+    // Must trigger fullscreen request synchronously on line 1 of user gesture handler
     const fullscreenPromise = enterExamFullscreenSafe();
 
     if (!token || token.length < 6) {
@@ -124,8 +124,15 @@ export const TokenVerificationCard: FC<TokenVerificationCardProps> = ({
           </Button>
 
           {!isDeviceReady && (
-            <p className="mt-2 text-center text-xs text-amber-600">
-              ⚠️ Selesaikan uji kesiapan perangkat di atas sebelum memulai ujian.
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-amber-700">
+              <AlertTriangle
+                size={14}
+                className="shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                Selesaikan uji kesiapan perangkat di atas sebelum memulai ujian.
+              </span>
             </p>
           )}
         </div>

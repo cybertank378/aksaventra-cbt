@@ -3,7 +3,6 @@
 import { ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import type { FC } from "react";
-import Badge from "@/shared-ui/component/Badge";
 import LoginForm, { type LoginFormProps } from "../organisms/LoginForm";
 
 export interface AuthSectionProps extends LoginFormProps {
@@ -34,18 +33,9 @@ export const AuthSection: FC<AuthSectionProps> = ({
               Aksaventra <span className="text-[#0097a7]">CBT</span>
             </span>
             <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
-              Zero-Latency Exam Workspace
+              Sistem Ujian Berbasis Komputer
             </span>
           </div>
-        </div>
-
-        <div className="mt-2 flex items-center gap-2">
-          <Badge color="primary" variant="soft" size="sm">
-            High-Performance Engine
-          </Badge>
-          <Badge color="teal" variant="soft" size="sm">
-            Moodle mod_cbt Integrated
-          </Badge>
         </div>
       </header>
 

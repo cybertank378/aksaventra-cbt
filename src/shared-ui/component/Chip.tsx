@@ -14,7 +14,6 @@ interface ChipProps {
   className?: string;
 }
 
-/* 🔥 Warna yang tersedia */
 const colorPalette = [
   "indigo",
   "emerald",
@@ -34,7 +33,6 @@ const sizeMap: Record<ChipSize, string> = {
   md: "text-sm px-4 py-1.5",
 };
 
-/* 🔥 Generate warna berdasarkan text */
 function getColorFromText(text: string): string {
   let hash = 0;
 

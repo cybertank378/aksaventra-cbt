@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, LogIn, User } from "lucide-react";
+import { AlertCircle, Lock, LogIn, User } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { type FC, type FormEvent, useState } from "react";
 import { useAuthApi } from "@/modules/auth/presentation/useAuthApi";
@@ -104,7 +104,11 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
             role="alert"
             className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-700 animate-in fade-in"
           >
-            <span className="font-bold shrink-0">⚠️ Error:</span>
+            <AlertCircle
+              size={16}
+              className="mt-0.5 shrink-0 text-rose-600"
+              aria-hidden="true"
+            />
             <span>{displayedError}</span>
           </div>
         )}

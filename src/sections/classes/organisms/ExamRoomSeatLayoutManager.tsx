@@ -759,8 +759,7 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h4 className="text-base font-bold text-slate-900">
-              Denah Tata Letak Meja Ujian — {activeRoom.code} ({activeRoom.name}
-              )
+              Denah Tata Letak Meja Ujian: {activeRoom.code} ({activeRoom.name})
             </h4>
             <p className="text-xs text-slate-500">
               Klik pada kartu meja untuk menempatkan atau memindahkan siswa
@@ -975,7 +974,7 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
                   extractStudentFullnameAndLastname(s);
                 return (
                   <option key={s.id} value={s.id}>
-                    {fullname} ({s.username}) — Kelas: {lastname || "-"} [
+                    {fullname} ({s.username}) - Kelas: {lastname || "-"} [
                     {s.roomCode || "LAB-01"}
                     {s.seatNumber ? ` • ${s.seatNumber}` : ""}]
                   </option>
