@@ -1,8 +1,9 @@
 "use client";
 
-import { Grid, Send } from "lucide-react";
+import { Grid, Maximize2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type FC, useCallback, useEffect, useState } from "react";
+import { type FC, useCallback, useEffect, useRef, useState } from "react";
+import { useAttemptApi } from "@/modules/attempts/presentation/useAttemptApi";
 import { useAttemptSyncHook } from "@/modules/attempts/presentation/useAttemptSyncHook";
 import { useExamWorkspaceStore } from "@/modules/attempts/presentation/useExamWorkspaceStore";
 import type { QuestionItemDTO } from "@/modules/exams/domain/dto/ExamSnapshotDTO";
@@ -12,6 +13,7 @@ import {
 } from "@/security/quizFocusGuard";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
+import { showWarningToast } from "@/shared-ui/component/Toast";
 import ServerTimerBadge from "../atoms/ServerTimerBadge";
 import SyncStatusBadge from "../atoms/SyncStatusBadge";
 import BlurGraceWarningBanner from "../molecules/BlurGraceWarningBanner";
@@ -66,6 +68,37 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
 
   // Offline-first sync hook with periodic jittered flush
   const { recordAnswer, submitWithFlush } = useAttemptSyncHook(attemptId);
+  const { recordViolation } = useAttemptApi();
+  const lastViolationAtRef = useRef<Record<string, number>>({});
+  const strikeCountRef = useRef(strikeCount);
+  strikeCountRef.current = strikeCount;
+
+  const reportViolationToServer = useCallback(
+    async (
+      eventType: "TAB_BLUR" | "FULLSCREEN_EXIT" | "DEVTOOLS_SHORTCUT",
+      durationMs?: number,
+    ) => {
+      const nextLocalStrikes = strikeCountRef.current + 1;
+      try {
+        const res = await recordViolation({
+          attemptId,
+          eventType,
+          durationMs,
+        });
+        setStrikeCount(res.strikeCount);
+        if (res.isLocked || res.status === "LOCKED") {
+          setLock(true);
+        }
+      } catch {
+        // Fallback to local enforcement when offline so anti-cheat still locks
+        setStrikeCount(nextLocalStrikes);
+        if (nextLocalStrikes >= maxStrikes) {
+          setLock(true);
+        }
+      }
+    },
+    [attemptId, maxStrikes, recordViolation, setLock, setStrikeCount],
+  );
 
   // Local UI states
   const [showNavGridModal, setShowNavGridModal] = useState(false);
@@ -74,6 +107,64 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [blurWarningActive, setBlurWarningActive] = useState(false);
   const [blurSecondsRemaining, setBlurSecondsRemaining] = useState(10);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
+    if (typeof document === "undefined") return true;
+    return Boolean(document.fullscreenElement);
+  });
+  const warningTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearWarningTimer = useCallback(() => {
+    if (warningTimerRef.current) {
+      clearInterval(warningTimerRef.current);
+      warningTimerRef.current = null;
+    }
+  }, []);
+
+  const handleEnterFullscreen = useCallback(() => {
+    void enterExamFullscreenSafe().then((entered) => {
+      if (entered) {
+        clearWarningTimer();
+        setBlurWarningActive(false);
+        setIsFullscreen(true);
+      }
+    });
+  }, [clearWarningTimer]);
+
+  // Attempt fullscreen on mount and sync state with browser fullscreenchange events
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      const active = Boolean(
+        document.fullscreenElement ||
+          (document as unknown as { webkitFullscreenElement?: Element })
+            .webkitFullscreenElement,
+      );
+      setIsFullscreen(active);
+      if (active) {
+        clearWarningTimer();
+        setBlurWarningActive(false);
+      }
+    };
+
+    syncFullscreenState();
+    if (!document.fullscreenElement) {
+      void enterExamFullscreenSafe().then((entered) => {
+        if (entered) {
+          setIsFullscreen(true);
+        }
+      });
+    }
+
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    document.addEventListener("webkitfullscreenchange", syncFullscreenState);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreenState);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        syncFullscreenState,
+      );
+    };
+  }, [clearWarningTimer]);
 
   // Initialize workspace store once on mount
   useEffect(() => {
@@ -87,30 +178,41 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
     });
   }, [attemptId, examId, questions, maxStrikes, initializeWorkspace]);
 
-  // Attach exam browser guard focus & blur listeners
+  // Attach exam browser guard focus, fullscreen, clipboard, and shortcut listeners
   useEffect(() => {
-    let warningTimer: NodeJS.Timeout | null = null;
-
     const unbind = attachExamFocusListeners({
       enforceFullscreen: true,
       blockContextMenu: true,
       blockCopyPaste: true,
       onViolation: (type) => {
+        const now = Date.now();
+        const lastAt = lastViolationAtRef.current[type] ?? 0;
+
+        if (type === "DEVTOOLS_SHORTCUT") {
+          if (now - lastAt < 3000) return;
+          lastViolationAtRef.current[type] = now;
+          showWarningToast(
+            "Pintasan DevTools, salin-tempel, atau tangkapan layar diblokir selama ujian.",
+          );
+          void reportViolationToServer("DEVTOOLS_SHORTCUT");
+          return;
+        }
+
         if (type === "TAB_BLUR" || type === "FULLSCREEN_EXIT") {
+          // Deduplicate rapid blur + visibilitychange pairs
+          if (now - lastAt < 800) return;
+          lastViolationAtRef.current[type] = now;
+
           setBlurWarningActive(true);
           setBlurSecondsRemaining(10);
 
-          if (warningTimer) clearInterval(warningTimer);
-          warningTimer = setInterval(() => {
+          clearWarningTimer();
+          warningTimerRef.current = setInterval(() => {
             setBlurSecondsRemaining((prev) => {
               if (prev <= 1) {
-                if (warningTimer) clearInterval(warningTimer);
+                clearWarningTimer();
                 setBlurWarningActive(false);
-                // Trigger strike increment
-                setStrikeCount(strikeCount + 1);
-                if (strikeCount + 1 >= maxStrikes) {
-                  setLock(true);
-                }
+                void reportViolationToServer(type, 10_000);
                 return 0;
               }
               return prev - 1;
@@ -122,9 +224,9 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
 
     return () => {
       unbind();
-      if (warningTimer) clearInterval(warningTimer);
+      clearWarningTimer();
     };
-  }, [strikeCount, maxStrikes, setStrikeCount, setLock]);
+  }, [clearWarningTimer, reportViolationToServer]);
 
   // Answer selection handler
   const handleAnswerChange = useCallback(
@@ -207,11 +309,47 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
         secondsRemaining={blurSecondsRemaining}
         currentStrikes={strikeCount}
         maxStrikes={maxStrikes}
-        onReturnFullscreen={() => {
-          enterExamFullscreenSafe();
-          setBlurWarningActive(false);
-        }}
+        onReturnFullscreen={handleEnterFullscreen}
       />
+
+      {/* Fullscreen Enforcement Gate when browser is not in fullscreen */}
+      {!isFullscreen && !isLocked && !showOfflineReceipt && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="fullscreen-gate-title"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md"
+        >
+          <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-2xl sm:p-8">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0d2b5c]/10 text-[#0d2b5c]">
+              <Maximize2 className="h-7 w-7" aria-hidden="true" />
+            </div>
+            <div className="space-y-1.5">
+              <h2
+                id="fullscreen-gate-title"
+                className="text-lg font-bold text-[#0d2b5c]"
+              >
+                Mode Layar Penuh Diperlukan
+              </h2>
+              <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">
+                Pengerjaan ujian harus dilakukan dalam mode layar penuh. Tekan
+                tombol di bawah untuk masuk layar penuh dan melanjutkan ujian.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="filled"
+              color="teal"
+              size="lg"
+              fullWidth
+              leftIcon={Maximize2}
+              onClick={handleEnterFullscreen}
+            >
+              Masuk Layar Penuh &amp; Lanjutkan Ujian
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Top Workspace Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200 p-3.5 sm:px-5 shadow-xs">

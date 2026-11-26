@@ -21,6 +21,7 @@ import { useAuthApi } from "@/modules/auth/presentation/useAuthApi";
 import type { StudentAvailableExamDTO } from "@/modules/exams/domain/dto/ExamSnapshotDTO";
 import { useExamApi } from "@/modules/exams/presentation/useExamApi";
 import { useUsersApi } from "@/modules/users/presentation/useUsersApi";
+import { enterExamFullscreenSafe } from "@/security/quizFocusGuard";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
@@ -272,11 +273,13 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
                     {attemptStatus === "IN_PROGRESS" && exam.attempt ? (
                       <Button
                         className="w-full"
-                        onClick={() =>
+                        onClick={() => {
+                          // Trigger fullscreen synchronously inside the click gesture so Chrome keeps it across navigation
+                          void enterExamFullscreenSafe();
                           router.push(
                             `/student/exam/${exam.attempt?.id}?examId=${exam.id}`,
-                          )
-                        }
+                          );
+                        }}
                       >
                         Lanjutkan Ujian
                         <ArrowRight className="ml-1.5 h-4 w-4" />

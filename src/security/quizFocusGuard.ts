@@ -45,8 +45,13 @@ export function isBlockedDevToolsOrCopyShortcut(
   const isCtrlOrCmd = event.ctrlKey || event.metaKey;
   const isShift = event.shiftKey;
 
-  // 1. DevTools F12
-  if (key === "F12" || code === "F12") {
+  // 1. DevTools F12 & PrintScreen
+  if (
+    key === "F12" ||
+    code === "F12" ||
+    key === "PRINTSCREEN" ||
+    code === "PrintScreen"
+  ) {
     return true;
   }
 
@@ -223,11 +228,22 @@ export function attachExamFocusListeners(
     }
   };
 
+  const handleClipboardOrDrag = (e: Event) => {
+    if (blockCopyPaste) {
+      e.preventDefault();
+      return false;
+    }
+  };
+
   window.addEventListener("blur", handleBlur);
   document.addEventListener("visibilitychange", handleVisibilityChange);
   document.addEventListener("fullscreenchange", handleFullscreenChange);
   document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
   document.addEventListener("contextmenu", handleContextMenu);
+  document.addEventListener("copy", handleClipboardOrDrag);
+  document.addEventListener("cut", handleClipboardOrDrag);
+  document.addEventListener("paste", handleClipboardOrDrag);
+  document.addEventListener("dragstart", handleClipboardOrDrag);
   window.addEventListener("keydown", handleKeyDown, true);
 
   return () => {
@@ -239,6 +255,10 @@ export function attachExamFocusListeners(
       handleFullscreenChange,
     );
     document.removeEventListener("contextmenu", handleContextMenu);
+    document.removeEventListener("copy", handleClipboardOrDrag);
+    document.removeEventListener("cut", handleClipboardOrDrag);
+    document.removeEventListener("paste", handleClipboardOrDrag);
+    document.removeEventListener("dragstart", handleClipboardOrDrag);
     window.removeEventListener("keydown", handleKeyDown, true);
   };
 }
