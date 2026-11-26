@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/base/Result";
 import { handleZodError } from "@/core/errors/handleZodError";
-import { checkRateLimit } from "@/security/rateLimiter";
+import { checkRateLimitAsync } from "@/security/rateLimiter";
 import type { AuthService } from "../application/service/AuthService";
 import {
   loginSchema,
@@ -58,7 +58,7 @@ export class AuthController extends BaseController {
         request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
         "127.0.0.1";
 
-      const rateLimit = checkRateLimit(
+      const rateLimit = await checkRateLimitAsync(
         `auth:login:${ipAddress}:${parseResult.data.username.trim().toLowerCase()}`,
         { limit: 15, windowMs: 5 * 60 * 1000 },
       );
@@ -137,10 +137,13 @@ export class AuthController extends BaseController {
     const ipAddress =
       request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
       "127.0.0.1";
-    const rateLimit = checkRateLimit(`auth:verify-token:${ipAddress}`, {
-      limit: 20,
-      windowMs: 5 * 60 * 1000,
-    });
+    const rateLimit = await checkRateLimitAsync(
+      `auth:verify-token:${ipAddress}`,
+      {
+        limit: 20,
+        windowMs: 5 * 60 * 1000,
+      },
+    );
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
@@ -212,10 +215,13 @@ export class AuthController extends BaseController {
         request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
         "127.0.0.1";
 
-      const rateLimit = checkRateLimit(`auth:moodle-launch:${ipAddress}`, {
-        limit: 20,
-        windowMs: 5 * 60 * 1000,
-      });
+      const rateLimit = await checkRateLimitAsync(
+        `auth:moodle-launch:${ipAddress}`,
+        {
+          limit: 20,
+          windowMs: 5 * 60 * 1000,
+        },
+      );
       if (!rateLimit.allowed) {
         return NextResponse.json(
           {

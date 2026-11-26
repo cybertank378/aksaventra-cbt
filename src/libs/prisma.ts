@@ -9,7 +9,22 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+function getPoolMax(): number {
+  const raw = Number.parseInt(process.env.DB_POOL_MAX || "20", 10);
+  if (!Number.isFinite(raw) || raw < 5) return 20;
+  return Math.min(raw, 100);
+}
+
+function getAcquireTimeoutMs(): number {
+  const raw = Number.parseInt(process.env.DB_ACQUIRE_TIMEOUT_MS || "10000", 10);
+  if (!Number.isFinite(raw) || raw < 1000) return 10000;
+  return raw;
+}
+
 function parseConnectionOptions(rawUrl: string) {
+  const connectionLimit = getPoolMax();
+  const acquireTimeout = getAcquireTimeoutMs();
+
   try {
     const parsed = new URL(rawUrl);
     return {
@@ -19,6 +34,8 @@ function parseConnectionOptions(rawUrl: string) {
       password: decodeURIComponent(parsed.password || ""),
       database: parsed.pathname.replace(/^\//, "") || "aksaventra_cbt",
       connectTimeout: 5000,
+      acquireTimeout,
+      connectionLimit,
     };
   } catch {
     return {
@@ -28,6 +45,8 @@ function parseConnectionOptions(rawUrl: string) {
       password: "",
       database: "aksaventra_cbt",
       connectTimeout: 5000,
+      acquireTimeout,
+      connectionLimit,
     };
   }
 }
@@ -42,7 +61,12 @@ export function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter });
   }
 
-  const pool = new Pool({ connectionString: env.DATABASE_URL });
+  const pool = new Pool({
+    connectionString: env.DATABASE_URL,
+    max: getPoolMax(),
+    connectionTimeoutMillis: getAcquireTimeoutMs(),
+    idleTimeoutMillis: 30_000,
+  });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }

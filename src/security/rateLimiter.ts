@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getRedisClient } from "@/libs/redis";
+
 export interface RateLimitConfig {
   limit: number;
   windowMs: number;
@@ -31,8 +33,8 @@ function pruneExpiredBuckets(now: number): void {
 }
 
 /**
- * In-memory fixed-window rate limiter for sensitive server endpoints
- * (login, exam token verification, and SSO handshake).
+ * In-memory fixed-window rate limiter (used directly in single-node mode
+ * and as an automatic fallback when Redis is not configured or unreachable).
  */
 export function checkRateLimit(
   key: string,
@@ -71,4 +73,47 @@ export function checkRateLimit(
     remaining: Math.max(0, config.limit - existing.count),
     retryAfterSeconds: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
   };
+}
+
+/**
+ * Cluster-safe distributed rate limiter backed by Redis (INCR + PEXPIRE).
+ * Automatically falls back to in-memory `checkRateLimit` when REDIS_URL is unset.
+ */
+export async function checkRateLimitAsync(
+  key: string,
+  config: RateLimitConfig,
+): Promise<RateLimitResult> {
+  const redis = getRedisClient();
+  if (!redis) {
+    return checkRateLimit(key, config);
+  }
+
+  const redisKey = `ratelimit:${key}`;
+  try {
+    const count = await redis.incr(redisKey);
+    if (count === 1) {
+      await redis.pexpire(redisKey, config.windowMs);
+    }
+    const ttlMs = await redis.pttl(redisKey);
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((ttlMs > 0 ? ttlMs : config.windowMs) / 1000),
+    );
+
+    if (count > config.limit) {
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds,
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: Math.max(0, config.limit - count),
+      retryAfterSeconds,
+    };
+  } catch {
+    return checkRateLimit(key, config);
+  }
 }

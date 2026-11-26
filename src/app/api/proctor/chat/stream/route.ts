@@ -19,6 +19,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     request.nextUrl.searchParams.get("channelId"),
   );
   await purgeChannelIfExamEnded(channelId);
+  const initialMessages = await listProctorChatMessages(channelId);
 
   const encoder = new TextEncoder();
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       };
 
       // Send current channel snapshot immediately
-      send("init", listProctorChatMessages(channelId));
+      send("init", initialMessages);
 
       // Subscribe to real-time message and channel-clear events
       const unsubscribe = subscribeProctorChat(channelId, (evt) => {

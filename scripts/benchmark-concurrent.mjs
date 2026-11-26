@@ -32,6 +32,7 @@ const targetUrl = `${BASE_URL}${TARGET_PATH.startsWith("/") ? TARGET_PATH : `/${
 
 const latencies = [];
 const statusCounts = new Map();
+const errorSamples = new Map();
 let networkErrors = 0;
 let totalRequests = 0;
 
@@ -61,9 +62,12 @@ async function runWorker(endTimeMs) {
       latencies.push(elapsedMs);
       totalRequests += 1;
       statusCounts.set(res.status, (statusCounts.get(res.status) || 0) + 1);
-    } catch {
+    } catch (err) {
       networkErrors += 1;
       totalRequests += 1;
+      const reason =
+        err?.cause?.code || err?.code || err?.message || "UNKNOWN_ERROR";
+      errorSamples.set(reason, (errorSamples.get(reason) || 0) + 1);
     } finally {
       clearTimeout(timer);
     }
@@ -104,6 +108,9 @@ async function main() {
   console.log(`Latency p95    : ${percentile(latencies, 95).toFixed(1)} ms`);
   console.log(`Latency p99    : ${percentile(latencies, 99).toFixed(1)} ms`);
   console.log("Status Codes   :", Object.fromEntries(statusCounts.entries()));
+  if (errorSamples.size > 0) {
+    console.log("Error Reasons  :", Object.fromEntries(errorSamples.entries()));
+  }
 }
 
 main().catch((err) => {
