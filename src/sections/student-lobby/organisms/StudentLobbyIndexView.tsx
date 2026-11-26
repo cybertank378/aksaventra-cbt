@@ -120,24 +120,6 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
     [exams],
   );
 
-  const studentAnnouncements = useMemo(
-    () =>
-      announcements.filter(
-        (a) =>
-          a.isActive &&
-          (a.targetRole === "ALL" || a.targetRole === "STUDENTS"),
-      ),
-    [announcements],
-  );
-
-  const completedExamResults = useMemo(
-    () =>
-      exams.filter(
-        (exam) => exam.attempt && exam.attempt.status === "SUBMITTED",
-      ),
-    [exams],
-  );
-
   useEffect(() => {
     void loadData();
   }, [loadData]);
