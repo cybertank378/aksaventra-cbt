@@ -107,7 +107,8 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
     try {
       await logout();
     } finally {
-      window.location.assign("/login");
+      router.replace("/login");
+      router.refresh();
     }
   };
 

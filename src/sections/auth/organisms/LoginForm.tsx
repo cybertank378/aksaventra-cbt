@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, Lock, LogIn, User } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type FC, type FormEvent, useState } from "react";
 import { useAuthApi } from "@/modules/auth/presentation/useAuthApi";
 import { generateDeviceFingerprint } from "@/security/deviceFingerprint";
@@ -23,6 +23,7 @@ export interface LoginFormProps {
 }
 
 export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const examIdParam = defaultExamId || searchParams.get("examId") || undefined;
   const redirectParam = searchParams.get("redirect");
@@ -71,9 +72,8 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, defaultExamId }) => {
             : safeRedirect ||
               result.redirectUrl ||
               getDefaultRedirectForRole(role);
-        // Full navigation ensures the browser sends the newly-set HttpOnly cookie
-        // and bypasses any stale unauthenticated App Router prefetch cache.
-        window.location.assign(targetPath);
+        router.replace(targetPath);
+        router.refresh();
       }
     } catch (err) {
       const message =

@@ -41,8 +41,10 @@ export async function apiRequest<T>(
     ...headers,
   };
 
-  let payloadBody: string | undefined;
-  if (body !== undefined) {
+  let payloadBody: BodyInit | undefined;
+  if (typeof FormData !== "undefined" && body instanceof FormData) {
+    payloadBody = body;
+  } else if (body !== undefined) {
     finalHeaders["Content-Type"] = "application/json";
     payloadBody = typeof body === "string" ? body : JSON.stringify(body);
   }
