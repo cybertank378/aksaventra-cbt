@@ -2,7 +2,14 @@
 
 import { ImageIcon, Loader2, Trash2, UploadCloud } from "lucide-react";
 import Image from "next/image";
-import { type ChangeEvent, type DragEvent, type FC, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type FC,
+  useRef,
+  useState,
+} from "react";
+import { useUploadApi } from "@/shared/api/useUploadApi";
 import Button from "./Button";
 import { showErrorToast, showSuccessToast } from "./Toast";
 
@@ -19,13 +26,21 @@ export const ImageUploader: FC<ImageUploaderProps> = ({
   label = "Lampiran Gambar Soal (Opsional)",
   className = "",
 }) => {
-  const [isUploading, setIsUploading] = useState(false);
+  const { uploadImage, isUploading } = useUploadApi();
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUploadFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      showErrorToast("Format berkas harus berupa gambar (PNG, JPG, WebP, GIF, SVG).");
+    const allowedTypes = new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ]);
+    if (!allowedTypes.has(file.type)) {
+      showErrorToast(
+        "Format berkas harus berupa gambar (PNG, JPG, WebP, GIF).",
+      );
       return;
     }
 
@@ -34,27 +49,14 @@ export const ImageUploader: FC<ImageUploaderProps> = ({
       return;
     }
 
-    setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const json = await res.json();
-      if (json.success && json.data?.url) {
-        onChange(json.data.url);
-        showSuccessToast("Gambar berhasil diunggah.");
-      } else {
-        showErrorToast(json.error?.message || "Gagal mengunggah gambar.");
-      }
-    } catch {
-      showErrorToast("Terjadi gangguan jaringan saat mengunggah gambar.");
-    } finally {
-      setIsUploading(false);
+      const data = await uploadImage(file);
+      onChange(data.url);
+      showSuccessToast("Gambar berhasil diunggah.");
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error ? err.message : "Gagal mengunggah gambar.",
+      );
     }
   };
 
@@ -65,7 +67,7 @@ export const ImageUploader: FC<ImageUploaderProps> = ({
     }
   };
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
@@ -74,7 +76,7 @@ export const ImageUploader: FC<ImageUploaderProps> = ({
     setIsDragging(false);
   };
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
@@ -114,7 +116,6 @@ export const ImageUploader: FC<ImageUploaderProps> = ({
       {value ? (
         <div className="relative group rounded-2xl border border-slate-200 bg-slate-50/70 p-3 overflow-hidden flex flex-col sm:flex-row items-center gap-4">
           <div className="relative w-40 h-28 rounded-xl overflow-hidden border border-slate-200 bg-white shrink-0">
-            {/* biome-ignore lint/performance/noDelete: next/image requires absolute or relative URL */}
             <Image
               src={value}
               alt="Gambar Soal"
@@ -160,13 +161,13 @@ export const ImageUploader: FC<ImageUploaderProps> = ({
           </div>
         </div>
       ) : (
-        // biome-ignore lint/a11y/noStaticElementInteractions: Click & drop image zone
-        <div
+        <button
+          type="button"
           onClick={handleTriggerClick}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border-2 border-dashed transition-all cursor-pointer select-none text-center ${
+          className={`flex w-full flex-col items-center justify-center gap-2 p-5 rounded-2xl border-2 border-dashed transition-all cursor-pointer select-none text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7] ${
             isDragging
               ? "border-[#0097a7] bg-[#0097a7]/5"
               : "border-slate-300 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-50"
@@ -187,12 +188,12 @@ export const ImageUploader: FC<ImageUploaderProps> = ({
                   Klik untuk unggah gambar atau seret berkas ke sini
                 </p>
                 <p className="text-[11px] text-slate-400">
-                  Format didukung: PNG, JPG, WebP, GIF, SVG (Maks. 5 MB)
+                  Format didukung: PNG, JPG, WebP, GIF (Maks. 5 MB)
                 </p>
               </div>
             </>
           )}
-        </div>
+        </button>
       )}
     </div>
   );

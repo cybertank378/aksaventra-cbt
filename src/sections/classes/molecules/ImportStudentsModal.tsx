@@ -17,6 +17,8 @@ import {
 import { generateExcelCsv, parseTabularFile } from "@/libs/excelCsvUtils";
 import type { ClassGroupDTO } from "@/modules/classes/domain/dto/ClassGroupDTO";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
+import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
+import { useSubjectsApi } from "@/modules/subjects/presentation/useSubjectsApi";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
 import Modal from "@/shared-ui/component/Modal";
@@ -56,6 +58,8 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
   classes = [],
 }) => {
   const { importStudents, isLoading } = useClassesApi();
+  const { subjects: apiSubjects, fetchSubjects } = useSubjectsApi();
+  const { examsList, fetchExamsList } = useExamManagementApi();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [rawCsvText, setRawCsvText] = useState<string>("");
   const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([]);
@@ -66,53 +70,23 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
   const [defaultClassGroupId, setDefaultClassGroupId] = useState<string>("");
   const [targetSubjectId, setTargetSubjectId] = useState<string>("");
   const [targetExamId, setTargetExamId] = useState<string>("");
-  const [subjects, setSubjects] = useState<SimpleSubjectOption[]>([]);
-  const [exams, setExams] = useState<SimpleExamOption[]>([]);
+
+  const subjects: SimpleSubjectOption[] = apiSubjects.map((s) => ({
+    id: s.id,
+    name: s.name,
+  }));
+
+  const exams: SimpleExamOption[] = examsList.map((e) => ({
+    id: String(e.examId || ""),
+    title: e.title,
+    courseName: e.courseName,
+  }));
 
   useEffect(() => {
     if (!open) return;
-    let cancelled = false;
-
-    void fetch("/api/subjects?detailed=true")
-      .then((r) => r.json())
-      .then((json) => {
-        if (!cancelled && json.success && Array.isArray(json.data)) {
-          setSubjects(
-            json.data.map((s: { id: string; name: string }) => ({
-              id: s.id,
-              name: s.name,
-            })),
-          );
-        }
-      })
-      .catch(() => undefined);
-
-    void fetch("/api/exams")
-      .then((r) => r.json())
-      .then((json) => {
-        if (!cancelled && json.success && Array.isArray(json.data)) {
-          setExams(
-            json.data.map(
-              (e: {
-                id?: string;
-                examId?: string;
-                title: string;
-                courseName?: string;
-              }) => ({
-                id: String(e.id || e.examId || ""),
-                title: e.title,
-                courseName: e.courseName,
-              }),
-            ),
-          );
-        }
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
+    void fetchSubjects();
+    void fetchExamsList();
+  }, [open, fetchSubjects, fetchExamsList]);
 
   const handleReset = () => {
     setSelectedFile(null);

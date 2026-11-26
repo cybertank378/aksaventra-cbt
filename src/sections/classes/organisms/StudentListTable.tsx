@@ -16,6 +16,8 @@ import { type FC, useEffect, useMemo, useState } from "react";
 import { downloadCsvBlob, generateExcelCsv } from "@/libs/excelCsvUtils";
 import type { StudentDTO } from "@/modules/classes/domain/dto/ClassGroupDTO";
 import { useClassesApi } from "@/modules/classes/presentation/useClassesApi";
+import { useExamManagementApi } from "@/modules/exams/presentation/useExamManagementApi";
+import { useSubjectsApi } from "@/modules/subjects/presentation/useSubjectsApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Pagination from "@/shared-ui/component/Pagination";
@@ -51,6 +53,9 @@ export const StudentListTable: FC = () => {
     exportStudents,
   } = useClassesApi();
 
+  const { subjects: apiSubjects, fetchSubjects } = useSubjectsApi();
+  const { examsList, fetchExamsList } = useExamManagementApi();
+
   const [search, setSearch] = useState("");
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,54 +69,32 @@ export const StudentListTable: FC = () => {
   const [bulkTargetClassId, setBulkTargetClassId] = useState<string>("");
   const [enrollSubjectId, setEnrollSubjectId] = useState<string>("");
   const [enrollExamId, setEnrollExamId] = useState<string>("");
-  const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>(
-    [],
+
+  const subjects = useMemo(
+    () => apiSubjects.map((s) => ({ id: s.id, name: s.name })),
+    [apiSubjects],
   );
-  const [exams, setExams] = useState<Array<{ id: string; title: string }>>([]);
+  const exams = useMemo(
+    () =>
+      examsList.map((e) => ({ id: String(e.examId || ""), title: e.title })),
+    [examsList],
+  );
 
   useEffect(() => {
-    fetchClasses();
-    fetchStudents();
-    const loadEnrollmentTargets = () => {
-      void fetch("/api/subjects?detailed=true")
-        .then((r) => r.json())
-        .then((json) => {
-          if (json.success && Array.isArray(json.data)) {
-            setSubjects(
-              json.data.map((s: { id: string; name: string }) => ({
-                id: s.id,
-                name: s.name,
-              })),
-            );
-          }
-        })
-        .catch(() => undefined);
+    void fetchClasses();
+    void fetchStudents();
+    void fetchSubjects();
+    void fetchExamsList();
 
-      void fetch("/api/exams")
-        .then((r) => r.json())
-        .then((json) => {
-          if (json.success && Array.isArray(json.data)) {
-            setExams(
-              json.data.map(
-                (e: { id?: string; examId?: string; title: string }) => ({
-                  id: String(e.id || e.examId || ""),
-                  title: e.title,
-                }),
-              ),
-            );
-          }
-        })
-        .catch(() => undefined);
-    };
-    loadEnrollmentTargets();
     const handleSynced = () => {
-      fetchClasses();
-      fetchStudents();
-      loadEnrollmentTargets();
+      void fetchClasses();
+      void fetchStudents();
+      void fetchSubjects();
+      void fetchExamsList();
     };
     window.addEventListener("aksaventra:synced", handleSynced);
     return () => window.removeEventListener("aksaventra:synced", handleSynced);
-  }, [fetchClasses, fetchStudents]);
+  }, [fetchClasses, fetchStudents, fetchSubjects, fetchExamsList]);
 
   const handleProcessDownload = (url: string, filename: string) => {
     const link = document.createElement("a");

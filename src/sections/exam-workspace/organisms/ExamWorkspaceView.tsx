@@ -1,6 +1,6 @@
 "use client";
 
-import { Grid, Maximize2, Send } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Grid, Maximize2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC, useCallback, useEffect, useRef, useState } from "react";
 import { useAttemptApi } from "@/modules/attempts/presentation/useAttemptApi";
@@ -10,6 +10,7 @@ import type { QuestionItemDTO } from "@/modules/exams/domain/dto/ExamSnapshotDTO
 import {
   attachExamFocusListeners,
   enterExamFullscreenSafe,
+  exitExamFullscreenSafe,
 } from "@/security/quizFocusGuard";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
@@ -107,6 +108,10 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [blurWarningActive, setBlurWarningActive] = useState(false);
   const [blurSecondsRemaining, setBlurSecondsRemaining] = useState(10);
+  const [finalCountdownSec, setFinalCountdownSec] = useState<number | null>(
+    null,
+  );
+  const hasShown15sToastRef = useRef(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
     if (typeof document === "undefined") return true;
     return Boolean(document.fullscreenElement);
@@ -276,6 +281,31 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
     }
   };
 
+  const handleRemainingTimeChange = useCallback((remaining: number) => {
+    if (remaining > 0 && remaining <= 15) {
+      setFinalCountdownSec(remaining);
+      if (!hasShown15sToastRef.current) {
+        hasShown15sToastRef.current = true;
+        showWarningToast(
+          `Waktu pengerjaan akan habis dalam ${remaining} detik lagi. Segera selesaikan ujian Anda.`,
+        );
+      }
+    } else {
+      setFinalCountdownSec(null);
+    }
+  }, []);
+
+  const handleGoBack = useCallback(async () => {
+    clearWarningTimer();
+    setBlurWarningActive(false);
+    await exitExamFullscreenSafe();
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.replace("/student/lobby");
+    }
+  }, [clearWarningTimer, router]);
+
   // Time expired handler
   const handleTimeExpired = useCallback(async () => {
     try {
@@ -347,16 +377,70 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
             >
               Masuk Layar Penuh &amp; Lanjutkan Ujian
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              color="secondary"
+              size="md"
+              fullWidth
+              leftIcon={ArrowLeft}
+              onClick={() => void handleGoBack()}
+            >
+              Kembali ke Halaman Sebelumnya
+            </Button>
           </div>
         </div>
       )}
 
+      {/* Final 15-Second Countdown Warning Banner */}
+      {finalCountdownSec !== null &&
+        finalCountdownSec > 0 &&
+        !isSubmitting &&
+        !showOfflineReceipt && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-600 px-4 py-3 text-white shadow-md"
+          >
+            <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold">
+              <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <span>
+                Peringatan: Waktu pengerjaan akan habis dalam{" "}
+                <span className="font-mono underline">
+                  {finalCountdownSec} detik
+                </span>{" "}
+                lagi. Segera periksa dan kumpulkan jawaban Anda.
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="filled"
+              color="gold"
+              size="sm"
+              leftIcon={Send}
+              onClick={() => setShowConfirmSubmit(true)}
+            >
+              Kumpulkan Sekarang
+            </Button>
+          </div>
+        )}
+
       {/* Top Workspace Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200 p-3.5 sm:px-5 shadow-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            color="secondary"
+            size="sm"
+            leftIcon={ArrowLeft}
+            onClick={() => void handleGoBack()}
+          >
+            Kembali
+          </Button>
           <SyncStatusBadge status={syncStatus} />
           <span className="hidden sm:inline text-xs text-slate-400">|</span>
-          <p className="text-xs font-bold text-slate-800 truncate max-w-[200px] sm:max-w-xs">
+          <p className="text-xs font-bold text-slate-800 truncate max-w-[180px] sm:max-w-xs">
             {examTitle}
           </p>
         </div>
@@ -368,6 +452,7 @@ export const ExamWorkspaceView: FC<ExamWorkspaceViewProps> = ({
             durationSeconds={durationSeconds}
             extraTimeSeconds={extraTimeSeconds}
             serverTimestampSec={serverTimestampSec}
+            onRemainingChange={handleRemainingTimeChange}
             onTimeExpired={handleTimeExpired}
           />
 

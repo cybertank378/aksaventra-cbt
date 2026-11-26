@@ -1,60 +1,168 @@
 "use client";
 
-import { useCallback } from "react";
-import type { ProctorActionType } from "../domain/dto/ProctorActionDTO";
-import { useProctorPolling } from "./useProctorPolling";
+import { useCallback, useEffect, useRef } from "react";
+import { apiRequest } from "@/shared/api/apiRequest";
+import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
+import type {
+  GetRoomParticipantsResponseDTO,
+  ProctorActionType,
+  RotateRoomTokenResponseDTO,
+} from "../domain/dto/ProctorActionDTO";
 import { useProctorStore } from "./useProctorStore";
 
 /**
  * High-level presentation hook for proctor room operations.
- * Standardized to adhere to the use{Feature}Api convention.
+ * Centralizes all /api/proctor/* requests via apiRequest and manages background polling.
  */
-export function useProctorApi(examId: string | null) {
-  const store = useProctorStore();
-  const polling = useProctorPolling(examId);
+export function useProctorApi(examId: string | null, intervalMs = 5000) {
+  const {
+    roomCode,
+    activeToken,
+    tokenExpiresAt,
+    participants,
+    selectedParticipant,
+    filterStatus,
+    searchQuery,
+    isPolling,
+    lastRefreshedAt,
+    setRoomData,
+    setToken,
+    setSelectedParticipant,
+    setFilterStatus,
+    setSearchQuery,
+    setIsPolling,
+    updateParticipantLocally,
+  } = useProctorStore();
 
-  const handleRotateToken = useCallback(
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDestroyedRef = useRef(false);
+
+  const fetchParticipants = useCallback(async (): Promise<void> => {
+    if (!examId) return;
+
+    try {
+      const query = roomCode ? `?roomCode=${encodeURIComponent(roomCode)}` : "";
+      const response = await apiRequest<GetRoomParticipantsResponseDTO>(
+        `/api/proctor/${encodeURIComponent(examId)}/participants${query}`,
+        { method: "GET" },
+      );
+      const data = unwrapApiResponse(response);
+      if (data) {
+        setRoomData(data);
+      }
+    } catch {
+      // Background polling failure tolerated
+    }
+  }, [examId, roomCode, setRoomData]);
+
+  const rotateToken = useCallback(
     async (manualToken?: string): Promise<boolean> => {
-      return await polling.rotateToken(manualToken);
+      if (!examId) return false;
+      try {
+        const response = await apiRequest<RotateRoomTokenResponseDTO>(
+          `/api/proctor/${encodeURIComponent(examId)}/rotate-token`,
+          {
+            method: "POST",
+            body: { manualToken },
+          },
+        );
+        const data = unwrapApiResponse(response);
+        if (data) {
+          setToken(data.token, data.expiresAt);
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      }
     },
-    [polling],
+    [examId, setToken],
   );
 
-  const handleExecuteAction = useCallback(
+  const executeAction = useCallback(
     async (
       attemptId: string,
       action: ProctorActionType,
       options?: { reason?: string; extendMinutes?: number },
     ): Promise<boolean> => {
-      return await polling.executeAction(attemptId, action, options);
+      if (!examId) return false;
+
+      try {
+        const response = await apiRequest<unknown>(
+          `/api/proctor/${encodeURIComponent(examId)}/action`,
+          {
+            method: "POST",
+            body: {
+              attemptId,
+              action,
+              reason: options?.reason,
+              extendMinutes: options?.extendMinutes,
+            },
+          },
+        );
+        unwrapApiResponse(response);
+
+        if (action === "unlock") {
+          updateParticipantLocally(attemptId, {
+            status: "IN_PROGRESS",
+            strikeCount: 0,
+          });
+        } else if (action === "force_submit") {
+          updateParticipantLocally(attemptId, {
+            status: "SUBMITTED",
+          });
+        }
+        await fetchParticipants();
+        return true;
+      } catch {
+        return false;
+      }
     },
-    [polling],
+    [examId, updateParticipantLocally, fetchParticipants],
   );
 
-  const handleRefresh = useCallback(async (): Promise<void> => {
-    await polling.fetchParticipants();
-  }, [polling]);
+  useEffect(() => {
+    if (!examId || !isPolling) return;
+    isDestroyedRef.current = false;
+
+    void fetchParticipants();
+
+    const schedulePolling = () => {
+      if (isDestroyedRef.current) return;
+      timerRef.current = setTimeout(async () => {
+        if (!document.hidden && isPolling) {
+          await fetchParticipants();
+        }
+        schedulePolling();
+      }, intervalMs);
+    };
+
+    schedulePolling();
+
+    return () => {
+      isDestroyedRef.current = true;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [examId, isPolling, intervalMs, fetchParticipants]);
 
   return {
-    // State from store
-    activeToken: store.activeToken,
-    tokenExpiresAt: store.tokenExpiresAt,
-    participants: store.participants,
-    selectedParticipant: store.selectedParticipant,
-    filterStatus: store.filterStatus,
-    searchQuery: store.searchQuery,
-    isPolling: store.isPolling,
-    lastRefreshedAt: store.lastRefreshedAt,
+    activeToken,
+    tokenExpiresAt,
+    participants,
+    selectedParticipant,
+    filterStatus,
+    searchQuery,
+    isPolling,
+    lastRefreshedAt,
 
-    // Store mutators
-    setSelectedParticipant: store.setSelectedParticipant,
-    setFilterStatus: store.setFilterStatus,
-    setSearchQuery: store.setSearchQuery,
-    setIsPolling: store.setIsPolling,
+    setSelectedParticipant,
+    setFilterStatus,
+    setSearchQuery,
+    setIsPolling,
 
-    // API Actions
-    rotateToken: handleRotateToken,
-    executeAction: handleExecuteAction,
-    refresh: handleRefresh,
+    fetchParticipants,
+    rotateToken,
+    executeAction,
+    refresh: fetchParticipants,
   };
 }

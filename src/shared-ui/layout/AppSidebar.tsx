@@ -24,6 +24,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { UserRole } from "@/libs/enums";
+import { useAuthApi } from "@/modules/auth/presentation/useAuthApi";
 import Badge from "@/shared-ui/component/Badge";
 
 export interface SidebarUserSummary {
@@ -182,6 +183,7 @@ export default function AppSidebar({
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuthApi();
 
   const handleLogoutClick = async () => {
     if (onLogout) {
@@ -189,11 +191,12 @@ export default function AppSidebar({
       return;
     }
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await logout();
     } catch {
-      // ignore
+      // ignore logout error and redirect to login
     }
-    router.push("/login");
+    router.replace("/login");
+    router.refresh();
   };
 
   return (
