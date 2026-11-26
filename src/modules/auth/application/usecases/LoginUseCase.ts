@@ -6,7 +6,6 @@ import { getDefaultRedirectForRole } from "@/security/rbacConfig";
 import type { LoginInput, LoginOutput } from "../../domain/dto/AuthDTO";
 import type { UserSessionEntity } from "../../domain/entities/UserSessionEntity";
 import type { AuthRepositoryInterface } from "../../domain/interfaces/AuthRepositoryInterface";
-import { SingleDeviceRule } from "../../domain/rules/SingleDeviceRule";
 import type { JwtProvider } from "../../infrastructure/JwtProvider";
 
 export class LoginUseCase
@@ -80,31 +79,23 @@ export class LoginUseCase
       );
     }
 
-    // 3. For students, enforce Single-Device Session Binding if exam context exists
-    if (user.role === "STUDENT") {
+    // 3. For students with an active attempt, record latest device metadata without blocking login
+    if (user.role === "STUDENT" && deviceHash) {
       const activeAttempt = await this.authRepository.findActiveAttempt(
         user.id,
         examId,
       );
 
-      if (activeAttempt && activeAttempt.status === "IN_PROGRESS") {
-        const evaluation = SingleDeviceRule.evaluate({
-          incomingDeviceHash: deviceHash,
-          boundDeviceHash: activeAttempt.deviceHash,
-        });
-
-        if (evaluation.isFailure) {
-          return Result.fail(evaluation.error);
-        }
-
-        // If previously unbound, bind device now
-        if (!activeAttempt.deviceHash && deviceHash) {
-          await this.authRepository.updateAttemptDeviceBinding(
-            activeAttempt.id,
-            deviceHash,
-            ipAddress,
-          );
-        }
+      if (
+        activeAttempt &&
+        activeAttempt.status === "IN_PROGRESS" &&
+        activeAttempt.deviceHash !== deviceHash
+      ) {
+        await this.authRepository.updateAttemptDeviceBinding(
+          activeAttempt.id,
+          deviceHash,
+          ipAddress,
+        );
       }
     }
 

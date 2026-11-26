@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { generateDeviceFingerprint } from "@/security/deviceFingerprint";
 import { apiRequest } from "@/shared/api/apiRequest";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type {
@@ -36,10 +37,14 @@ export function useAttemptApi() {
     setIsLoading(true);
     setError(null);
     try {
+      const deviceHash = await generateDeviceFingerprint();
       const response = await apiRequest<StartAttemptResponseDTO>(
         "/api/attempts",
         {
           method: "POST",
+          headers: {
+            "x-device-fingerprint": deviceHash,
+          },
           body: input,
         },
       );

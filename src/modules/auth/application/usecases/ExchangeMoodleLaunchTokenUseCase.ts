@@ -7,7 +7,6 @@ import type {
   ExchangeMoodleLaunchOutput,
 } from "../../domain/dto/AuthDTO";
 import type { AuthRepositoryInterface } from "../../domain/interfaces/AuthRepositoryInterface";
-import { SingleDeviceRule } from "../../domain/rules/SingleDeviceRule";
 import type { JwtProvider } from "../../infrastructure/JwtProvider";
 
 export class ExchangeMoodleLaunchTokenUseCase
@@ -95,17 +94,7 @@ export class ExchangeMoodleLaunchTokenUseCase
     );
 
     if (activeAttempt) {
-      // Evaluate Single-Device Binding
-      const ruleResult = SingleDeviceRule.evaluate({
-        incomingDeviceHash: deviceHash,
-        boundDeviceHash: activeAttempt.deviceHash,
-      });
-
-      if (ruleResult.isFailure) {
-        return Result.fail(ruleResult.error);
-      }
-
-      if (!activeAttempt.deviceHash && deviceHash) {
+      if (deviceHash && activeAttempt.deviceHash !== deviceHash) {
         await this.authRepository.updateAttemptDeviceBinding(
           activeAttempt.id,
           deviceHash,
