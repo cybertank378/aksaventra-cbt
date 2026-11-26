@@ -131,7 +131,8 @@ describe("LoginUseCase", () => {
     expect(result.error.code).toBe("INVALID_CREDENTIALS");
   });
 
-  it("blocks student login if attempt is already bound to a different device", async () => {
+  it("allows student login from a different device without device-binding block and updates metadata", async () => {
+    const updateSpy = vi.fn().mockResolvedValue(undefined);
     const repo = createMockRepo({
       findActiveAttempt: vi.fn().mockResolvedValue({
         id: "attempt-100",
@@ -139,6 +140,7 @@ describe("LoginUseCase", () => {
         deviceHash: "original-device-hash-1",
         status: "IN_PROGRESS",
       }),
+      updateAttemptDeviceBinding: updateSpy,
     });
     const useCase = new LoginUseCase(repo, mockJwtProvider);
 
@@ -149,8 +151,12 @@ describe("LoginUseCase", () => {
       examId: "exam-50",
     });
 
-    expect(result.isFailure).toBe(true);
-    expect(result.error.code).toBe("DEVICE_ALREADY_BOUND");
+    expect(result.isSuccess).toBe(true);
+    expect(updateSpy).toHaveBeenCalledWith(
+      "attempt-100",
+      "different-device-hash-2",
+      undefined,
+    );
   });
 
   it("binds device on first login when previous deviceHash is empty", async () => {

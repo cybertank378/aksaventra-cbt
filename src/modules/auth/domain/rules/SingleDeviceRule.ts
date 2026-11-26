@@ -21,8 +21,9 @@ export class SingleDeviceRule {
       isResetByProctor = false,
     } = input;
 
-    // If no device has been bound yet, allow binding
-    if (!boundDeviceHash || boundDeviceHash.trim() === "") {
+    // If no device has been bound yet (or legacy placeholder was stored), allow binding
+    const normalizedBound = boundDeviceHash?.trim().toLowerCase() ?? "";
+    if (!normalizedBound || normalizedBound === "unknown-device") {
       return Result.ok(true);
     }
 
@@ -43,10 +44,7 @@ export class SingleDeviceRule {
     }
 
     // Compare hashes (case-insensitive)
-    if (
-      incomingDeviceHash.trim().toLowerCase() !==
-      boundDeviceHash.trim().toLowerCase()
-    ) {
+    if (incomingDeviceHash.trim().toLowerCase() !== normalizedBound) {
       return Result.fail(
         new DomainError(
           "Akun Anda sedang terikat pada perangkat lain. Silakan hubungi pengawas ruang untuk melakukan Reset Device Binding.",
