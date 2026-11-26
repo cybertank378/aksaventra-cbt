@@ -1,5 +1,6 @@
 import type { AttemptStatus, Prisma, ViolationEventType } from "@prisma/client";
 import { prisma as defaultPrisma, type PrismaClient } from "@/libs/prisma";
+import { parseStoredRoomAndSeat } from "@/libs/roomSeatUtils";
 import { ParticipantMonitorEntity } from "../domain/entities/ParticipantMonitorEntity";
 import type {
   ProctorExamMeta,
@@ -55,11 +56,12 @@ export class ProctorRepository implements ProctorRepositoryInterface {
     roomCode?: string,
     status?: AttemptStatus,
   ): Promise<ParticipantMonitorEntity[]> {
+    const normalizedFilterRoom = roomCode?.trim().toUpperCase();
+
     const attempts = await this.db.attempt.findMany({
       where: {
         examId,
         ...(status ? { status } : {}),
-        ...(roomCode ? { user: { roomCode } } : {}),
       },
       include: {
         user: {
@@ -78,13 +80,20 @@ export class ProctorRepository implements ProctorRepositoryInterface {
         },
         violationLogs: {
           orderBy: { createdAt: "desc" },
-          take: 3,
+          take: 10,
         },
       },
       orderBy: { user: { fullName: "asc" } },
     });
 
-    return attempts.map(
+    const filteredAttempts = normalizedFilterRoom
+      ? attempts.filter((a) => {
+          const parsed = parseStoredRoomAndSeat(a.user.roomCode);
+          return parsed.roomCode.toUpperCase() === normalizedFilterRoom;
+        })
+      : attempts;
+
+    return filteredAttempts.map(
       (a: {
         id: string;
         userId: string;
@@ -121,6 +130,7 @@ export class ProctorRepository implements ProctorRepositoryInterface {
           ? (a.questionOrder as number[])
           : [];
         const totalQuestions = order.length;
+        const parsedLocation = parseStoredRoomAndSeat(a.user.roomCode);
 
         return new ParticipantMonitorEntity({
           attemptId: a.id,
@@ -128,7 +138,8 @@ export class ProctorRepository implements ProctorRepositoryInterface {
           username: a.user.username,
           fullName: a.user.fullName,
           className: a.user.className,
-          roomCode: a.user.roomCode,
+          roomCode: parsedLocation.roomCode,
+          seatNumber: parsedLocation.seatNumber,
           status: a.status,
           deviceHash: a.deviceHash,
           ipAddress: a.ipAddress,
