@@ -94,31 +94,29 @@ export const ExamParticipantsSection: FC<ExamParticipantsSectionProps> = ({
         </Button>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center rounded-2xl bg-slate-100 p-1">
-            <button
+          <div className="flex items-center gap-1 rounded-2xl bg-slate-100 p-1">
+            <Button
               type="button"
+              size="sm"
+              variant={activeView === "TABLE" ? "filled" : "ghost"}
+              color={activeView === "TABLE" ? "primary" : "secondary"}
+              leftIcon={Users}
               onClick={() => setActiveView("TABLE")}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                activeView === "TABLE"
-                  ? "bg-[#0d2b5c] text-white shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              className="rounded-xl font-bold"
             >
-              <Users className="w-3.5 h-3.5" />
               Tabel Peserta ({participants.length})
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              variant={activeView === "LAYOUT" ? "filled" : "ghost"}
+              color={activeView === "LAYOUT" ? "teal" : "secondary"}
+              leftIcon={LayoutGrid}
               onClick={() => setActiveView("LAYOUT")}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                activeView === "LAYOUT"
-                  ? "bg-[#0097a7] text-white shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              className="rounded-xl font-bold"
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
               Ruang &amp; Tata Letak Meja
-            </button>
+            </Button>
           </div>
 
           <Button
