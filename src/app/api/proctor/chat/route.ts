@@ -34,7 +34,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     request.nextUrl.searchParams.get("channelId"),
   );
   await purgeChannelIfExamEnded(channelId);
-  const messages = listProctorChatMessages(channelId);
+  const messages = await listProctorChatMessages(channelId);
 
   return NextResponse.json({
     success: true,
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
     .catch(() => null);
 
-  const created = appendProctorChatMessage({
+  const created = await appendProctorChatMessage({
     channelId,
     senderId: session.userId,
     senderName: dbUser?.fullName || session.username || session.role,
@@ -146,7 +146,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const channelId = normalizeChannelId(
     request.nextUrl.searchParams.get("channelId"),
   );
-  clearProctorChatChannel(channelId, "Dibersihkan oleh pengawas/admin");
+  await clearProctorChatChannel(channelId, "Dibersihkan oleh pengawas/admin");
 
   return NextResponse.json({
     success: true,
