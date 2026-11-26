@@ -19,11 +19,13 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FC, useCallback, useEffect, useMemo, useState } from "react";
+import type { AnnouncementItemDTO } from "@/modules/announcements/domain/dto/AnnouncementDTO";
 import { useAnnouncementsApi } from "@/modules/announcements/presentation/useAnnouncementsApi";
 import { useAuthApi } from "@/modules/auth/presentation/useAuthApi";
 import type { StudentAvailableExamDTO } from "@/modules/exams/domain/dto/ExamSnapshotDTO";
 import { useExamApi } from "@/modules/exams/presentation/useExamApi";
 import { useUsersApi } from "@/modules/users/presentation/useUsersApi";
+import ViewAnnouncementModal from "@/sections/announcements/molecules/ViewAnnouncementModal";
 import { enterExamFullscreenSafe } from "@/security/quizFocusGuard";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
@@ -64,6 +66,8 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedAnnouncement, setSelectedAnnouncement] =
+    useState<AnnouncementItemDTO | null>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -315,9 +319,11 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
                       ? "warning"
                       : "teal";
                 return (
-                  <div
+                  <button
                     key={item.id}
-                    className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3"
+                    type="button"
+                    onClick={() => setSelectedAnnouncement(item)}
+                    className="w-full cursor-pointer rounded-xl border border-slate-200/80 bg-slate-50/70 p-3 text-left transition-colors hover:border-[#0097a7]/60 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0097a7]"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-xs font-bold text-slate-900">
@@ -327,13 +333,18 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
                         {item.priority}
                       </Badge>
                     </div>
-                    <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-600">
+                    <p className="mt-1 line-clamp-2 whitespace-pre-line text-xs leading-relaxed text-slate-600">
                       {item.content}
                     </p>
-                    <p className="mt-1.5 text-[11px] text-slate-400">
-                      {item.authorName} · {formatDateTime(item.createdAt)}
-                    </p>
-                  </div>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] text-slate-400">
+                        {item.authorName} · {formatDateTime(item.createdAt)}
+                      </p>
+                      <span className="text-[11px] font-semibold text-[#0097a7]">
+                        Lihat Detail
+                      </span>
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -491,6 +502,11 @@ export const StudentLobbyIndexView: FC<StudentLobbyIndexViewProps> = ({
           </div>
         )}
       </div>
+
+      <ViewAnnouncementModal
+        announcement={selectedAnnouncement}
+        onClose={() => setSelectedAnnouncement(null)}
+      />
     </div>
   );
 };

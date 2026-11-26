@@ -7,6 +7,8 @@ import { useProctorStore } from "@/modules/proctor/presentation/useProctorStore"
 import ProctorStatCards from "../molecules/ProctorStatCards";
 import TokenProjectorCard from "../molecules/TokenProjectorCard";
 import LiveParticipantGrid from "./LiveParticipantGrid";
+import ProctorChatBox from "./ProctorChatBox";
+import ViolationMonitorList from "./ViolationMonitorList";
 
 export interface ProctorRoomViewProps {
   examId: string;
@@ -59,11 +61,21 @@ export const ProctorRoomView: FC<ProctorRoomViewProps> = ({
         onFilterClick={(filterKey) => setActiveFilter(filterKey)}
       />
 
+      {/* Cheating & Violation Monitoring List (3-Strike Tolerance & False Alarm Unlock) */}
+      <ViolationMonitorList examId={examId} roomCode={roomCode} />
+
       {/* Interactive Live Participants Matrix Grid */}
       <LiveParticipantGrid
         examId={examId}
         activeFilter={activeFilter}
         onFilterChange={(filterKey) => setActiveFilter(filterKey)}
+      />
+
+      {/* Real-time Coordination Chat Box for Proctor, Teacher, and Admin */}
+      <ProctorChatBox
+        channelId={examId}
+        channelLabel={examTitle}
+        roomCode={roomCode}
       />
     </div>
   );

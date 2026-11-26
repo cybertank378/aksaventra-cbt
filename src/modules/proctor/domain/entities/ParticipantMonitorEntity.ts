@@ -16,6 +16,7 @@ export interface ParticipantMonitorProps {
   fullName: string;
   className?: string | null;
   roomCode?: string | null;
+  seatNumber?: string | null;
   status: AttemptStatus;
   deviceHash: string;
   ipAddress: string;
@@ -37,6 +38,7 @@ export class ParticipantMonitorEntity extends BaseEntity<string> {
   public readonly fullName: string;
   public readonly className?: string | null;
   public readonly roomCode?: string | null;
+  public readonly seatNumber?: string | null;
   public status: AttemptStatus;
   public readonly deviceHash: string;
   public readonly ipAddress: string;
@@ -58,6 +60,7 @@ export class ParticipantMonitorEntity extends BaseEntity<string> {
     this.fullName = props.fullName;
     this.className = props.className;
     this.roomCode = props.roomCode;
+    this.seatNumber = props.seatNumber;
     this.status = props.status;
     this.deviceHash = props.deviceHash;
     this.ipAddress = props.ipAddress;
@@ -110,6 +113,7 @@ export class ParticipantMonitorEntity extends BaseEntity<string> {
       fullName: this.fullName,
       className: this.className,
       roomCode: this.roomCode,
+      seatNumber: this.seatNumber,
       status: this.status,
       isOnline: this.isOnline(now),
       deviceHash: this.deviceHash,
