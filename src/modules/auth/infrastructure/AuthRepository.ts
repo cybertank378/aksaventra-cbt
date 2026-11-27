@@ -56,19 +56,22 @@ export class AuthRepository implements AuthRepositoryInterface {
         moodleUserId,
       )) as Array<{ shortname: string }>;
 
+      let hasTeacher = false;
       let hasProctor = false;
       for (const rr of roleRows ?? []) {
         const short = (rr.shortname || "").trim().toLowerCase();
-        if (
-          short === "manager" ||
-          short === "coursecreator" ||
-          short === "editingteacher"
-        ) {
-          return "TEACHER";
+        if (short === "manager") {
+          return "ADMIN";
+        }
+        if (short === "coursecreator" || short === "editingteacher") {
+          hasTeacher = true;
         }
         if (short === "teacher") {
           hasProctor = true;
         }
+      }
+      if (hasTeacher) {
+        return "TEACHER";
       }
       if (hasProctor) {
         return "PROCTOR";
@@ -495,8 +498,7 @@ export class AuthRepository implements AuthRepositoryInterface {
           if (check.valid) {
             return {
               moodleUserId:
-                localUser.moodleUserId ??
-                (localUser.role === "ADMIN" ? 2 : 0),
+                localUser.moodleUserId ?? (localUser.role === "ADMIN" ? 2 : 0),
               username: localUser.username,
               fullName: localUser.fullName,
               role: localUser.role as UserRole,
@@ -701,8 +703,7 @@ export class AuthRepository implements AuthRepositoryInterface {
                 isDefaultAdmin,
               ));
             return {
-              moodleUserId:
-                localUser?.moodleUserId ?? (isDefaultAdmin ? 2 : 0),
+              moodleUserId: localUser?.moodleUserId ?? (isDefaultAdmin ? 2 : 0),
               username: localUser?.username ?? username,
               fullName:
                 localUser?.fullName ??

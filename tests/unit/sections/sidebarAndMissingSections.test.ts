@@ -28,9 +28,9 @@ describe("Sidebar Navigation Structure & Categories (Issue #27)", () => {
     expect(itemIds).toContain("classes");
     expect(itemIds).toContain("subjects");
     expect(itemIds).toContain("exams");
-    expect(itemIds).toContain("create-question");
     expect(itemIds).toContain("questions");
     expect(itemIds).toContain("students");
+    expect(itemIds).toContain("staff");
     expect(itemIds).toContain("exam-rooms");
     expect(itemIds).toContain("exam-cards");
 

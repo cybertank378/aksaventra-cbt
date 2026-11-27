@@ -12,10 +12,10 @@ import {
   FileText,
   HelpCircle,
   LayoutDashboard,
-  LayoutGrid,
   LogOut,
   Megaphone,
   Radio,
+  ShieldCheck,
   Users,
   X,
 } from "lucide-react";
@@ -97,15 +97,8 @@ export const DEFAULT_NAVIGATION_CATEGORIES: NavigationCategory[] = [
         allowedRoles: ["ADMIN", "TEACHER"],
       },
       {
-        id: "create-question",
-        title: "Buat Soal",
-        path: "/dashboard/questions/new",
-        icon: LayoutGrid,
-        allowedRoles: ["ADMIN", "TEACHER"],
-      },
-      {
         id: "questions",
-        title: "Bank Soal",
+        title: "Bank & Buat Soal",
         path: "/dashboard/questions",
         icon: HelpCircle,
         allowedRoles: ["ADMIN", "TEACHER"],
@@ -116,6 +109,13 @@ export const DEFAULT_NAVIGATION_CATEGORIES: NavigationCategory[] = [
         path: "/dashboard/students",
         icon: Users,
         allowedRoles: ["ADMIN", "TEACHER"],
+      },
+      {
+        id: "staff",
+        title: "Pengawas & Guru",
+        path: "/dashboard/staff",
+        icon: ShieldCheck,
+        allowedRoles: ["ADMIN"],
       },
       {
         id: "exam-rooms",
