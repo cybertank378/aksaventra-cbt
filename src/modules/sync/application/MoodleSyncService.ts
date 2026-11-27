@@ -92,6 +92,7 @@ export class MoodleSyncService {
     username: string;
     fullName: string;
     password?: string;
+    role?: string;
     classGroupId?: string | null;
     isActive?: boolean;
     replaceCohort?: boolean;

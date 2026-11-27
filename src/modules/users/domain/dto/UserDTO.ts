@@ -27,3 +27,20 @@ export interface ListUsersOutput {
   page: number;
   limit: number;
 }
+
+export interface CreateStaffUserInputDTO {
+  username: string;
+  fullName: string;
+  password: string;
+  role: "ADMIN" | "TEACHER" | "PROCTOR";
+  roomCode?: string | null;
+  isActive?: boolean;
+}
+
+export interface UpdateStaffUserInputDTO {
+  fullName?: string;
+  password?: string;
+  role?: "ADMIN" | "TEACHER" | "PROCTOR";
+  roomCode?: string | null;
+  isActive?: boolean;
+}

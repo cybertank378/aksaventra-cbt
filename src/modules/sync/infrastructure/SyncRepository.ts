@@ -284,16 +284,21 @@ export class SyncRepository implements SyncRepositoryInterface {
       const username = s.username?.trim().toLowerCase();
       if (!username) continue;
 
-      const rawRole = s.role?.toUpperCase();
+      const rawRole = s.role?.trim().toUpperCase();
       const incomingRole: "ADMIN" | "TEACHER" | "PROCTOR" | "STUDENT" =
-        rawRole === "ADMIN" ||
-        rawRole === "TEACHER" ||
-        rawRole === "PROCTOR" ||
-        rawRole === "STUDENT"
-          ? rawRole
-          : username === "admin"
-            ? "ADMIN"
-            : "STUDENT";
+        rawRole === "ADMIN" || rawRole === "MANAGER"
+          ? "ADMIN"
+          : rawRole === "TEACHER" ||
+              rawRole === "EDITINGTEACHER" ||
+              rawRole === "COURSECREATOR"
+            ? "TEACHER"
+            : rawRole === "PROCTOR" || rawRole === "NON_EDITING_TEACHER"
+              ? "PROCTOR"
+              : rawRole === "STUDENT"
+                ? "STUDENT"
+                : username === "admin"
+                  ? "ADMIN"
+                  : "STUDENT";
 
       let classGroupId: string | null = null;
       let className: string | null =
@@ -668,6 +673,15 @@ export class SyncRepository implements SyncRepositoryInterface {
       const firstname = parts[0] || input.username;
       const lastname = parts.slice(1).join(" ") || "-";
 
+      const moodleRolesForRole: Record<string, string[]> = {
+        ADMIN: ["manager"],
+        TEACHER: ["editingteacher", "coursecreator"],
+        PROCTOR: ["teacher"],
+        STUDENT: ["student"],
+      };
+      const normalizedRole = input.role?.toUpperCase() || "STUDENT";
+      const moodleRoles = moodleRolesForRole[normalizedRole] ?? ["student"];
+
       const res = await this.callMoodle<MoodleManageGroupsResponse>(
         "mod_cbt_manage_groups",
         {
@@ -678,8 +692,8 @@ export class SyncRepository implements SyncRepositoryInterface {
             firstname,
             lastname,
             password: input.password || "",
-            ...(input.role && input.role !== "STUDENT"
-              ? { role: input.role }
+            ...(normalizedRole !== "STUDENT"
+              ? { role: normalizedRole, moodle_roles: moodleRoles }
               : {}),
             class_id: moodleClassId,
             replace_cohort: input.replaceCohort ?? true,
@@ -987,34 +1001,45 @@ export class SyncRepository implements SyncRepositoryInterface {
     try {
       const pendingSubjects = await this.db.subject.findMany({
         where: { moodleCourseId: null },
-        take: 5,
+        take: 50,
       });
       for (const sub of pendingSubjects) {
         const res = await this.pushSubjectToMoodle(sub);
-        if (!res.synced && res.error) return;
+        if (!res.synced && res.error?.includes("fetch failed")) return;
       }
 
       const pendingClasses = await this.db.classGroup.findMany({
         where: { moodleId: null },
-        take: 5,
+        take: 50,
       });
       for (const cls of pendingClasses) {
         const res = await this.pushClassToMoodle(cls);
-        if (!res.synced && res.error) return;
+        if (!res.synced && res.error?.includes("fetch failed")) return;
       }
 
       const pendingUsers = await this.db.user.findMany({
         where: { moodleUserId: null, isActive: true },
-        take: 5,
+        take: 50,
       });
       for (const u of pendingUsers) {
         const res = await this.pushStudentToMoodle(u);
-        if (!res.synced && res.error) return;
+        if (!res.synced && res.error?.includes("fetch failed")) return;
+      }
+
+      const pendingExams = await this.db.exam.findMany({
+        where: {
+          OR: [{ moodleCbtId: { lte: 0 } }, { moodleCbtId: { gte: 900_000 } }],
+        },
+        take: 50,
+      });
+      for (const exam of pendingExams) {
+        const res = await this.pushExamToMoodle(exam);
+        if (!res.synced && res.error?.includes("fetch failed")) return;
       }
 
       const pendingQuestions = await this.db.question.findMany({
         where: { moodleQuestionId: null },
-        take: 5,
+        take: 50,
       });
       for (const q of pendingQuestions) {
         const options = Array.isArray(q.optionsJson)
@@ -1030,7 +1055,7 @@ export class SyncRepository implements SyncRepositoryInterface {
           explanation: q.explanation,
           options,
         });
-        if (!res.synced && res.error) return;
+        if (!res.synced && res.error?.includes("fetch failed")) return;
       }
     } catch {
       // Never block inbound pull if outbound pre-push encounters offline Moodle
