@@ -8,7 +8,9 @@
 
 function resolveMoodleWsEndpoint(): string {
   if (process.env.MOODLE_WS_ENDPOINT) {
-    return process.env.MOODLE_WS_ENDPOINT.endsWith("/webservice/rest/server.php")
+    return process.env.MOODLE_WS_ENDPOINT.endsWith(
+      "/webservice/rest/server.php",
+    )
       ? process.env.MOODLE_WS_ENDPOINT
       : `${process.env.MOODLE_WS_ENDPOINT.replace(/\/+$/, "")}/webservice/rest/server.php`;
   }
@@ -21,11 +23,21 @@ function resolveMoodleWsEndpoint(): string {
   return `${baseUrl}/webservice/rest/server.php`;
 }
 
+const DEV_FALLBACK_MOODLE_TOKEN = "dev_moodle_ws_token_unconfigured";
+
 function resolveMoodleToken(): string {
-  return (
-    process.env.MOODLE_WS_TOKEN ||
-    "f0e4cae818c6e58419f2f11865010d2b050762e45664b9cc"
-  );
+  const configured = process.env.MOODLE_WS_TOKEN?.trim();
+  if (configured) {
+    return configured;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "MOODLE_WS_TOKEN wajib dikonfigurasi pada lingkungan produksi.",
+    );
+  }
+
+  return DEV_FALLBACK_MOODLE_TOKEN;
 }
 
 export interface MoodleApiError {

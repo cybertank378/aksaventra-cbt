@@ -1,8 +1,11 @@
-import * as XLSX from "xlsx";
+import readXlsxFile, { type CellValue } from "read-excel-file/universal";
+import writeXlsxFile, {
+  type Row as WriteExcelRow,
+} from "write-excel-file/universal";
 import { parseWordDocxFile } from "./wordDocxUtils";
 
 /**
- * Utility functions for Excel (.xlsx, .xls) and CSV parsing and export.
+ * Utility functions for Excel (.xlsx) and CSV parsing and export.
  * Supports UTF-8 BOM (\uFEFF) and semicolon (;) delimiter for Microsoft Excel compatibility.
  */
 
@@ -163,8 +166,18 @@ export function downloadCsvBlob(csvContent: string, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+function normalizeCellValue(cell: CellValue | null | undefined): string {
+  if (cell === null || cell === undefined) {
+    return "";
+  }
+  if (cell instanceof Date) {
+    return cell.toISOString();
+  }
+  return String(cell).trim();
+}
+
 /**
- * Universal tabular & document file parser supporting .docx, .xlsx, .xls, and .csv.
+ * Universal tabular & document file parser supporting .docx, .xlsx, and .csv.
  */
 export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
   const isWord = /\.(docx|doc)$/i.test(file.name);
@@ -172,19 +185,25 @@ export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
     return parseWordDocxFile(file);
   }
 
-  const isExcel = /\.(xlsx|xls)$/i.test(file.name);
-  if (!isExcel) {
+  if (/\.xls$/i.test(file.name)) {
+    throw new Error(
+      "Format Excel lama (.xls) tidak didukung demi keamanan. Silakan simpan ulang berkas sebagai .xlsx atau .csv.",
+    );
+  }
+
+  const isXlsx = /\.xlsx$/i.test(file.name);
+  if (!isXlsx) {
     return parseCsvFile(file);
   }
 
   const arrayBuffer = await file.arrayBuffer();
-  const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
-  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+  const sheets = await readXlsxFile(arrayBuffer);
+  if (!sheets || sheets.length === 0) {
     return { headers: [], rows: [], rawRows: [], totalRows: 0 };
   }
 
   // Intelligently select the data sheet if multi-sheet workbook is provided
-  let selectedSheetName = workbook.SheetNames[0];
+  let selectedSheet = sheets[0];
   const preferredSheetNames = [
     "template_soal",
     "soal",
@@ -198,11 +217,11 @@ export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
   ];
 
   for (const preferred of preferredSheetNames) {
-    const found = workbook.SheetNames.find(
-      (s) => s.toLowerCase().replace(/[^a-z0-9_]/g, "_") === preferred,
+    const found = sheets.find(
+      (s) => s.sheet.toLowerCase().replace(/[^a-z0-9_]/g, "_") === preferred,
     );
     if (found) {
-      selectedSheetName = found;
+      selectedSheet = found;
       break;
     }
   }
@@ -210,18 +229,15 @@ export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
   // If no preferred name match, inspect header rows of sheets to find the one with actual data columns
   if (
     !preferredSheetNames.some((p) =>
-      selectedSheetName?.toLowerCase().includes(p),
+      selectedSheet.sheet.toLowerCase().includes(p),
     )
   ) {
-    for (const name of workbook.SheetNames) {
-      const ws = workbook.Sheets[name];
-      if (!ws) continue;
-      const preview = XLSX.utils.sheet_to_json<string[]>(ws, {
-        header: 1,
-        defval: "",
-      });
-      if (preview.length > 0 && Array.isArray(preview[0])) {
-        const headerStr = preview[0].join(" ").toLowerCase();
+    for (const candidate of sheets) {
+      if (candidate.data.length > 0 && Array.isArray(candidate.data[0])) {
+        const headerStr = candidate.data[0]
+          .map(normalizeCellValue)
+          .join(" ")
+          .toLowerCase();
         if (
           headerStr.includes("teks_soal") ||
           headerStr.includes("jenis_soal") ||
@@ -229,28 +245,19 @@ export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
           headerStr.includes("nis_username") ||
           headerStr.includes("nomor_meja")
         ) {
-          selectedSheetName = name;
+          selectedSheet = candidate;
           break;
         }
       }
     }
   }
 
-  const worksheet =
-    workbook.Sheets[selectedSheetName || workbook.SheetNames[0]];
-  if (!worksheet) {
-    return { headers: [], rows: [], rawRows: [], totalRows: 0 };
-  }
-  const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, {
-    header: 1,
-    defval: "",
-  });
-
+  const jsonData = selectedSheet.data;
   if (jsonData.length === 0) {
     return { headers: [], rows: [], rawRows: [], totalRows: 0 };
   }
 
-  const rawHeaderRow = (jsonData[0] || []).map((h) => String(h || "").trim());
+  const rawHeaderRow = (jsonData[0] || []).map(normalizeCellValue);
   const cleanHeaders = rawHeaderRow.map((h) =>
     h
       .toLowerCase()
@@ -264,7 +271,7 @@ export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
   for (let i = 1; i < jsonData.length; i++) {
     const rawLine = jsonData[i] || [];
     const values = cleanHeaders.map((_, idx) =>
-      String(rawLine[idx] ?? "").trim(),
+      normalizeCellValue(rawLine[idx]),
     );
 
     // Skip empty row
@@ -290,34 +297,28 @@ export async function parseTabularFile(file: File): Promise<ParsedCsvResult> {
 }
 
 /**
- * Triggers a browser download of an Excel (.xlsx or .xls) file.
+ * Triggers a browser download of an Excel (.xlsx) file.
  */
-export function downloadExcelBlob(
+export async function downloadExcelBlob(
   headers: string[],
   rows: (string | number | boolean | null | undefined)[][],
   filename: string,
   sheetName = "Sheet1",
-  format: "xlsx" | "xls" = "xlsx",
-): void {
-  const aoa = [headers, ...rows];
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  _format: "xlsx" | "xls" = "xlsx",
+): Promise<void> {
+  const sheetData: WriteExcelRow[] = [
+    headers.map((header) => ({ value: header, fontWeight: "bold" as const })),
+    ...rows.map((row) => row.map((cell) => (cell === undefined ? null : cell))),
+  ];
 
-  const bookType = format === "xls" ? "biff8" : "xlsx";
-  const excelBuffer = XLSX.write(wb, { bookType, type: "array" });
+  const blob = await writeXlsxFile(sheetData, {
+    sheet: sheetName,
+  }).toBlob();
 
-  const mimeType =
-    format === "xls"
-      ? "application/vnd.ms-excel"
-      : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
-  const blob = new Blob([excelBuffer], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const ext = `.${format}`;
-  a.download = filename.endsWith(ext) ? filename : `${filename}${ext}`;
+  a.download = filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

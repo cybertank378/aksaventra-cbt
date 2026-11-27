@@ -123,22 +123,6 @@ export const ExamQuestionsSection: FC<ExamQuestionsSectionProps> = ({
           >
             Template Excel (.xlsx)
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            color="secondary"
-            size="sm"
-            leftIcon={Download}
-            onClick={() =>
-              handleProcessDownload(
-                "/templates/sample_import_soal.xls",
-                "sample_import_soal.xls",
-              )
-            }
-            title="Unduh Template Format Excel (.xls)"
-          >
-            .xls
-          </Button>
 
           <Button
             type="button"

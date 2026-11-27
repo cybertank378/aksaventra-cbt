@@ -82,17 +82,20 @@ describe("Excel & CSV Utilities for Moodle Import/Export", () => {
   });
 
   it("should parse tabular data from an Excel workbook (.xlsx)", async () => {
-    const XLSX = await import("xlsx");
+    const { default: writeXlsxFile } = await import(
+      "write-excel-file/universal"
+    );
     const { parseTabularFile } = await import("@/libs/excelCsvUtils");
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([
-      ["nis_username", "nama_lengkap", "kelas"],
-      ["1001", "Ahmad Dahlan", "X-RPL-1"],
-      ["1002", "Budi Santoso", "X-RPL-1"],
-    ]);
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    const buffer = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+    const blob = await writeXlsxFile(
+      [
+        ["nis_username", "nama_lengkap", "kelas"],
+        ["1001", "Ahmad Dahlan", "X-RPL-1"],
+        ["1002", "Budi Santoso", "X-RPL-1"],
+      ],
+      { sheet: "Sheet1" },
+    ).toBlob();
+    const buffer = await blob.arrayBuffer();
 
     const mockFile = new File([buffer], "sample_import_siswa.xlsx", {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -106,26 +109,30 @@ describe("Excel & CSV Utilities for Moodle Import/Export", () => {
   });
 
   it("should intelligently select the data sheet in a multi-sheet question workbook", async () => {
-    const XLSX = await import("xlsx");
+    const { default: writeXlsxFile } = await import(
+      "write-excel-file/universal"
+    );
     const { parseTabularFile } = await import("@/libs/excelCsvUtils");
 
-    const wb = XLSX.utils.book_new();
-    // Sheet 1 is a guide sheet without question data
-    const wsGuide = XLSX.utils.aoa_to_sheet([
-      ["PANDUAN", "KETERANGAN"],
-      ["nomor", "Nomor butir soal"],
-    ]);
-    XLSX.utils.book_append_sheet(wb, wsGuide, "PANDUAN_KOLOM");
+    const blob = await writeXlsxFile([
+      {
+        sheet: "PANDUAN_KOLOM",
+        data: [
+          ["PANDUAN", "KETERANGAN"],
+          ["nomor", "Nomor butir soal"],
+        ],
+      },
+      {
+        sheet: "TEMPLATE_SOAL",
+        data: [
+          ["nomor", "jenis_soal", "teks_soal", "bobot", "kunci_jawaban"],
+          ["1", "multichoice_single", "Soal 1", "1.00", "A"],
+          ["2", "essay", "Soal 2 Esai", "5.00", "requires_manual_grading"],
+        ],
+      },
+    ]).toBlob();
+    const buffer = await blob.arrayBuffer();
 
-    // Sheet 2 is the actual TEMPLATE_SOAL sheet
-    const wsQuestions = XLSX.utils.aoa_to_sheet([
-      ["nomor", "jenis_soal", "teks_soal", "bobot", "kunci_jawaban"],
-      ["1", "multichoice_single", "Soal 1", "1.00", "A"],
-      ["2", "essay", "Soal 2 Esai", "5.00", "requires_manual_grading"],
-    ]);
-    XLSX.utils.book_append_sheet(wb, wsQuestions, "TEMPLATE_SOAL");
-
-    const buffer = XLSX.write(wb, { type: "array", bookType: "xlsx" });
     const mockFile = new File([buffer], "sample_import_soal.xlsx", {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
@@ -136,5 +143,16 @@ describe("Excel & CSV Utilities for Moodle Import/Export", () => {
     expect(result.headers).toContain("teks_soal");
     expect(result.rows[0].jenis_soal).toBe("multichoice_single");
     expect(result.rows[1].jenis_soal).toBe("essay");
+  });
+
+  it("should reject legacy binary .xls files for security compliance", async () => {
+    const { parseTabularFile } = await import("@/libs/excelCsvUtils");
+    const mockLegacyFile = new File([new Uint8Array([0xd0, 0xcf])], "old.xls", {
+      type: "application/vnd.ms-excel",
+    });
+
+    await expect(parseTabularFile(mockLegacyFile)).rejects.toThrow(
+      /Format Excel lama \(\.xls\) tidak didukung/,
+    );
   });
 });

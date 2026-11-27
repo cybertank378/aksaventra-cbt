@@ -269,21 +269,6 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
               <Button
                 type="button"
                 variant="outline"
-                color="teal"
-                size="xs"
-                leftIcon={Download}
-                onClick={() =>
-                  handleProcessDownload(
-                    "/templates/sample_import_soal.xls",
-                    "sample_import_soal.xls",
-                  )
-                }
-              >
-                Excel (.xls)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
                 color="secondary"
                 size="xs"
                 leftIcon={Download}
@@ -337,9 +322,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                       {g.optionsCol}
                     </p>
                     <p>
-                      <strong className="text-slate-700">
-                        Contoh Kunci:
-                      </strong>{" "}
+                      <strong className="text-slate-700">Contoh Kunci:</strong>{" "}
                       <code className="px-1.5 py-0.5 rounded font-mono font-bold bg-slate-200 text-slate-900">
                         {g.exampleKey}
                       </code>
@@ -371,7 +354,7 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
             <input
               id="question-file-upload"
               type="file"
-              accept=".docx,.doc,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+              accept=".docx,.doc,.xlsx,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -383,10 +366,13 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                 <UploadCloud className="w-7 h-7 text-indigo-600" />
               </div>
               <p className="text-xs font-bold text-slate-800">
-                Pilih atau seret berkas naskah soal Word (.docx) atau Excel (.xlsx)
+                Pilih atau seret berkas naskah soal Word (.docx) atau Excel
+                (.xlsx)
               </p>
               <p className="text-[11px] text-slate-500 mt-1 text-center max-w-md">
-                Mendukung <strong>Microsoft Word (.docx / .doc)</strong> dengan formula KaTeX & gambar otomatis, serta Microsoft Excel (.xlsx / .xls) & CSV
+                Mendukung <strong>Microsoft Word (.docx / .doc)</strong> dengan
+                formula KaTeX & gambar otomatis, serta Microsoft Excel (.xlsx) &
+                CSV
               </p>
             </label>
           </div>
@@ -473,9 +459,10 @@ export const ImportQuestionsModal: FC<ImportQuestionsModalProps> = ({
                       ).toLowerCase();
                       const typeLabel =
                         QUESTION_TYPE_NAMES[rawType] || rawType || "PG";
+                      const rowKey = `${q.nomor || "row"}-${rawType}-${(q.teks_soal || q.question || "").slice(0, 32)}-${q.kunci_jawaban || ""}`;
 
                       return (
-                        <TableRow key={`q-${i}`}>
+                        <TableRow key={rowKey}>
                           <TableCell className="px-3 py-2 text-xs font-mono font-bold text-slate-800">
                             {q.nomor || i + 1}
                           </TableCell>
