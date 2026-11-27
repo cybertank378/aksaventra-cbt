@@ -4,6 +4,8 @@ import { useCallback, useState } from "react";
 import { apiRequest } from "@/shared/api/apiRequest";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type {
+  BulkUpdateUserRoleInputDTO,
+  BulkUpdateUserRoleOutputDTO,
   CreateStaffUserInputDTO,
   ListUsersOutput,
   ListUsersQuery,
@@ -74,6 +76,7 @@ export function useUsersApi() {
         const response = await apiRequest<UserResponseDTO>("/api/users", {
           method: "POST",
           body: input,
+          timeoutMs: 30_000,
         });
         const created = unwrapApiResponse(response);
         setUsers((prev) => [created, ...prev]);
@@ -104,6 +107,7 @@ export function useUsersApi() {
           {
             method: "PATCH",
             body: input,
+            timeoutMs: 30_000,
           },
         );
         const updated = unwrapApiResponse(response);
@@ -143,6 +147,39 @@ export function useUsersApi() {
     }
   }, []);
 
+  const bulkUpdateUserRoles = useCallback(
+    async (
+      input: BulkUpdateUserRoleInputDTO,
+    ): Promise<BulkUpdateUserRoleOutputDTO> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await apiRequest<BulkUpdateUserRoleOutputDTO>(
+          "/api/users/bulk-role",
+          {
+            method: "PATCH",
+            body: input,
+            timeoutMs: 60_000,
+          },
+        );
+        const result = unwrapApiResponse(response);
+        const updatedMap = new Map(result.users.map((u) => [u.id, u]));
+        setUsers((prev) => prev.map((u) => updatedMap.get(u.id) ?? u));
+        return result;
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Gagal memperbarui peran akun secara massal";
+        setError(message);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
   return {
     users,
     total,
@@ -151,6 +188,7 @@ export function useUsersApi() {
     createStaffUser,
     updateStaffUser,
     deleteStaffUser,
+    bulkUpdateUserRoles,
     isLoading,
     error,
   };

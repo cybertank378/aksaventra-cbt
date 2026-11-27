@@ -13,7 +13,7 @@ export class ListUsersUseCase
     query: ListUsersQuery,
   ): Promise<Result<ListUsersOutput, AppError>> {
     const page = Math.max(1, query.page || 1);
-    const limit = Math.min(100, Math.max(1, query.limit || 20));
+    const limit = Math.min(1000, Math.max(1, query.limit || 20));
 
     const { users, total } = await this.usersRepository.listUsers({
       ...query,
