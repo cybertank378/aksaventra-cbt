@@ -8,8 +8,6 @@ import type { ParticipantMonitorDTO } from "@/modules/proctor/domain/dto/Proctor
 import { useProctorApi } from "@/modules/proctor/presentation/useProctorApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
-import Card from "@/shared-ui/component/Card";
-import TextField from "@/shared-ui/component/TextField";
 import {
   Table,
   TableBody,
@@ -18,6 +16,7 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@/shared-ui/component/Table";
+import TextField from "@/shared-ui/component/TextField";
 import ParticipantStatusBadge from "../atoms/ParticipantStatusBadge";
 import { LiveAlertBanner } from "../molecules/LiveAlertBanner";
 import ParticipantActionModal from "../molecules/ParticipantActionModal";
@@ -178,10 +177,14 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
             <TableHeaderCell className="px-4 py-3">No. Meja</TableHeaderCell>
             <TableHeaderCell className="px-4 py-3">Peserta</TableHeaderCell>
             <TableHeaderCell className="px-4 py-3">Status</TableHeaderCell>
-            <TableHeaderCell className="px-4 py-3">Progres Jawaban</TableHeaderCell>
+            <TableHeaderCell className="px-4 py-3">
+              Progres Jawaban
+            </TableHeaderCell>
             <TableHeaderCell className="px-4 py-3">Sisa Waktu</TableHeaderCell>
             <TableHeaderCell className="px-4 py-3">Pelanggaran</TableHeaderCell>
-            <TableHeaderCell className="px-4 py-3 text-right">Aksi</TableHeaderCell>
+            <TableHeaderCell className="px-4 py-3 text-right">
+              Aksi
+            </TableHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -209,7 +212,12 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
                 >
                   {/* Seat Number */}
                   <TableCell className="px-4 py-3.5 whitespace-nowrap">
-                    <Badge color="primary" variant="filled" size="sm" className="font-mono font-bold text-xs">
+                    <Badge
+                      color="primary"
+                      variant="filled"
+                      size="sm"
+                      className="font-mono font-bold text-xs"
+                    >
                       {p.seatNumber || "-"}
                     </Badge>
                   </TableCell>
@@ -221,11 +229,14 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
                         {p.fullName.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 truncate max-w-[180px]">
+                        <p
+                          className="font-bold text-slate-900 truncate max-w-[180px]"
+                          title={p.fullName}
+                        >
                           {p.fullName}
                         </p>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                          <span>{p.username}</span>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                          <span className="font-mono">{p.username}</span>
                           {p.className && (
                             <>
                               <span>•</span>
@@ -272,9 +283,7 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
                   <TableCell className="px-4 py-3.5 whitespace-nowrap">
                     <div className="flex items-center gap-1.5 text-slate-700 font-mono font-medium">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>
-                        {formatRemainingMinutes(p.remainingSeconds)}
-                      </span>
+                      <span>{formatRemainingMinutes(p.remainingSeconds)}</span>
                       {p.extraTimeSeconds > 0 && (
                         <span className="text-[10px] text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded">
                           +{Math.round(p.extraTimeSeconds / 60)}m
@@ -291,9 +300,7 @@ export const LiveParticipantGrid: FC<LiveParticipantGridProps> = ({
                         <span>{p.strikeCount} Strike</span>
                       </div>
                     ) : (
-                      <span className="text-slate-400 text-xs">
-                        Bersih (0)
-                      </span>
+                      <span className="text-slate-400 text-xs">Bersih (0)</span>
                     )}
                   </TableCell>
 

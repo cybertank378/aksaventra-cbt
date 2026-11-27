@@ -153,7 +153,7 @@ export function generateRoomLayoutPdf(
       doc.setFont("helvetica", "normal");
       doc.setFontSize(6);
       doc.setTextColor(71, 85, 105);
-      doc.text(desk.username || "-", x + 2, y + 14.5);
+      doc.text(`User: ${desk.username || "-"}`, x + 2, y + 14.5);
 
       if (desk.className) {
         doc.setFont("helvetica", "bold");
@@ -206,8 +206,8 @@ export function generateRoomLayoutPdf(
     const headers = [
       "No. Meja",
       "Baris/Kolom",
-      "NIS / Username",
-      "Nama Lengkap Peserta",
+      "Username",
+      "Nama Siswa",
       "Kelas",
       "Tanda Tangan",
     ];
@@ -367,7 +367,7 @@ export function generateDeskNumberStickersPdf(
       doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
       doc.text(
-        `NIS/User: ${desk.username || "-"}   |   Kelas: ${desk.className || "-"}`,
+        `Username: ${desk.username || "-"}   |   Kelas: ${desk.className || "-"}`,
         x + boxW / 2,
         y + 55.5,
         { align: "center" },

@@ -1,5 +1,6 @@
 export interface ExamCardItemDTO {
   studentId: string;
+  username?: string;
   nisn: string;
   fullName: string;
   className: string;

@@ -100,15 +100,17 @@ const SelectField = forwardRef<HTMLSelectElement, Props>(
           </div>
         </div>
 
-        <div className="mt-1 space-y-1">
-          {externalErrorMessage && (
-            <FormHelperText error>{externalErrorMessage}</FormHelperText>
-          )}
+        {(externalErrorMessage || helperText) && (
+          <div className="mt-1 space-y-1">
+            {externalErrorMessage && (
+              <FormHelperText error>{externalErrorMessage}</FormHelperText>
+            )}
 
-          {!externalErrorMessage && helperText && (
-            <FormHelperText success={success}>{helperText}</FormHelperText>
-          )}
-        </div>
+            {!externalErrorMessage && helperText && (
+              <FormHelperText success={success}>{helperText}</FormHelperText>
+            )}
+          </div>
+        )}
       </FormControl>
     );
   },

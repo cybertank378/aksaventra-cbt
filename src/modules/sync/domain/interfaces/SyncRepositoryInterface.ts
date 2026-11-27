@@ -1,6 +1,7 @@
 import type {
   MoodlePullPayload,
   OutboundSyncResult,
+  PushableSyncEntity,
   SyncEntityType,
 } from "../dto/SyncDTO";
 
@@ -46,6 +47,7 @@ export interface SyncRepositoryInterface {
     name: string;
     shortName?: string | null;
     description?: string | null;
+    isVisible?: boolean;
   }): Promise<OutboundSyncResult>;
 
   pushExamToMoodle(input: {
@@ -63,10 +65,13 @@ export interface SyncRepositoryInterface {
   pushQuestionToMoodle(input: {
     id: string;
     moodleQuestionId?: number | null;
+    moodleCourseId?: number | null;
+    subject?: string | null;
     code: string;
     type: string;
     stem: string;
     points: number;
+    tolerance?: number | null;
     explanation?: string | null;
     options: Array<{ text: string; isCorrect?: boolean }>;
   }): Promise<OutboundSyncResult>;
@@ -87,7 +92,7 @@ export interface SyncRepositoryInterface {
   }): Promise<OutboundSyncResult>;
 
   findLocalEntityForPush(
-    entity: "class" | "student" | "subject" | "exam" | "question",
+    entity: PushableSyncEntity,
     id: string,
   ): Promise<OutboundSyncResult>;
 

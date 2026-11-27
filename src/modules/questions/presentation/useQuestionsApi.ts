@@ -132,7 +132,7 @@ export function useQuestionsApi() {
       setError(null);
       try {
         const res = await fetch(`/api/questions/${id}`, {
-          method: "PUT",
+          method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(input),
         });

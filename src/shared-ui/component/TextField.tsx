@@ -268,21 +268,23 @@ const TextField = forwardRef<HTMLInputElement, Props>(
 
         {/* FOOTER */}
 
-        <div className="mt-1 space-y-1">
-          {finalMessage && (
-            <FormHelperText error>{finalMessage}</FormHelperText>
-          )}
+        {(finalMessage || helperText || (showCounter && maxLengthValue)) && (
+          <div className="mt-1 space-y-1">
+            {finalMessage && (
+              <FormHelperText error>{finalMessage}</FormHelperText>
+            )}
 
-          {!finalMessage && helperText && (
-            <FormHelperText success={success}>{helperText}</FormHelperText>
-          )}
+            {!finalMessage && helperText && (
+              <FormHelperText success={success}>{helperText}</FormHelperText>
+            )}
 
-          {showCounter && maxLengthValue && (
-            <div className="text-right text-xs text-gray-400">
-              {String(value ?? "").length} / {maxLengthValue}
-            </div>
-          )}
-        </div>
+            {showCounter && maxLengthValue && (
+              <div className="text-right text-xs text-gray-400">
+                {String(value ?? "").length} / {maxLengthValue}
+              </div>
+            )}
+          </div>
+        )}
       </FormControl>
     );
   },

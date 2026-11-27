@@ -78,20 +78,35 @@ export class PullMoodleMasterDataUseCase
           if (Array.isArray(payload.errors) && payload.errors.length > 0) {
             errors.push(...payload.errors);
           }
-          counts.courses = await this.syncRepository.upsertCourses(
-            payload.courses ?? [],
+
+          const runStep = async (
+            label: string,
+            fn: () => Promise<number>,
+          ): Promise<number> => {
+            try {
+              return await fn();
+            } catch (stepErr) {
+              errors.push(
+                `${label}: ${stepErr instanceof Error ? stepErr.message : "Sync step failed"}`,
+              );
+              return 0;
+            }
+          };
+
+          counts.courses = await runStep("courses", () =>
+            this.syncRepository.upsertCourses(payload.courses ?? []),
           );
-          counts.classes = await this.syncRepository.upsertClasses(
-            payload.classes ?? [],
+          counts.classes = await runStep("classes", () =>
+            this.syncRepository.upsertClasses(payload.classes ?? []),
           );
-          counts.students = await this.syncRepository.upsertStudents(
-            payload.students ?? [],
+          counts.students = await runStep("students", () =>
+            this.syncRepository.upsertStudents(payload.students ?? []),
           );
-          counts.exams = await this.syncRepository.upsertExams(
-            payload.exams ?? [],
+          counts.exams = await runStep("exams", () =>
+            this.syncRepository.upsertExams(payload.exams ?? []),
           );
-          counts.questions = await this.syncRepository.upsertQuestions(
-            payload.questions ?? [],
+          counts.questions = await runStep("questions", () =>
+            this.syncRepository.upsertQuestions(payload.questions ?? []),
           );
           break;
         }

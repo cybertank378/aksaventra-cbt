@@ -5,6 +5,7 @@ import { prisma as defaultPrisma } from "@/libs/prisma";
 import type {
   MoodlePullPayload,
   OutboundSyncResult,
+  PushableSyncEntity,
   SyncEntityType,
 } from "../domain/dto/SyncDTO";
 import type { SyncRepositoryInterface } from "../domain/interfaces/SyncRepositoryInterface";
@@ -80,6 +81,18 @@ export function normalizeQuestionType(
   return "multichoice";
 }
 
+function truncateVarchar(value: string, maxLength = 190): string {
+  return value.length > maxLength ? value.slice(0, maxLength) : value;
+}
+
+function stripPlainHtml(value?: string | null): string {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export class SyncRepository implements SyncRepositoryInterface {
   constructor(
     private readonly db: PrismaClient = defaultPrisma,
@@ -153,35 +166,208 @@ export class SyncRepository implements SyncRepositoryInterface {
     courses: NonNullable<MoodlePullPayload["courses"]>,
   ): Promise<number> {
     let count = 0;
-    for (const c of courses) {
-      const name = c.name?.trim();
-      if (!name) continue;
 
-      const existing = await this.db.subject.findFirst({
-        where: {
-          OR: [{ moodleCourseId: c.id }, { name }],
+    type CachedSubject = {
+      id: string;
+      moodleCourseId: number | null;
+      name: string;
+      shortName: string | null;
+      description: string | null;
+      isVisible?: boolean;
+    };
+
+    const existingByMoodleId = new Map<number, CachedSubject>();
+    const existingByName = new Map<string, CachedSubject>();
+    const hasBulkSubjectLookup = typeof this.db.subject.findMany === "function";
+
+    if (hasBulkSubjectLookup && courses.length > 0) {
+      const existingSubjects = await this.db.subject.findMany({
+        select: {
+          id: true,
+          moodleCourseId: true,
+          name: true,
+          shortName: true,
+          description: true,
+          isVisible: true,
         },
       });
+      for (const s of existingSubjects) {
+        if (s.moodleCourseId !== null) {
+          existingByMoodleId.set(s.moodleCourseId, s);
+        }
+        existingByName.set(s.name.toLowerCase(), s);
+      }
+    }
+
+    const resolveUniqueCourseName = (
+      rawName: string,
+      courseId: number,
+      shortName: string | null,
+      currentId?: string,
+    ): string => {
+      const candidateKey = rawName.toLowerCase();
+      const collision = existingByName.get(candidateKey);
+      if (!collision || collision.id === currentId) {
+        return rawName;
+      }
+
+      const primarySuffix = shortName ? ` (${shortName})` : ` (#${courseId})`;
+      const withPrimary = `${truncateVarchar(
+        rawName,
+        Math.max(1, 190 - primarySuffix.length),
+      )}${primarySuffix}`;
+      const primaryCollision = existingByName.get(withPrimary.toLowerCase());
+      if (!primaryCollision || primaryCollision.id === currentId) {
+        return withPrimary;
+      }
+
+      const idSuffix = ` (#${courseId})`;
+      return `${truncateVarchar(
+        rawName,
+        Math.max(1, 190 - idSuffix.length),
+      )}${idSuffix}`;
+    };
+
+    for (const c of courses) {
+      const rawName = truncateVarchar((c.name ?? "").trim(), 190);
+      if (!rawName) continue;
+
+      const shortName = c.short_name?.trim()
+        ? truncateVarchar(c.short_name.trim(), 190)
+        : null;
+      const cleanDescription =
+        typeof c.description === "string"
+          ? truncateVarchar(stripPlainHtml(c.description), 190) || null
+          : null;
+      const rawVis = c.is_visible !== undefined ? c.is_visible : c.visible;
+      const incomingVisible =
+        rawVis === undefined
+          ? undefined
+          : rawVis !== false && rawVis !== 0 && String(rawVis) !== "0";
+
+      let existing: CachedSubject | null = null;
+      let resolvedName = rawName;
+
+      if (hasBulkSubjectLookup) {
+        existing = existingByMoodleId.get(c.id) ?? null;
+        if (!existing) {
+          const byName = existingByName.get(rawName.toLowerCase()) ?? null;
+          if (
+            byName &&
+            (byName.moodleCourseId === null || byName.moodleCourseId === c.id)
+          ) {
+            existing = byName;
+          }
+        }
+        resolvedName = resolveUniqueCourseName(
+          rawName,
+          c.id,
+          shortName,
+          existing?.id,
+        );
+      } else {
+        const found = await this.db.subject.findFirst({
+          where: {
+            OR: [{ moodleCourseId: c.id }, { name: rawName }],
+          },
+        });
+        if (
+          found &&
+          found.moodleCourseId !== null &&
+          found.moodleCourseId !== c.id
+        ) {
+          const suffix = shortName ? ` (${shortName})` : ` (#${c.id})`;
+          resolvedName = `${truncateVarchar(
+            rawName,
+            Math.max(1, 190 - suffix.length),
+          )}${suffix}`;
+          existing = null;
+        } else {
+          existing = found;
+        }
+      }
 
       if (existing) {
-        await this.db.subject.update({
-          where: { id: existing.id },
-          data: {
-            moodleCourseId: c.id,
-            name,
-            shortName: c.short_name || existing.shortName,
-            description: c.description ?? existing.description,
-          },
-        });
+        const nextShortName = shortName || existing.shortName;
+        const nextDescription = cleanDescription ?? existing.description;
+        const currentVisible = existing.isVisible ?? true;
+        const nextVisible =
+          incomingVisible !== undefined ? incomingVisible : currentVisible;
+        const isUnchanged =
+          existing.moodleCourseId === c.id &&
+          existing.name === resolvedName &&
+          existing.shortName === nextShortName &&
+          existing.description === nextDescription &&
+          currentVisible === nextVisible;
+
+        if (!isUnchanged) {
+          await this.db.subject.update({
+            where: { id: existing.id },
+            data: {
+              moodleCourseId: c.id,
+              name: resolvedName,
+              shortName: nextShortName,
+              description: nextDescription,
+              isVisible: nextVisible,
+            },
+          });
+
+          if (existing.name !== resolvedName) {
+            if (typeof this.db.question?.updateMany === "function") {
+              await this.db.question
+                .updateMany({
+                  where: { subject: existing.name },
+                  data: { subject: resolvedName },
+                })
+                .catch(() => undefined);
+            }
+            if (typeof this.db.exam?.updateMany === "function") {
+              await this.db.exam
+                .updateMany({
+                  where: { courseName: existing.name },
+                  data: { courseName: resolvedName },
+                })
+                .catch(() => undefined);
+            }
+          }
+
+          if (hasBulkSubjectLookup) {
+            existingByName.delete(existing.name.toLowerCase());
+            const updatedRecord: CachedSubject = {
+              id: existing.id,
+              moodleCourseId: c.id,
+              name: resolvedName,
+              shortName: nextShortName,
+              description: nextDescription,
+              isVisible: nextVisible,
+            };
+            existingByMoodleId.set(c.id, updatedRecord);
+            existingByName.set(resolvedName.toLowerCase(), updatedRecord);
+          }
+        }
       } else {
-        await this.db.subject.create({
+        const createdVisible = incomingVisible ?? true;
+        const created = await this.db.subject.create({
           data: {
             moodleCourseId: c.id,
-            name,
-            shortName: c.short_name || null,
-            description: c.description || null,
+            name: resolvedName,
+            shortName,
+            description: cleanDescription,
+            isVisible: createdVisible,
           },
         });
+        if (hasBulkSubjectLookup && created?.id) {
+          const createdRecord: CachedSubject = {
+            id: created.id,
+            moodleCourseId: c.id,
+            name: resolvedName,
+            shortName,
+            description: cleanDescription,
+            isVisible: createdVisible,
+          };
+          existingByMoodleId.set(c.id, createdRecord);
+          existingByName.set(resolvedName.toLowerCase(), createdRecord);
+        }
       }
       count++;
     }
@@ -459,6 +645,27 @@ export class SyncRepository implements SyncRepositoryInterface {
   ): Promise<number> {
     let count = 0;
 
+    // Pre-fetch synced courses (moodleCourseId -> Subject.name) so questions with course_id map accurately
+    const courseNameByMoodleId = new Map<number, string>();
+    if (
+      typeof this.db.subject?.findMany === "function" &&
+      questions.length > 0
+    ) {
+      try {
+        const subjectRows = await this.db.subject.findMany({
+          where: { moodleCourseId: { not: null } },
+          select: { moodleCourseId: true, name: true },
+        });
+        for (const sub of subjectRows) {
+          if (sub.moodleCourseId !== null && sub.name?.trim()) {
+            courseNameByMoodleId.set(sub.moodleCourseId, sub.name.trim());
+          }
+        }
+      } catch {
+        // Fallback gracefully if subject lookup is unavailable
+      }
+    }
+
     // Pre-fetch existing questions in 1 query to avoid 1,000+ sequential DB round-trips
     const existingByMoodleId = new Map<
       number,
@@ -471,6 +678,7 @@ export class SyncRepository implements SyncRepositoryInterface {
         type: string;
         stem: string;
         points: number;
+        tolerance: number | null;
         optionsJson: unknown;
         explanation: string | null;
       }
@@ -486,6 +694,7 @@ export class SyncRepository implements SyncRepositoryInterface {
         type: string;
         stem: string;
         points: number;
+        tolerance: number | null;
         optionsJson: unknown;
         explanation: string | null;
       }
@@ -503,6 +712,7 @@ export class SyncRepository implements SyncRepositoryInterface {
           type: true,
           stem: true,
           points: true,
+          tolerance: true,
           optionsJson: true,
           explanation: true,
         },
@@ -530,6 +740,16 @@ export class SyncRepository implements SyncRepositoryInterface {
         : [];
       const optionsJson = cleanedOptions as unknown as Prisma.InputJsonValue;
 
+      const rawIncomingSubject = q.subject?.trim() || "";
+      const courseFromId =
+        q.course_id && q.course_id > 0
+          ? (courseNameByMoodleId.get(q.course_id) ?? "")
+          : "";
+      const resolvedIncomingSubject =
+        rawIncomingSubject && rawIncomingSubject.toLowerCase() !== "umum"
+          ? rawIncomingSubject
+          : courseFromId || rawIncomingSubject;
+
       const existing =
         hasBulkQuestionLookup && questions.length > 1
           ? (existingByMoodleId.get(q.id) ?? existingByCode.get(code) ?? null)
@@ -540,10 +760,18 @@ export class SyncRepository implements SyncRepositoryInterface {
             });
 
       if (existing) {
-        const nextSubject = q.subject || existing.subject;
+        const nextSubject =
+          resolvedIncomingSubject &&
+          resolvedIncomingSubject.toLowerCase() !== "umum"
+            ? resolvedIncomingSubject
+            : existing.subject || resolvedIncomingSubject || "Umum";
         const nextGradeLevel = q.grade_level || existing.gradeLevel;
         const nextStem = cleanedStem || existing.stem;
         const nextPoints = q.points ?? existing.points;
+        const nextTolerance =
+          q.tolerance !== undefined
+            ? q.tolerance
+            : (existing.tolerance ?? null);
         const nextExplanation = cleanedExplanation ?? existing.explanation;
 
         const isUnchanged =
@@ -553,6 +781,7 @@ export class SyncRepository implements SyncRepositoryInterface {
           existing.type === type &&
           existing.stem === nextStem &&
           existing.points === nextPoints &&
+          (existing.tolerance ?? null) === nextTolerance &&
           existing.explanation === nextExplanation &&
           JSON.stringify(existing.optionsJson ?? []) ===
             JSON.stringify(cleanedOptions);
@@ -567,6 +796,9 @@ export class SyncRepository implements SyncRepositoryInterface {
               type,
               stem: nextStem,
               points: nextPoints,
+              ...(q.tolerance !== undefined
+                ? { tolerance: nextTolerance }
+                : {}),
               optionsJson,
               explanation: nextExplanation,
             },
@@ -577,11 +809,12 @@ export class SyncRepository implements SyncRepositoryInterface {
           data: {
             moodleQuestionId: q.id,
             code,
-            subject: q.subject || "Umum",
+            subject: resolvedIncomingSubject || "Umum",
             gradeLevel: q.grade_level || "X",
             type,
             stem: cleanedStem,
             points: q.points ?? 1,
+            ...(q.tolerance !== undefined ? { tolerance: q.tolerance } : {}),
             optionsJson,
             explanation: cleanedExplanation,
           },
@@ -729,6 +962,7 @@ export class SyncRepository implements SyncRepositoryInterface {
     name: string;
     shortName?: string | null;
     description?: string | null;
+    isVisible?: boolean;
   }): Promise<OutboundSyncResult> {
     try {
       const res = await this.callMoodle<MoodleSyncMasterResponse>(
@@ -740,6 +974,9 @@ export class SyncRepository implements SyncRepositoryInterface {
             name: input.name,
             short_name: input.shortName ?? "",
             description: input.description ?? "",
+            ...(input.isVisible !== undefined
+              ? { is_visible: input.isVisible }
+              : {}),
           }),
         },
       );
@@ -779,10 +1016,22 @@ export class SyncRepository implements SyncRepositoryInterface {
       if (input.courseName) {
         const subject = await this.db.subject.findFirst({
           where: { name: input.courseName },
-          select: { moodleCourseId: true },
+          select: {
+            id: true,
+            moodleCourseId: true,
+            name: true,
+            shortName: true,
+            description: true,
+            isVisible: true,
+          },
         });
-        if (subject?.moodleCourseId) {
+        if (subject?.moodleCourseId && subject.moodleCourseId > 1) {
           courseId = subject.moodleCourseId;
+        } else if (subject?.id && subject?.name) {
+          const pushedCourse = await this.pushSubjectToMoodle(subject);
+          if (pushedCourse.moodleId && pushedCourse.moodleId > 1) {
+            courseId = pushedCourse.moodleId;
+          }
         }
       }
 
@@ -796,6 +1045,7 @@ export class SyncRepository implements SyncRepositoryInterface {
                 ? input.moodleCbtId
                 : 0,
             course_id: courseId,
+            course_name: input.courseName ?? "",
             title: input.title,
             time_open: Math.floor(input.timeOpen.getTime() / 1000),
             time_close: Math.floor(input.timeClose.getTime() / 1000),
@@ -826,24 +1076,50 @@ export class SyncRepository implements SyncRepositoryInterface {
   public async pushQuestionToMoodle(input: {
     id: string;
     moodleQuestionId?: number | null;
+    moodleCourseId?: number | null;
+    subject?: string | null;
     code: string;
     type: string;
     stem: string;
     points: number;
+    tolerance?: number | null;
     explanation?: string | null;
     options: Array<{ text: string; isCorrect?: boolean }>;
   }): Promise<OutboundSyncResult> {
     try {
+      let moodleCourseId = input.moodleCourseId ?? 0;
+      const subjectName = input.subject?.trim() || "";
+      if (
+        moodleCourseId <= 1 &&
+        subjectName !== "" &&
+        typeof this.db.subject?.findFirst === "function"
+      ) {
+        const sub = await this.db.subject
+          .findFirst({
+            where: { name: subjectName },
+            select: { moodleCourseId: true },
+          })
+          .catch(() => null);
+        if (sub?.moodleCourseId && sub.moodleCourseId > 1) {
+          moodleCourseId = sub.moodleCourseId;
+        }
+      }
+
       const res = await this.callMoodle<MoodleSyncMasterResponse>(
         "mod_cbt_sync_master",
         {
           action: "push_question",
           payload: JSON.stringify({
             moodle_question_id: input.moodleQuestionId ?? 0,
+            ...(moodleCourseId > 1 ? { moodle_course_id: moodleCourseId } : {}),
+            ...(subjectName ? { subject: subjectName } : {}),
             code: input.code,
             type: input.type,
             stem: input.stem,
             points: input.points,
+            ...(input.tolerance !== undefined && input.tolerance !== null
+              ? { tolerance: input.tolerance }
+              : {}),
             explanation: input.explanation ?? "",
             options: input.options,
           }),
@@ -870,7 +1146,7 @@ export class SyncRepository implements SyncRepositoryInterface {
   }
 
   public async findLocalEntityForPush(
-    entity: "class" | "student" | "subject" | "exam" | "question",
+    entity: PushableSyncEntity,
     id: string,
   ): Promise<OutboundSyncResult> {
     switch (entity) {
@@ -884,7 +1160,8 @@ export class SyncRepository implements SyncRepositoryInterface {
         if (!usr) return { synced: false, error: "Siswa tidak ditemukan" };
         return await this.pushStudentToMoodle(usr);
       }
-      case "subject": {
+      case "subject":
+      case "course": {
         const sub = await this.db.subject.findUnique({ where: { id } });
         if (!sub) {
           return { synced: false, error: "Mata pelajaran tidak ditemukan" };
@@ -905,10 +1182,12 @@ export class SyncRepository implements SyncRepositoryInterface {
         return await this.pushQuestionToMoodle({
           id: q.id,
           moodleQuestionId: q.moodleQuestionId,
+          subject: q.subject,
           code: q.code,
           type: q.type,
           stem: q.stem,
           points: q.points,
+          tolerance: q.tolerance,
           explanation: q.explanation,
           options,
         });
@@ -1048,10 +1327,12 @@ export class SyncRepository implements SyncRepositoryInterface {
         const res = await this.pushQuestionToMoodle({
           id: q.id,
           moodleQuestionId: q.moodleQuestionId,
+          subject: q.subject,
           code: q.code,
           type: q.type,
           stem: q.stem,
           points: q.points,
+          tolerance: q.tolerance,
           explanation: q.explanation,
           options,
         });

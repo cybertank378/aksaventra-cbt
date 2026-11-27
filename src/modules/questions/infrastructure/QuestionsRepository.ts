@@ -326,10 +326,12 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
         const entity = this.mapDbToEntity(created);
         void moodleSyncService.pushQuestionToMoodle({
           id: entity.id,
+          subject: entity.subject,
           code: entity.code,
           type: entity.type,
           stem: entity.stem,
           points: entity.points,
+          tolerance: entity.tolerance ?? null,
           explanation: entity.explanation,
           options: entity.options,
         });
@@ -393,10 +395,12 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
         void moodleSyncService.pushQuestionToMoodle({
           id: entity.id,
           moodleQuestionId: updated.moodleQuestionId,
+          subject: entity.subject,
           code: entity.code,
           type: entity.type,
           stem: entity.stem,
           points: entity.points,
+          tolerance: entity.tolerance ?? null,
           explanation: entity.explanation,
           options: entity.options,
         });
@@ -473,10 +477,12 @@ export class QuestionsRepository implements QuestionsRepositoryInterface {
               return moodleSyncService.pushQuestionToMoodle({
                 id: q.id,
                 moodleQuestionId: q.moodleQuestionId,
+                subject: q.subject,
                 code: q.code,
                 type: q.type,
                 stem: q.stem,
                 points: q.points,
+                tolerance: q.tolerance,
                 explanation: q.explanation,
                 options,
               });

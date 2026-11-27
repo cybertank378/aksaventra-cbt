@@ -376,4 +376,204 @@ describe("MoodleSyncService Bidirectional Sync", () => {
       }),
     );
   });
+
+  it("syncCoursesFromMoodle strips HTML, truncates to 190 chars, and disambiguates duplicate course names", async () => {
+    const baseDb = createMockDb();
+    const db = {
+      ...baseDb,
+      subject: {
+        ...baseDb.subject,
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "sub-existing-1",
+            moodleCourseId: 10,
+            name: "Matematika",
+            shortName: "MTK-7",
+            description: "Existing",
+          },
+        ]),
+        create: vi
+          .fn()
+          .mockResolvedValueOnce({ id: "sub-new-2" })
+          .mockResolvedValueOnce({ id: "sub-new-3" }),
+      },
+    };
+
+    const longHtmlDesc = `<p>${"Deskripsi panjang ".repeat(20)}</p>`;
+    const callMoodle = vi.fn().mockResolvedValue({
+      success: true,
+      message: "ok",
+      data_json: JSON.stringify({
+        courses: [
+          {
+            id: 11,
+            name: "Matematika",
+            short_name: "MTK-8",
+            description: longHtmlDesc,
+            is_visible: false,
+          },
+          {
+            id: 12,
+            name: "Bahasa Indonesia",
+            short_name: "BINDO",
+            description: "<b>Materi</b> Bahasa",
+            is_visible: true,
+          },
+        ],
+      }),
+    });
+
+    const service = new MoodleSyncService(
+      db as unknown as PrismaClient,
+      callMoodle,
+    );
+    const count = await service.syncCoursesFromMoodle();
+
+    expect(count).toBe(2);
+    expect(db.subject.update).not.toHaveBeenCalled();
+    expect(db.subject.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          moodleCourseId: 11,
+          name: "Matematika (MTK-8)",
+          shortName: "MTK-8",
+          isVisible: false,
+        }),
+      }),
+    );
+    const createdDesc = db.subject.create.mock.calls[0]?.[0]?.data
+      ?.description as string;
+    expect(createdDesc).not.toContain("<p>");
+    expect(createdDesc.length).toBeLessThanOrEqual(190);
+
+    expect(db.subject.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          moodleCourseId: 12,
+          name: "Bahasa Indonesia",
+          shortName: "BINDO",
+          description: "Materi Bahasa",
+          isVisible: true,
+        }),
+      }),
+    );
+  });
+
+  it("pushSubjectToMoodle sends is_visible bidirectionally to Moodle", async () => {
+    const db = createMockDb();
+    const callMoodle = vi.fn().mockResolvedValue({
+      success: true,
+      record_id: 25,
+      message: "updated",
+    });
+
+    const service = new MoodleSyncService(
+      db as unknown as PrismaClient,
+      callMoodle,
+    );
+    const res = await service.pushSubjectToMoodle({
+      id: "sub-25",
+      moodleCourseId: 25,
+      name: "Fisika XI",
+      shortName: "FIS-11",
+      description: "Materi Fisika",
+      isVisible: false,
+    });
+
+    expect(res.synced).toBe(true);
+    expect(callMoodle).toHaveBeenCalledWith("mod_cbt_sync_master", {
+      action: "push_course",
+      payload: JSON.stringify({
+        moodle_course_id: 25,
+        name: "Fisika XI",
+        short_name: "FIS-11",
+        description: "Materi Fisika",
+        is_visible: false,
+      }),
+    });
+  });
+
+  it("syncQuestionsFromMoodle resolves question subject via course_id and pushQuestionToMoodle sends moodle_course_id", async () => {
+    const baseDb = createMockDb();
+    const db = {
+      ...baseDb,
+      subject: {
+        ...baseDb.subject,
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ moodleCourseId: 15, name: "IPA Terpadu" }]),
+        findFirst: vi.fn().mockResolvedValue({ moodleCourseId: 15 }),
+      },
+    };
+
+    const callMoodle = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: true,
+        message: "ok",
+        data_json: JSON.stringify({
+          questions: [
+            {
+              id: 301,
+              course_id: 15,
+              subject: "Umum",
+              code: "IPA-Q-1",
+              type: "multichoice",
+              stem: "Satuan SI gaya adalah?",
+              points: 2,
+              options: [
+                { id: "1", label: "A", text: "Newton", isCorrect: true },
+              ],
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        record_id: 302,
+        message: "pushed",
+      });
+
+    const service = new MoodleSyncService(
+      db as unknown as PrismaClient,
+      callMoodle,
+    );
+    const pulled = await service.syncQuestionsFromMoodle();
+    expect(pulled).toBe(1);
+    expect(db.question.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          moodleQuestionId: 301,
+          subject: "IPA Terpadu",
+        }),
+      }),
+    );
+
+    const pushed = await service.pushQuestionToMoodle({
+      id: "q-local-1",
+      subject: "IPA Terpadu",
+      code: "IPA-Q-2",
+      type: "multichoice",
+      stem: "Rumus kecepatan?",
+      points: 1,
+      options: [{ text: "v = s/t", isCorrect: true }],
+    });
+    expect(pushed.synced).toBe(true);
+    expect(callMoodle).toHaveBeenNthCalledWith(2, "mod_cbt_sync_master", {
+      action: "push_question",
+      payload: JSON.stringify({
+        moodle_question_id: 0,
+        moodle_course_id: 15,
+        subject: "IPA Terpadu",
+        code: "IPA-Q-2",
+        type: "multichoice",
+        stem: "Rumus kecepatan?",
+        points: 1,
+        explanation: "",
+        options: [{ text: "v = s/t", isCorrect: true }],
+      }),
+    });
+  });
 });

@@ -4,26 +4,40 @@ import {
   BookOpen,
   Edit3,
   Eye,
+  EyeOff,
   FileText,
   HelpCircle,
   Plus,
+  RefreshCw,
   Search,
   Trash2,
 } from "lucide-react";
 import { type FC, useEffect, useMemo, useState } from "react";
+import type { UserRole } from "@/libs/enums";
 import type { SubjectDTO } from "@/modules/subjects/domain/dto/SubjectDTO";
 import { useSubjectsApi } from "@/modules/subjects/presentation/useSubjectsApi";
+import { useSyncApi } from "@/modules/sync/presentation/useSyncApi";
 import Badge from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Pagination from "@/shared-ui/component/Pagination";
 import SelectField from "@/shared-ui/component/SelectField";
 import TextField from "@/shared-ui/component/TextField";
+import {
+  showErrorToast,
+  showSuccessToast,
+  showWarningToast,
+} from "@/shared-ui/component/Toast";
 import SubjectCodeBadge from "../atoms/SubjectCodeBadge";
 import CreateSubjectModal from "../molecules/CreateSubjectModal";
 import EditSubjectModal from "../molecules/EditSubjectModal";
 import ViewSubjectModal from "../molecules/ViewSubjectModal";
 
-export const SubjectsGrid: FC = () => {
+export interface SubjectsGridProps {
+  userRole?: UserRole;
+}
+
+export const SubjectsGrid: FC<SubjectsGridProps> = ({ userRole = "ADMIN" }) => {
+  const canManageSubjects = userRole === "ADMIN" || userRole === "TEACHER";
   const {
     subjects,
     isLoading,
@@ -35,13 +49,50 @@ export const SubjectsGrid: FC = () => {
     deleteSubject,
   } = useSubjectsApi();
 
+  const { triggerPull, isLoading: isSyncingCourses } = useSyncApi();
+
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("ALL");
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    "ALL" | "VISIBLE" | "HIDDEN"
+  >("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [createOpen, setCreateOpen] = useState(false);
   const [viewingSubject, setViewingSubject] = useState<SubjectDTO | null>(null);
   const [editingSubject, setEditingSubject] = useState<SubjectDTO | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const handleToggleVisibility = async (subject: SubjectDTO) => {
+    setTogglingId(subject.id);
+    try {
+      await updateSubject(subject.id, { isVisible: !subject.isVisible });
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleSyncCourses = async () => {
+    try {
+      const res = await triggerPull("course");
+      if (res.success) {
+        showSuccessToast(
+          `Sinkronisasi course selesai: ${res.counts.courses} mata pelajaran berhasil disinkronkan dari Moodle.`,
+        );
+      } else {
+        showWarningToast(
+          `Sinkronisasi course selesai dengan peringatan: ${res.errors.join("; ")}`,
+        );
+      }
+      await fetchSubjects();
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error
+          ? err.message
+          : "Gagal menyinkronkan course dari Moodle",
+      );
+    }
+  };
 
   useEffect(() => {
     fetchSubjects();
@@ -68,16 +119,18 @@ export const SubjectsGrid: FC = () => {
         const matchShort = (s.shortName || "").toLowerCase().includes(q);
         if (!matchName && !matchShort) return false;
       }
-      if (gradeFilter !== "ALL") {
-        return s.gradeLevels.includes(gradeFilter);
+      if (gradeFilter !== "ALL" && !s.gradeLevels.includes(gradeFilter)) {
+        return false;
+      }
+      if (visibilityFilter === "VISIBLE" && !s.isVisible) {
+        return false;
+      }
+      if (visibilityFilter === "HIDDEN" && s.isVisible) {
+        return false;
       }
       return true;
     });
-  }, [subjects, search, gradeFilter]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, gradeFilter]);
+  }, [subjects, search, gradeFilter, visibilityFilter]);
 
   const totalPages = Math.max(
     1,
@@ -107,16 +160,41 @@ export const SubjectsGrid: FC = () => {
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="filled"
-          color="primary"
-          size="sm"
-          leftIcon={Plus}
-          onClick={() => setCreateOpen(true)}
-        >
-          Tambah Mata Pelajaran
-        </Button>
+        {canManageSubjects && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              color="teal"
+              size="sm"
+              onClick={() => void handleSyncCourses()}
+              disabled={isSyncingCourses}
+            >
+              <RefreshCw
+                className={
+                  isSyncingCourses
+                    ? "h-3.5 w-3.5 animate-spin shrink-0"
+                    : "h-3.5 w-3.5 shrink-0"
+                }
+              />
+              <span>
+                {isSyncingCourses
+                  ? "Menyinkronkan..."
+                  : "Sinkron Course Moodle"}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant="filled"
+              color="primary"
+              size="sm"
+              leftIcon={Plus}
+              onClick={() => setCreateOpen(true)}
+            >
+              Tambah Mata Pelajaran
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Filter & Search Bar */}
@@ -124,17 +202,37 @@ export const SubjectsGrid: FC = () => {
         <div className="flex-1 max-w-md">
           <TextField
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder="Cari mata pelajaran atau kode singkat..."
             leftIcon={Search}
             size="sm"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <SelectField
+            value={visibilityFilter}
+            onChange={(e) => {
+              setVisibilityFilter(
+                e.target.value as "ALL" | "VISIBLE" | "HIDDEN",
+              );
+              setCurrentPage(1);
+            }}
+            size="sm"
+          >
+            <option value="ALL">Semua Status</option>
+            <option value="VISIBLE">Tampil di Moodle</option>
+            <option value="HIDDEN">Tersembunyi</option>
+          </SelectField>
           <SelectField
             value={gradeFilter}
-            onChange={(e) => setGradeFilter(e.target.value)}
+            onChange={(e) => {
+              setGradeFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             size="sm"
           >
             <option value="ALL">Semua Tingkat Kelas</option>
@@ -169,85 +267,117 @@ export const SubjectsGrid: FC = () => {
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {paginatedSubjects.map((s) => (
-            <div
-              key={s.id}
-              className="flex flex-col justify-between p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:border-[#0097a7]/50 transition-all"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <SubjectCodeBadge name={s.name} shortName={s.shortName} />
-                  {s.moodleCourseId && (
-                    <Badge color="teal" size="sm" variant="soft">
-                      Moodle #{s.moodleCourseId}
-                    </Badge>
+              <div
+                key={s.id}
+                className="flex flex-col justify-between p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:border-[#0097a7]/50 transition-all"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <SubjectCodeBadge name={s.name} shortName={s.shortName} />
+                    <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
+                      <Badge
+                        color={s.isVisible ? "teal" : "gold"}
+                        size="sm"
+                        variant="soft"
+                      >
+                        {s.isVisible ? "Tampil" : "Tersembunyi"}
+                      </Badge>
+                      {s.moodleCourseId && (
+                        <Badge color="neutral" size="sm" variant="soft">
+                          Moodle #{s.moodleCourseId}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                    {s.description || "Tidak ada deskripsi tambahan."}
+                  </p>
+
+                  {s.gradeLevels.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {s.gradeLevels.map((g) => (
+                        <Badge key={g} color="neutral" size="sm">
+                          Kelas {g}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
                 </div>
 
-                <p className="text-xs text-slate-500 mt-2 line-clamp-2">
-                  {s.description || "Tidak ada deskripsi tambahan."}
-                </p>
-
-                {s.gradeLevels.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-3">
-                    {s.gradeLevels.map((g) => (
-                      <Badge key={g} color="neutral" size="sm">
-                        Kelas {g}
-                      </Badge>
-                    ))}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-4 mt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-3 text-xs text-slate-600 font-semibold">
+                    <span className="flex items-center gap-1">
+                      <HelpCircle className="w-3.5 h-3.5 text-[#0097a7]" />
+                      {s.questionCount}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5 text-[#0d2b5c]" />
+                      {s.examCount}
+                    </span>
                   </div>
-                )}
-              </div>
 
-              <div className="flex items-center justify-between gap-2 pt-4 mt-4 border-t border-slate-100">
-                <div className="flex items-center gap-3 text-xs text-slate-600 font-semibold">
-                  <span className="flex items-center gap-1">
-                    <HelpCircle className="w-3.5 h-3.5 text-[#0097a7]" />
-                    {s.questionCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <FileText className="w-3.5 h-3.5 text-[#0d2b5c]" />
-                    {s.examCount}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    color="secondary"
-                    size="sm"
-                    leftIcon={Eye}
-                    onClick={() => setViewingSubject(s)}
-                  >
-                    Lihat
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    color="primary"
-                    size="sm"
-                    leftIcon={Edit3}
-                    onClick={() => setEditingSubject(s)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    color="error"
-                    size="sm"
-                    leftIcon={Trash2}
-                    onClick={() => {
-                      if (confirm(`Hapus mata pelajaran "${s.name}"?`)) {
-                        deleteSubject(s.id);
-                      }
-                    }}
-                    title="Hapus Mata Pelajaran"
-                  />
+                  <div className="flex flex-wrap items-center gap-1">
+                    {canManageSubjects && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        color={s.isVisible ? "secondary" : "teal"}
+                        size="sm"
+                        leftIcon={s.isVisible ? EyeOff : Eye}
+                        onClick={() => void handleToggleVisibility(s)}
+                        loading={togglingId === s.id}
+                        disabled={togglingId === s.id}
+                        title={
+                          s.isVisible
+                            ? "Sembunyikan course di Moodle & CBT"
+                            : "Tampilkan course di Moodle & CBT"
+                        }
+                      >
+                        {s.isVisible ? "Sembunyikan" : "Tampilkan"}
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      color="secondary"
+                      size="sm"
+                      leftIcon={Eye}
+                      onClick={() => setViewingSubject(s)}
+                    >
+                      Lihat
+                    </Button>
+                    {canManageSubjects && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          color="primary"
+                          size="sm"
+                          leftIcon={Edit3}
+                          onClick={() => setEditingSubject(s)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          color="error"
+                          size="sm"
+                          leftIcon={Trash2}
+                          onClick={() => {
+                            if (confirm(`Hapus mata pelajaran "${s.name}"?`)) {
+                              deleteSubject(s.id);
+                            }
+                          }}
+                          title="Hapus Mata Pelajaran"
+                        />
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-2.5 shadow-2xs">
@@ -296,7 +426,7 @@ export const SubjectsGrid: FC = () => {
         subject={viewingSubject}
         onClose={() => setViewingSubject(null)}
         onLoadDetail={fetchSubjectById}
-        onEdit={(sub) => setEditingSubject(sub)}
+        onEdit={canManageSubjects ? (sub) => setEditingSubject(sub) : undefined}
       />
 
       <EditSubjectModal
