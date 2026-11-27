@@ -52,25 +52,36 @@ export class AuthRepository implements AuthRepositoryInterface {
       }
 
       const roleRows = (await this.db.$queryRawUnsafe(
-        "SELECT r.shortname FROM moodle.mdl_role_assignments ra JOIN moodle.mdl_role r ON r.id = ra.roleid WHERE ra.userid = ?",
+        "SELECT r.shortname, ctx.contextlevel FROM moodle.mdl_role_assignments ra JOIN moodle.mdl_role r ON r.id = ra.roleid JOIN moodle.mdl_context ctx ON ctx.id = ra.contextid WHERE ra.userid = ?",
         moodleUserId,
-      )) as Array<{ shortname: string }>;
+      )) as Array<{ shortname: string; contextlevel?: number }>;
 
       let hasTeacher = false;
+      let hasSystemManager = false;
+      let hasOtherManager = false;
       let hasProctor = false;
       for (const rr of roleRows ?? []) {
         const short = (rr.shortname || "").trim().toLowerCase();
-        if (short === "manager") {
-          return "ADMIN";
-        }
+        const ctxLevel = Number(rr.contextlevel ?? 0);
         if (short === "coursecreator" || short === "editingteacher") {
           hasTeacher = true;
-        }
-        if (short === "teacher") {
+        } else if (short === "manager") {
+          if (ctxLevel === 10) {
+            hasSystemManager = true;
+          } else {
+            hasOtherManager = true;
+          }
+        } else if (short === "teacher") {
           hasProctor = true;
         }
       }
       if (hasTeacher) {
+        return "TEACHER";
+      }
+      if (hasSystemManager) {
+        return "ADMIN";
+      }
+      if (hasOtherManager) {
         return "TEACHER";
       }
       if (hasProctor) {

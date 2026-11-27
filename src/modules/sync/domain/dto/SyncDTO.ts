@@ -140,6 +140,7 @@ export interface MoodlePullPayload {
     email?: string;
     password_hash?: string;
     role?: "ADMIN" | "TEACHER" | "PROCTOR" | "STUDENT";
+    moodle_roles?: string;
     class_id?: number;
     class_name?: string;
   }>;

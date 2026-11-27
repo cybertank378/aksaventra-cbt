@@ -332,7 +332,7 @@ export class SyncRepository implements SyncRepositoryInterface {
 
       if (existing) {
         const resolvedRole =
-          existing.role === "ADMIN" || incomingRole === "ADMIN"
+          username === "admin"
             ? "ADMIN"
             : s.role
               ? incomingRole
@@ -692,7 +692,7 @@ export class SyncRepository implements SyncRepositoryInterface {
             firstname,
             lastname,
             password: input.password || "",
-            ...(normalizedRole !== "STUDENT"
+            ...(input.role
               ? { role: normalizedRole, moodle_roles: moodleRoles }
               : {}),
             class_id: moodleClassId,

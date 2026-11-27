@@ -69,11 +69,11 @@ export class UsersRepository implements UsersRepositoryInterface {
   public async listUsers(
     query: ListUsersQuery,
   ): Promise<{ users: UserEntity[]; total: number }> {
-    const { role, roomCode, search, page = 1, limit = 20 } = query;
+    const { role, excludeRole, roomCode, search, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
     const whereClause: {
-      role?: UserRole;
+      role?: UserRole | { not: UserRole };
       roomCode?: string;
       OR?: Array<{
         username?: { contains: string };
@@ -81,7 +81,11 @@ export class UsersRepository implements UsersRepositoryInterface {
       }>;
     } = {};
 
-    if (role) whereClause.role = role;
+    if (role) {
+      whereClause.role = role;
+    } else if (excludeRole) {
+      whereClause.role = { not: excludeRole };
+    }
     if (roomCode) whereClause.roomCode = roomCode;
     if (search && search.trim() !== "") {
       whereClause.OR = [

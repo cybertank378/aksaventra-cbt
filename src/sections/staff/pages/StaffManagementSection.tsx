@@ -40,7 +40,7 @@ const ROLE_META: Record<
   ADMIN: {
     label: "Admin",
     color: "primary",
-    moodleMapping: "Manager / Site Admin",
+    moodleMapping: "Site Admin / System Manager",
   },
   TEACHER: {
     label: "Guru (Teacher)",
@@ -81,7 +81,9 @@ export const StaffManagementSection: FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const loadStaff = useCallback(async () => {
-    await fetchUsers({ limit: 500 }).catch(() => undefined);
+    await fetchUsers({ excludeRole: "STUDENT", limit: 500 }).catch(
+      () => undefined,
+    );
   }, [fetchUsers]);
 
   useEffect(() => {
@@ -268,7 +270,7 @@ export const StaffManagementSection: FC = () => {
             Pemetaan Peran Moodle:
           </span>
           <Badge color="primary" variant="soft" size="sm">
-            Admin = Manager / Site Admin
+            Admin = Site Admin / System Manager
           </Badge>
           <Badge color="teal" variant="soft" size="sm">
             Guru (Teacher) = Teacher + Course creator

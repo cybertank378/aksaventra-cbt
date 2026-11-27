@@ -15,6 +15,7 @@ export interface UserResponseDTO {
 
 export interface ListUsersQuery {
   role?: UserRole;
+  excludeRole?: UserRole;
   roomCode?: string;
   search?: string;
   page?: number;
