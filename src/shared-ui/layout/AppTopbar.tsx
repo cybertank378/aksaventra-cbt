@@ -105,6 +105,13 @@ function resolveCbtHeader(pathname: string): {
         "Pengelolaan daftar mata pelajaran, kelompok tingkat kelas, dan sinkronisasi Moodle",
     };
   }
+  if (pathname.includes("/staff")) {
+    return {
+      title: "Manajemen Pengawas & Guru",
+      subtitle:
+        "Kelola akun proktor ruang ujian (1 proktor = 1 ruang) dan guru (Teacher & Course Creator)",
+    };
+  }
   if (pathname.includes("/students")) {
     return {
       title: "Daftar Peserta Didik (Siswa)",

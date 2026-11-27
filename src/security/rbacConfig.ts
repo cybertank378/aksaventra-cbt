@@ -168,8 +168,11 @@ export function isRouteAuthorized(
   if (pathname.startsWith("/dashboard")) {
     if (normalizedRole === "ADMIN") return true;
     if (normalizedRole === "TEACHER") {
-      // Teachers can access courses, exams, results, proctor
-      return !pathname.startsWith("/dashboard/admin/settings");
+      // Teachers can access courses, exams, results, proctor (not admin settings or staff management)
+      return (
+        !pathname.startsWith("/dashboard/admin/settings") &&
+        !pathname.startsWith("/dashboard/staff")
+      );
     }
     if (normalizedRole === "PROCTOR") {
       return (
