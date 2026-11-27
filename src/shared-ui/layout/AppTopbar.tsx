@@ -192,7 +192,7 @@ const AppTopbar: FC<AppTopbarProps> = ({
       if (res.success) {
         const { courses, classes, students, exams, questions } = res.counts;
         showSuccessToast(
-          `Sinkronisasi selesai: ${courses} mapel, ${classes} kelas, ${students} siswa, ${exams} ujian, ${questions} soal.`,
+          `Sinkronisasi selesai: ${courses} course/mapel, ${classes} kelas, ${students} siswa, ${exams} ujian, ${questions} soal.`,
         );
       } else {
         showWarningToast(
@@ -304,7 +304,7 @@ const AppTopbar: FC<AppTopbarProps> = ({
             size="sm"
             onClick={handleFullSync}
             disabled={isSyncing}
-            title="Sinkronkan seluruh data (Mapel, Kelas, Siswa, Soal, Ujian) dengan Moodle"
+            title="Sinkronkan seluruh data (Course/Mapel, Kelas, Siswa, Soal, Ujian) dengan Moodle"
             aria-label="Sinkronkan seluruh data dengan Moodle"
             className="h-9 gap-1.5 rounded-xl px-2.5 text-xs font-semibold sm:px-3"
           >

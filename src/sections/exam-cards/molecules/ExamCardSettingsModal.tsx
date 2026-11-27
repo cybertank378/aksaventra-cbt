@@ -49,11 +49,41 @@ export const ExamCardSettingsModal: FC<Props> = ({
           settings.schedule && settings.schedule.length > 0
             ? settings.schedule
             : [
-                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
-                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
-                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
-                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
-                { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+                {
+                  dayDate: "",
+                  subjects: [
+                    { name: "", time: "" },
+                    { name: "", time: "" },
+                  ],
+                },
+                {
+                  dayDate: "",
+                  subjects: [
+                    { name: "", time: "" },
+                    { name: "", time: "" },
+                  ],
+                },
+                {
+                  dayDate: "",
+                  subjects: [
+                    { name: "", time: "" },
+                    { name: "", time: "" },
+                  ],
+                },
+                {
+                  dayDate: "",
+                  subjects: [
+                    { name: "", time: "" },
+                    { name: "", time: "" },
+                  ],
+                },
+                {
+                  dayDate: "",
+                  subjects: [
+                    { name: "", time: "" },
+                    { name: "", time: "" },
+                  ],
+                },
               ],
       });
     }
@@ -140,7 +170,12 @@ export const ExamCardSettingsModal: FC<Props> = ({
       }
 
       const row = { ...currentList[index] };
-      const subjects = [...(row.subjects || [{ name: "", time: "" }, { name: "", time: "" }])];
+      const subjects = [
+        ...(row.subjects || [
+          { name: "", time: "" },
+          { name: "", time: "" },
+        ]),
+      ];
 
       if (field === "dayDate") {
         row.dayDate = value;
@@ -186,11 +221,41 @@ export const ExamCardSettingsModal: FC<Props> = ({
 
   const handleClearSchedule = () => {
     const blankSchedule: ExamScheduleItem[] = [
-      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
-      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
-      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
-      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
-      { dayDate: "", subjects: [{ name: "", time: "" }, { name: "", time: "" }] },
+      {
+        dayDate: "",
+        subjects: [
+          { name: "", time: "" },
+          { name: "", time: "" },
+        ],
+      },
+      {
+        dayDate: "",
+        subjects: [
+          { name: "", time: "" },
+          { name: "", time: "" },
+        ],
+      },
+      {
+        dayDate: "",
+        subjects: [
+          { name: "", time: "" },
+          { name: "", time: "" },
+        ],
+      },
+      {
+        dayDate: "",
+        subjects: [
+          { name: "", time: "" },
+          { name: "", time: "" },
+        ],
+      },
+      {
+        dayDate: "",
+        subjects: [
+          { name: "", time: "" },
+          { name: "", time: "" },
+        ],
+      },
     ];
     handleChange("schedule", blankSchedule);
     showSuccessToast("Data jadwal mapel dan waktu berhasil dikosongkan.");
@@ -227,10 +292,10 @@ export const ExamCardSettingsModal: FC<Props> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Logo Instansi */}
           <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5">
-            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
+            <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
               <Building2 className="w-4 h-4 text-[#0097a7]" />
               Logo Instansi / Sekolah
-            </label>
+            </p>
             <div className="flex items-center gap-3">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white overflow-hidden p-1 shadow-xs">
                 {formData.logoUrl ? (
@@ -266,13 +331,16 @@ export const ExamCardSettingsModal: FC<Props> = ({
                 </label>
                 {formData.logoUrl && (
                   <div>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      color="danger"
+                      size="xs"
+                      leftIcon={Trash2}
                       onClick={() => handleChange("logoUrl", undefined)}
-                      className="text-[11px] font-medium text-rose-600 hover:underline flex items-center gap-1"
                     >
-                      <Trash2 className="w-3 h-3" /> Hapus Logo
-                    </button>
+                      Hapus Logo
+                    </Button>
                   </div>
                 )}
               </div>
@@ -281,10 +349,10 @@ export const ExamCardSettingsModal: FC<Props> = ({
 
           {/* Stempel / Cap Instansi */}
           <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5">
-            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
+            <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
               <Stamp className="w-4 h-4 text-indigo-600" />
               Stempel / Cap Resmi (Opsional)
-            </label>
+            </p>
             <div className="flex items-center gap-3">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white overflow-hidden p-1 shadow-xs">
                 {formData.stampUrl ? (
@@ -320,16 +388,19 @@ export const ExamCardSettingsModal: FC<Props> = ({
                 </label>
                 {formData.stampUrl && (
                   <div>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      color="danger"
+                      size="xs"
+                      leftIcon={Trash2}
                       onClick={() => {
                         handleChange("stampUrl", undefined);
                         handleChange("showStamp", false);
                       }}
-                      className="text-[11px] font-medium text-rose-600 hover:underline flex items-center gap-1"
                     >
-                      <Trash2 className="w-3 h-3" /> Hapus Cap
-                    </button>
+                      Hapus Cap
+                    </Button>
                   </div>
                 )}
               </div>
@@ -467,7 +538,8 @@ export const ExamCardSettingsModal: FC<Props> = ({
                 4. Jadwal Mata Pelajaran & Waktu Ujian
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Isi jadwal di bawah ini sesuai jadwal sekolah. Jika dikosongkan, tabel jadwal pada kartu ujian akan dicetak dengan sel kosong.
+                Isi jadwal di bawah ini sesuai jadwal sekolah. Jika dikosongkan,
+                tabel jadwal pada kartu ujian akan dicetak dengan sel kosong.
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -497,7 +569,7 @@ export const ExamCardSettingsModal: FC<Props> = ({
           <div className="space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
             {(formData.schedule || []).map((item, idx) => (
               <div
-                key={idx}
+                key={`schedule-day-${idx + 1}-${item.dayDate || "empty"}`}
                 className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 text-xs shadow-xs"
               >
                 <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
@@ -505,13 +577,16 @@ export const ExamCardSettingsModal: FC<Props> = ({
                     Hari ke-{idx + 1}
                   </span>
                   {(formData.schedule || []).length > 1 && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      color="danger"
+                      size="xs"
+                      leftIcon={Trash2}
                       onClick={() => handleRemoveScheduleRow(idx)}
-                      className="text-[11px] text-rose-600 hover:underline flex items-center gap-1"
                     >
-                      <Trash2 className="w-3 h-3" /> Hapus Hari
-                    </button>
+                      Hapus Hari
+                    </Button>
                   )}
                 </div>
 
@@ -578,11 +653,16 @@ export const ExamCardSettingsModal: FC<Props> = ({
               label="Format Cetak per Lembar A4"
               value={formData.cardsPerPage}
               onChange={(e) =>
-                handleChange("cardsPerPage", Number(e.target.value) as 2 | 4 | 6)
+                handleChange(
+                  "cardsPerPage",
+                  Number(e.target.value) as 2 | 4 | 6,
+                )
               }
               size="sm"
             >
-              <option value={6}>6 Kartu per Halaman (2 Kolom x 3 Baris - Standar Rapi)</option>
+              <option value={6}>
+                6 Kartu per Halaman (2 Kolom x 3 Baris - Standar Rapi)
+              </option>
               <option value={4}>4 Kartu per Halaman (2 Kolom x 2 Baris)</option>
               <option value={2}>2 Kartu per Halaman (Atas-Bawah)</option>
             </SelectField>

@@ -3,7 +3,6 @@
 import {
   Activity,
   ArrowRight,
-  BookOpen,
   Building2,
   Clock,
   Plus,
@@ -56,6 +55,14 @@ export const AdminDashboard: FC = () => {
     fetchExamsList();
     fetchClasses();
     fetchStudents();
+
+    const handleSynced = () => {
+      fetchExamsList();
+      fetchClasses();
+      fetchStudents();
+    };
+    window.addEventListener("aksaventra:synced", handleSynced);
+    return () => window.removeEventListener("aksaventra:synced", handleSynced);
   }, [fetchExamsList, fetchClasses, fetchStudents]);
 
   const studentCount = students.length;

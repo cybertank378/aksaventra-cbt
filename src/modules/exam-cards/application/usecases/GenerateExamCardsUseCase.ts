@@ -44,11 +44,15 @@ export class GenerateExamCardsUseCase {
       );
       const hash = `${s.username}-${s.id.slice(0, 4)}`.toUpperCase();
 
+      const resolvedClassName =
+        s.classGroup?.name || s.className || "Kelas Reguler";
+
       return {
         studentId: s.id,
+        username: s.username,
         nisn: s.username,
         fullName: s.fullName,
-        className: s.classGroup?.name || s.className || "Kelas Reguler",
+        className: resolvedClassName,
         roomCode,
         seatNumber: seatNumber || fallbackSeat,
         examTitle,

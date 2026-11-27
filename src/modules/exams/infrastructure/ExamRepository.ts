@@ -261,35 +261,55 @@ export class ExamRepository implements ExamRepositoryInterface {
   public async listForStudent(
     userId: string,
   ): Promise<StudentAvailableExamDTO[]> {
-    const exams = await this.db.exam.findMany({
-      orderBy: [{ timeOpen: "desc" }, { createdAt: "desc" }],
-      select: {
-        id: true,
-        moodleCbtId: true,
-        title: true,
-        courseName: true,
-        durationSeconds: true,
-        maxStrikes: true,
-        sebRequired: true,
-        questionsJson: true,
-        timeOpen: true,
-        timeClose: true,
-        attempts: {
-          where: { userId },
-          take: 1,
-          select: {
-            id: true,
-            status: true,
-            finalScore: true,
-            startedAt: true,
-            finishedAt: true,
+    const [exams, hiddenSubjects] = await Promise.all([
+      this.db.exam.findMany({
+        orderBy: [{ timeOpen: "desc" }, { createdAt: "desc" }],
+        select: {
+          id: true,
+          moodleCbtId: true,
+          title: true,
+          courseName: true,
+          durationSeconds: true,
+          maxStrikes: true,
+          sebRequired: true,
+          questionsJson: true,
+          timeOpen: true,
+          timeClose: true,
+          attempts: {
+            where: { userId },
+            take: 1,
+            select: {
+              id: true,
+              status: true,
+              finalScore: true,
+              startedAt: true,
+              finishedAt: true,
+            },
           },
         },
-      },
+      }),
+      typeof this.db.subject?.findMany === "function"
+        ? this.db.subject
+            .findMany({
+              where: { isVisible: false },
+              select: { name: true },
+            })
+            .catch(() => [])
+        : Promise.resolve([]),
+    ]);
+
+    const hiddenCourseNames = new Set(
+      hiddenSubjects.map((s) => s.name.trim().toLowerCase()),
+    );
+
+    const visibleExams = exams.filter((exam) => {
+      const hasAttempt = exam.attempts.length > 0;
+      if (hasAttempt) return true;
+      return !hiddenCourseNames.has(exam.courseName.trim().toLowerCase());
     });
 
     const now = Date.now();
-    return exams.map((exam) => {
+    return visibleExams.map((exam) => {
       const openTime = exam.timeOpen.getTime();
       const closeTime = exam.timeClose.getTime();
       const availabilityStatus: "OPEN" | "UPCOMING" | "CLOSED" =

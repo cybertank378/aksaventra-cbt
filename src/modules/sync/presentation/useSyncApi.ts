@@ -3,6 +3,7 @@ import { apiRequest } from "@/shared/api/apiRequest";
 import { unwrapApiResponse } from "@/shared/api/unwrapApiResponse";
 import type {
   OutboundSyncResult,
+  PushableSyncEntity,
   SyncEntityType,
   SyncResult,
   SyncWorkerStatus,
@@ -50,7 +51,7 @@ export function useSyncApi() {
   };
 
   const pushEntity = async (
-    entity: "class" | "student" | "subject" | "exam" | "question",
+    entity: PushableSyncEntity,
     id: string,
   ): Promise<OutboundSyncResult> => {
     setIsLoading(true);

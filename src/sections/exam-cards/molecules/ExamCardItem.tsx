@@ -18,6 +18,8 @@ export const ExamCardItem: FC<Props> = ({
 }) => {
   // Participant number: seatNumber or NISN
   const participantNo = card.seatNumber || (card.nisn ? `P${card.nisn}` : "-");
+  const username = card.username || card.nisn || "-";
+  const displayName = card.fullName;
 
   // Password / Token: clean short verification code
   const password =
@@ -34,20 +36,32 @@ export const ExamCardItem: FC<Props> = ({
           <div className="space-y-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
               {settings.cardHeaderTitle || "KARTU PESERTA"}
-              {settings.academicYear ? ` • TAHUN PELAJARAN ${settings.academicYear}` : ""}
+              {settings.academicYear
+                ? ` • TAHUN PELAJARAN ${settings.academicYear}`
+                : ""}
             </span>
             <h3 className="text-sm sm:text-base font-bold uppercase tracking-wide">
-              {settings.examTitle || card.examTitle || "ASESMEN SUMATIF AKHIR TAHUN"}
+              {settings.examTitle ||
+                card.examTitle ||
+                "ASESMEN SUMATIF AKHIR TAHUN"}
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs bg-slate-50/70 p-3 rounded-xl border border-slate-200">
             <div>
               <span className="text-[10px] text-slate-500 uppercase block font-sans">
                 No. Peserta
               </span>
               <span className="font-bold font-serif text-sm text-slate-900">
                 {participantNo}
+              </span>
+            </div>
+            <div>
+              <span className="text-[10px] text-slate-500 uppercase block font-sans">
+                Username
+              </span>
+              <span className="font-semibold font-mono text-sm text-slate-800 truncate block max-w-[140px]">
+                {username}
               </span>
             </div>
             <div>
@@ -62,15 +76,21 @@ export const ExamCardItem: FC<Props> = ({
               <span className="text-[10px] text-slate-500 uppercase block font-sans">
                 Nama Siswa
               </span>
-              <span className="font-bold uppercase font-serif text-slate-900 truncate block max-w-[160px]" title={card.fullName}>
-                {card.fullName}
+              <span
+                className="font-bold uppercase font-serif text-slate-900 truncate block max-w-[160px]"
+                title={displayName}
+              >
+                {displayName}
               </span>
             </div>
             <div>
               <span className="text-[10px] text-slate-500 uppercase block font-sans">
                 Kelas / Ruang
               </span>
-              <span className="font-medium font-serif text-slate-800 truncate block max-w-[140px]" title={`${card.className} / ${card.roomCode}`}>
+              <span
+                className="font-medium font-serif text-slate-800 truncate block max-w-[140px]"
+                title={`${card.className} / ${card.roomCode}`}
+              >
                 {card.className} / {card.roomCode}
               </span>
             </div>
@@ -89,7 +109,9 @@ export const ExamCardItem: FC<Props> = ({
           {settings.cardHeaderTitle || "KARTU PESERTA"}
         </h2>
         <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wide">
-          {settings.examTitle || card.examTitle || "ASESMEN SUMATIF AKHIR TAHUN"}
+          {settings.examTitle ||
+            card.examTitle ||
+            "ASESMEN SUMATIF AKHIR TAHUN"}
         </h3>
         {settings.academicYear && (
           <p className="text-[11px] sm:text-xs font-bold uppercase tracking-wide">
@@ -107,6 +129,12 @@ export const ExamCardItem: FC<Props> = ({
         </div>
 
         <div className="grid grid-cols-[105px_12px_1fr] items-baseline">
+          <span className="font-normal text-slate-800">Username</span>
+          <span>:</span>
+          <span className="font-semibold font-mono truncate">{username}</span>
+        </div>
+
+        <div className="grid grid-cols-[105px_12px_1fr] items-baseline">
           <span className="font-normal text-slate-800">Password</span>
           <span>:</span>
           <span className="font-medium font-mono">{password}</span>
@@ -115,15 +143,18 @@ export const ExamCardItem: FC<Props> = ({
         <div className="grid grid-cols-[105px_12px_1fr] items-baseline">
           <span className="font-normal text-slate-800">Nama Siswa</span>
           <span>:</span>
-          <span className="font-bold uppercase truncate" title={card.fullName}>
-            {card.fullName}
+          <span className="font-bold uppercase truncate" title={displayName}>
+            {displayName}
           </span>
         </div>
 
         <div className="grid grid-cols-[105px_12px_1fr] items-baseline">
           <span className="font-normal text-slate-800">Kelas / Ruang</span>
           <span>:</span>
-          <span className="font-medium truncate" title={`${card.className} / ${card.roomCode}`}>
+          <span
+            className="font-medium truncate"
+            title={`${card.className} / ${card.roomCode}`}
+          >
             {card.className} / {card.roomCode}
           </span>
         </div>

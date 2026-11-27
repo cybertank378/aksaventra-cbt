@@ -25,6 +25,7 @@ export const EditSubjectModal: FC<EditSubjectModalProps> = ({
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
   const [description, setDescription] = useState("");
+  const [isVisible, setIsVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,7 @@ export const EditSubjectModal: FC<EditSubjectModalProps> = ({
       setName(subject.name);
       setShortName(subject.shortName || "");
       setDescription(subject.description || "");
+      setIsVisible(subject.isVisible ?? true);
       setError(null);
     }
   }, [subject]);
@@ -53,6 +55,7 @@ export const EditSubjectModal: FC<EditSubjectModalProps> = ({
         name: name.trim(),
         shortName: shortName.trim() || null,
         description: description.trim() || null,
+        isVisible,
       });
       if (ok) {
         onClose();
@@ -90,6 +93,16 @@ export const EditSubjectModal: FC<EditSubjectModalProps> = ({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+
+        <label className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs font-medium text-slate-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isVisible}
+            onChange={(e) => setIsVisible(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-[#0097a7] focus:ring-[#0097a7]"
+          />
+          <span>Tampilkan course di Moodle (Visible)</span>
+        </label>
 
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
           <Button type="button" variant="outline" size="sm" onClick={onClose}>

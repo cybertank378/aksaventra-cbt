@@ -20,6 +20,7 @@ export const CreateSubjectModal: FC<CreateSubjectModalProps> = ({
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
   const [description, setDescription] = useState("");
+  const [isVisible, setIsVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,11 +38,13 @@ export const CreateSubjectModal: FC<CreateSubjectModalProps> = ({
         name: name.trim(),
         shortName: shortName.trim() || undefined,
         description: description.trim() || undefined,
+        isVisible,
       });
       if (ok) {
         setName("");
         setShortName("");
         setDescription("");
+        setIsVisible(true);
         onClose();
       }
     } finally {
@@ -84,6 +87,16 @@ export const CreateSubjectModal: FC<CreateSubjectModalProps> = ({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Ringkasan silabus atau keterangan mapel..."
         />
+
+        <label className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs font-medium text-slate-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isVisible}
+            onChange={(e) => setIsVisible(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-[#0097a7] focus:ring-[#0097a7]"
+          />
+          <span>Tampilkan course di Moodle (Visible)</span>
+        </label>
 
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
           <Button type="button" variant="outline" size="sm" onClick={onClose}>

@@ -3,6 +3,7 @@ import type { AppError } from "@/core/errors/AppError";
 import type {
   MoodleWebhookPayload,
   OutboundSyncResult,
+  PushableSyncEntity,
   PushEntityInput,
   SyncResult,
   SyncWorkerStatus,
@@ -57,7 +58,7 @@ export class SyncService {
   }
 
   public async pushEntityById(
-    entity: "class" | "student" | "subject" | "exam" | "question",
+    entity: PushableSyncEntity,
     id: string,
   ): Promise<Result<OutboundSyncResult, AppError>> {
     return await this.pushEntityUseCase.pushById(entity, id);

@@ -9,11 +9,11 @@ export interface SubjectsSectionProps {
 }
 
 export const SubjectsSection: FC<SubjectsSectionProps> = ({
-  userRole: _userRole,
+  userRole = "ADMIN",
 }) => {
   return (
     <main className="w-full">
-      <SubjectsGrid />
+      <SubjectsGrid userRole={userRole} />
     </main>
   );
 };

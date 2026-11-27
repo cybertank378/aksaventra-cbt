@@ -120,7 +120,7 @@ export const ViolationMonitorList: FC<ViolationMonitorListProps> = ({
             <TableRow>
               <TableHeaderCell className="px-4 py-3">No. Meja</TableHeaderCell>
               <TableHeaderCell className="px-4 py-3">
-                Nomor Ujian
+                Username / No. Ujian
               </TableHeaderCell>
               <TableHeaderCell className="px-4 py-3">
                 Nama Peserta Ujian

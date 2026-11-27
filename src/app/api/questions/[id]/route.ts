@@ -9,14 +9,6 @@ export async function GET(
   return await questionsController.getQuestionById(id);
 }
 
-export async function PUT(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-): Promise<Response> {
-  const { id } = await context.params;
-  return await questionsController.updateQuestion(id, request);
-}
-
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },

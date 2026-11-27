@@ -153,4 +153,30 @@ describe("SyncController & Clean Architecture Sync UseCases", () => {
     expect(repo.pushPendingLocalToMoodle).toHaveBeenCalledTimes(1);
     expect(repo.pullFromMoodle).toHaveBeenCalledWith("pull_all");
   });
+
+  it("POST /api/sync accepts entity=course for push and isolates section failures during pull_all", async () => {
+    const repo = createMockRepo();
+    repo.upsertExams = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Exam table unavailable"));
+    const controller = createControllerWithRepo(repo);
+
+    const pushCourseReq = new NextRequest("http://localhost/api/sync", {
+      method: "POST",
+      body: JSON.stringify({ mode: "push", entity: "course", id: "sub-1" }),
+    });
+    const pushCourseRes = await controller.manageSync(pushCourseReq);
+    expect(pushCourseRes.status).toBe(200);
+    expect(repo.findLocalEntityForPush).toHaveBeenCalledWith("course", "sub-1");
+
+    const pullAllReq = new NextRequest("http://localhost/api/sync", {
+      method: "POST",
+      body: JSON.stringify({ mode: "pull", entity: "all" }),
+    });
+    const pullAllRes = await controller.manageSync(pullAllReq);
+    const pullAllJson = await pullAllRes.json();
+    expect(pullAllRes.status).toBe(207);
+    expect(pullAllJson.data.counts.courses).toBe(1);
+    expect(pullAllJson.data.errors).toContain("exams: Exam table unavailable");
+  });
 });

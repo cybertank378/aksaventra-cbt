@@ -37,7 +37,8 @@ export const LiveAlertBanner: FC<LiveAlertBannerProps> = ({
             Peringatan Kecurangan Terdeteksi (Auto-Locked)
           </p>
           <p className="text-xs sm:text-sm font-semibold text-white mt-0.5">
-            Siswa: <strong>{latest.fullName}</strong> (Meja:{" "}
+            Siswa: <strong>{latest.fullName}</strong> (
+            <span className="font-mono">{latest.username}</span>, Meja:{" "}
             <span className="font-mono bg-white/20 px-1 rounded">
               {latest.seatNumber || "M-01"}
             </span>

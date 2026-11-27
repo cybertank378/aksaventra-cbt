@@ -92,11 +92,14 @@ export const ExamCardsGrid: FC = () => {
     setCurrentPage(1);
   };
 
-  const filteredCards = cards.filter(
-    (c) =>
-      c.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      c.nisn.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredCards = cards.filter((c) => {
+    const q = search.toLowerCase();
+    return (
+      c.fullName.toLowerCase().includes(q) ||
+      (c.username || "").toLowerCase().includes(q) ||
+      c.nisn.toLowerCase().includes(q)
+    );
+  });
 
   const totalItems = filteredCards.length;
   const paginatedCards = filteredCards.slice(
@@ -142,31 +145,29 @@ export const ExamCardsGrid: FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center rounded-2xl bg-slate-100 p-1 mr-1">
-            <button
+          <div className="flex items-center gap-1 rounded-2xl bg-slate-100 p-1 mr-1">
+            <Button
               type="button"
+              size="sm"
+              variant={activeSectionTab === "CARDS" ? "filled" : "ghost"}
+              color={activeSectionTab === "CARDS" ? "primary" : "secondary"}
+              leftIcon={CreditCard}
               onClick={() => setActiveSectionTab("CARDS")}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                activeSectionTab === "CARDS"
-                  ? "bg-[#0d2b5c] text-white shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              className="rounded-xl font-bold"
             >
-              <CreditCard className="w-3.5 h-3.5" />
               Kartu Peserta ({filteredCards.length})
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              variant={activeSectionTab === "ROOMS_SEATS" ? "filled" : "ghost"}
+              color={activeSectionTab === "ROOMS_SEATS" ? "teal" : "secondary"}
+              leftIcon={LayoutGrid}
               onClick={() => setActiveSectionTab("ROOMS_SEATS")}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                activeSectionTab === "ROOMS_SEATS"
-                  ? "bg-[#0097a7] text-white shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              className="rounded-xl font-bold"
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
               Ruang &amp; Tata Letak Meja
-            </button>
+            </Button>
           </div>
 
           <Button
@@ -255,34 +256,30 @@ export const ExamCardsGrid: FC = () => {
 
             {/* View Switcher Toggle */}
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
+              <Button
                 type="button"
+                size="xs"
+                variant={viewMode === "grid" ? "filled" : "ghost"}
+                color={viewMode === "grid" ? "primary" : "secondary"}
+                leftIcon={LayoutGrid}
                 onClick={() => setViewMode("grid")}
-                className={clsx(
-                  "p-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer",
-                  viewMode === "grid"
-                    ? "bg-white text-[#0d2b5c] shadow-xs"
-                    : "text-slate-500 hover:text-slate-900",
-                )}
                 title="Grid View (3 Kolom)"
+                className="rounded-lg font-semibold"
               >
-                <LayoutGrid className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs">Grid</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="xs"
+                variant={viewMode === "list" ? "filled" : "ghost"}
+                color={viewMode === "list" ? "primary" : "secondary"}
+                leftIcon={List}
                 onClick={() => setViewMode("list")}
-                className={clsx(
-                  "p-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer",
-                  viewMode === "list"
-                    ? "bg-white text-[#0d2b5c] shadow-xs"
-                    : "text-slate-500 hover:text-slate-900",
-                )}
                 title="List View"
+                className="rounded-lg font-semibold"
               >
-                <List className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs">List</span>
-              </button>
+              </Button>
             </div>
           </div>
 

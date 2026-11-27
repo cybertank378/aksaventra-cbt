@@ -4,6 +4,7 @@ export interface SubjectDTO {
   name: string;
   shortName?: string | null;
   description?: string | null;
+  isVisible: boolean;
   questionCount: number;
   examCount: number;
   gradeLevels: string[];
@@ -31,10 +32,12 @@ export interface CreateSubjectInputDTO {
   name: string;
   shortName?: string;
   description?: string;
+  isVisible?: boolean;
 }
 
 export interface UpdateSubjectInputDTO {
   name?: string;
   shortName?: string | null;
   description?: string | null;
+  isVisible?: boolean;
 }
