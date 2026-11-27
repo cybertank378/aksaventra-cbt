@@ -72,6 +72,7 @@ export const StaffManagementSection: FC = () => {
 
   const [roleFilter, setRoleFilter] = useState<StaffRoleFilter>("ALL");
   const [search, setSearch] = useState("");
+  const [searchEditable, setSearchEditable] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
@@ -81,6 +82,8 @@ export const StaffManagementSection: FC = () => {
   const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [changePassword, setChangePassword] = useState(false);
+  const [passwordEditable, setPasswordEditable] = useState(false);
   const [editingUser, setEditingUser] = useState<UserResponseDTO | null>(null);
   const [formUsername, setFormUsername] = useState("");
   const [formFullName, setFormFullName] = useState("");
@@ -257,6 +260,8 @@ export const StaffManagementSection: FC = () => {
     setFormUsername("");
     setFormFullName("");
     setFormPassword("");
+    setChangePassword(true);
+    setPasswordEditable(false);
     setFormRole(defaultRole);
     setFormRoomCode(defaultRole === "PROCTOR" ? "LAB-01" : "");
     setFormIsActive(true);
@@ -272,6 +277,8 @@ export const StaffManagementSection: FC = () => {
     setFormUsername(u.username);
     setFormFullName(u.fullName);
     setFormPassword("");
+    setChangePassword(false);
+    setPasswordEditable(false);
     setFormRole(role);
     setFormRoomCode(u.roomCode || (role === "PROCTOR" ? "LAB-01" : ""));
     setFormIsActive(u.isActive);
@@ -285,6 +292,10 @@ export const StaffManagementSection: FC = () => {
     }
     if (!editingUser && (!formUsername.trim() || formPassword.length < 6)) {
       showErrorToast("Username wajib diisi dan kata sandi minimal 6 karakter.");
+      return;
+    }
+    if (editingUser && changePassword && formPassword.length < 6) {
+      showErrorToast("Kata sandi baru minimal 6 karakter.");
       return;
     }
     if (formRole === "PROCTOR" && !formRoomCode.trim()) {
@@ -303,7 +314,9 @@ export const StaffManagementSection: FC = () => {
           roomCode:
             formRole === "PROCTOR" ? formRoomCode.trim().toUpperCase() : null,
           isActive: formIsActive,
-          ...(formPassword.trim() ? { password: formPassword } : {}),
+          ...(changePassword && formPassword.trim()
+            ? { password: formPassword }
+            : {}),
         });
         showSuccessToast(`Akun ${formFullName.trim()} berhasil diperbarui.`);
       } else {
@@ -461,6 +474,13 @@ export const StaffManagementSection: FC = () => {
 
         <div className="w-full md:w-72">
           <TextField
+            type="search"
+            name="staff-filter-query"
+            autoComplete="off"
+            spellCheck={false}
+            readOnly={!searchEditable}
+            onFocus={() => setSearchEditable(true)}
+            onBlur={() => setSearchEditable(false)}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -468,6 +488,15 @@ export const StaffManagementSection: FC = () => {
             }}
             placeholder="Cari nama, username, atau ruang..."
             leftIcon={Search}
+            rightIcon={search ? X : undefined}
+            onRightIconClick={
+              search
+                ? () => {
+                    setSearch("");
+                    setCurrentPage(1);
+                  }
+                : undefined
+            }
             size="sm"
           />
         </div>
@@ -725,69 +754,107 @@ export const StaffManagementSection: FC = () => {
         cancelText="Batal"
         submitLoading={isSaving}
       >
-        <div className="flex flex-col gap-4">
-          <TextField
-            id="staff-fullname"
-            label="Nama Lengkap"
-            placeholder="Contoh: Ibu Siti Aminah, S.Pd"
-            value={formFullName}
-            onChange={(e) => setFormFullName(e.target.value)}
-            required
-          />
-
-          <TextField
-            id="staff-username"
-            label="Username Login"
-            placeholder="Contoh: proktor_lab01 atau guru_mtk"
-            value={formUsername}
-            onChange={(e) => setFormUsername(e.target.value)}
-            disabled={Boolean(editingUser)}
-            required
-          />
-
-          <TextField
-            id="staff-password"
-            label={
-              editingUser
-                ? "Kata Sandi Baru (Kosongkan jika tidak diubah)"
-                : "Kata Sandi (Minimal 6 karakter)"
-            }
-            type="password"
-            placeholder="Masukkan kata sandi..."
-            value={formPassword}
-            onChange={(e) => setFormPassword(e.target.value)}
-            enablePasswordToggle
-            required={!editingUser}
-          />
-
-          <SelectField
-            label="Peran (Role)"
-            value={formRole}
-            onChange={(e) => setFormRole(e.target.value as StaffRole)}
+        {modalOpen && (
+          <form
+            autoComplete="off"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSave();
+            }}
+            className="flex flex-col gap-4"
           >
-            <option value="PROCTOR">
-              Pengawas (Proctor) - Moodle Non-editing teacher
-            </option>
-            <option value="TEACHER">
-              Guru (Teacher) - Moodle Teacher + Course creator
-            </option>
-            <option value="ADMIN">
-              Administrator - Moodle Manager / Site Admin
-            </option>
-          </SelectField>
-
-          {formRole === "PROCTOR" && (
             <TextField
-              id="staff-room-code"
-              label="Kode Ruang Ujian Tugas (Wajib untuk Proktor)"
-              placeholder="Contoh: LAB-01"
-              value={formRoomCode}
-              onChange={(e) => setFormRoomCode(e.target.value)}
-              helperText="1 Proktor hanya dapat memantau peserta dan pelanggaran pada ruang ini."
+              id="staff-fullname"
+              name="staff-fullname"
+              autoComplete="off"
+              label="Nama Lengkap"
+              placeholder="Contoh: Ibu Siti Aminah, S.Pd"
+              value={formFullName}
+              onChange={(e) => setFormFullName(e.target.value)}
               required
             />
-          )}
-        </div>
+
+            <TextField
+              id="staff-username"
+              name="staff-account-username"
+              autoComplete="off"
+              label="Username Login"
+              placeholder="Contoh: proktor_lab01 atau guru_mtk"
+              value={formUsername}
+              onChange={(e) => setFormUsername(e.target.value)}
+              disabled={Boolean(editingUser)}
+              required
+            />
+
+            {editingUser && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+                <Checkbox
+                  checked={changePassword}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setChangePassword(checked);
+                    if (!checked) {
+                      setFormPassword("");
+                      setPasswordEditable(false);
+                    }
+                  }}
+                  label="Ubah kata sandi akun ini"
+                />
+              </div>
+            )}
+
+            {(!editingUser || changePassword) && (
+              <TextField
+                id="staff-password"
+                name="staff-new-password"
+                autoComplete="new-password"
+                readOnly={!passwordEditable}
+                onFocus={() => setPasswordEditable(true)}
+                label={
+                  editingUser
+                    ? "Kata Sandi Baru (Minimal 6 karakter)"
+                    : "Kata Sandi (Minimal 6 karakter)"
+                }
+                type="password"
+                placeholder="Masukkan kata sandi..."
+                value={formPassword}
+                onChange={(e) => setFormPassword(e.target.value)}
+                enablePasswordToggle
+                required
+              />
+            )}
+
+            <SelectField
+              label="Peran (Role)"
+              value={formRole}
+              onChange={(e) => setFormRole(e.target.value as StaffRole)}
+            >
+              <option value="PROCTOR">
+                Pengawas (Proctor) - Moodle Non-editing teacher
+              </option>
+              <option value="TEACHER">
+                Guru (Teacher) - Moodle Teacher + Course creator
+              </option>
+              <option value="ADMIN">
+                Administrator - Moodle Manager / Site Admin
+              </option>
+            </SelectField>
+
+            {formRole === "PROCTOR" && (
+              <TextField
+                id="staff-room-code"
+                name="staff-room-code"
+                autoComplete="off"
+                label="Kode Ruang Ujian Tugas (Wajib untuk Proktor)"
+                placeholder="Contoh: LAB-01"
+                value={formRoomCode}
+                onChange={(e) => setFormRoomCode(e.target.value)}
+                helperText="1 Proktor hanya dapat memantau peserta dan pelanggaran pada ruang ini."
+                required
+              />
+            )}
+          </form>
+        )}
       </Modal>
     </div>
   );
