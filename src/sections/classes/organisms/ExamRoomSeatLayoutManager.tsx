@@ -438,9 +438,9 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
         row: slot.row,
         col: slot.col,
         seatNumber: slot.seatNumber,
-        studentName: parsed?.fullname ?? null,
+        studentName: occupant?.fullName ?? null,
         username: occupant?.username ?? null,
-        className: parsed?.lastname || occupant?.className || null,
+        className: occupant?.className || parsed?.lastname || null,
       };
     }),
   });
@@ -507,27 +507,35 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
                     : "border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100"
                 }`}
               >
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  color="secondary"
+                  size="xs"
                   onClick={() => setActiveRoomCode(room.code)}
-                  className="flex items-center gap-2 text-left"
+                  className="flex items-center gap-2 text-left p-0 hover:bg-transparent active:bg-transparent"
                 >
                   <div>
-                    <p className="text-xs font-extrabold">{room.code}</p>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-xs font-extrabold text-inherit">
+                      {room.code}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-normal">
                       {room.rows}×{room.cols} ({count}/{roomCap} meja)
                     </p>
                   </div>
-                </button>
+                </Button>
                 {mergedRooms.length > 1 && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    color="danger"
+                    size="xs"
+                    iconOnly
+                    leftIcon={Trash2}
                     onClick={() => handleDeleteRoom(room.code)}
                     title={`Hapus ruang ${room.code}`}
-                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                    aria-label={`Hapus ruang ${room.code}`}
+                  />
                 )}
               </div>
             );
@@ -628,28 +636,26 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
               Pola Alur Nomor Meja
             </span>
             <div className="grid grid-cols-2 gap-2">
-              <button
+              <Button
                 type="button"
+                size="sm"
+                variant={layoutPattern === "ROW_MAJOR" ? "soft" : "outline"}
+                color={layoutPattern === "ROW_MAJOR" ? "teal" : "secondary"}
                 onClick={() => setLayoutPattern("ROW_MAJOR")}
-                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                  layoutPattern === "ROW_MAJOR"
-                    ? "border-[#0097a7] bg-teal-50 text-[#0d2b5c]"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                }`}
+                className="rounded-xl text-xs font-semibold"
               >
                 Urut Baris (Kiri → Kanan)
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
+                variant={layoutPattern === "ZIGZAG" ? "soft" : "outline"}
+                color={layoutPattern === "ZIGZAG" ? "teal" : "secondary"}
                 onClick={() => setLayoutPattern("ZIGZAG")}
-                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                  layoutPattern === "ZIGZAG"
-                    ? "border-[#0097a7] bg-teal-50 text-[#0d2b5c]"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                }`}
+                className="rounded-xl text-xs font-semibold"
               >
                 Zig-Zag / Ular (Seling)
-              </button>
+              </Button>
             </div>
           </div>
         </Card>
@@ -825,13 +831,15 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
                 : null;
 
               return (
-                <button
+                <Button
                   key={`${slot.row}-${slot.col}-${slot.seatNumber}`}
                   type="button"
+                  variant="ghost"
+                  color="secondary"
                   onClick={() => handleOpenManualDesk(slot.seatNumber)}
-                  className={`group flex flex-col justify-between rounded-2xl border p-3 text-left transition-all min-h-[104px] ${
+                  className={`group flex flex-col items-stretch justify-between rounded-2xl border p-3 text-left transition-all min-h-[104px] font-normal ${
                     student
-                      ? "border-teal-200 bg-teal-50/40 hover:border-[#0097a7] hover:shadow-sm"
+                      ? "border-teal-200 bg-teal-50/40 hover:border-[#0097a7] hover:bg-teal-50/70 hover:shadow-sm"
                       : "border-dashed border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-100/60"
                   }`}
                 >
@@ -850,17 +858,20 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
                     </span>
                   </div>
 
-                  {student && parsed ? (
+                  {student ? (
                     <div className="mt-2 space-y-0.5 min-w-0">
-                      <p className="truncate text-xs font-bold text-slate-900">
-                        {parsed.fullname}
+                      <p
+                        className="truncate text-xs font-bold text-slate-900"
+                        title={student.fullName}
+                      >
+                        {student.fullName}
                       </p>
-                      <p className="truncate font-mono text-[10px] text-slate-500">
+                      <p className="truncate font-mono text-[10px] font-semibold text-slate-600">
                         {student.username}
                       </p>
-                      {parsed.lastname && (
+                      {(student.className || parsed?.lastname) && (
                         <span className="inline-block rounded-md bg-white px-1.5 py-0.5 text-[10px] font-bold text-[#0097a7] border border-teal-200/80">
-                          {parsed.lastname}
+                          {student.className || parsed?.lastname}
                         </span>
                       )}
                     </div>
@@ -869,7 +880,7 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
                       + Tempatkan Siswa
                     </div>
                   )}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -970,12 +981,11 @@ export const ExamRoomSeatLayoutManager: FC<ExamRoomSeatLayoutManagerProps> = ({
             >
               <option value="">-- Pilih Siswa --</option>
               {students.map((s) => {
-                const { fullname, lastname } =
-                  extractStudentFullnameAndLastname(s);
+                const { lastname } = extractStudentFullnameAndLastname(s);
                 return (
                   <option key={s.id} value={s.id}>
-                    {fullname} ({s.username}) - Kelas: {lastname || "-"} [
-                    {s.roomCode || "LAB-01"}
+                    {s.fullName} ({s.username}) - Kelas:{" "}
+                    {s.className || lastname || "-"} [{s.roomCode || "LAB-01"}
                     {s.seatNumber ? ` • ${s.seatNumber}` : ""}]
                   </option>
                 );

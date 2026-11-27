@@ -41,7 +41,8 @@ export const EditSeatModal: FC<EditSeatModalProps> = ({
               {participant.fullName}
             </p>
             <p className="text-[11px] text-slate-500 font-mono">
-              NIS: {participant.username} | Kelas: {participant.className}
+              Username: {participant.username} | Kelas:{" "}
+              {participant.className || "-"}
             </p>
           </div>
 

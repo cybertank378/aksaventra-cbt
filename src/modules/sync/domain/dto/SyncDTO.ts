@@ -48,6 +48,14 @@ export interface TriggerSyncInput {
   entity?: SyncEntityType;
 }
 
+export type PushableSyncEntity =
+  | "class"
+  | "student"
+  | "subject"
+  | "course"
+  | "exam"
+  | "question";
+
 export type PushEntityInput =
   | {
       type: "class";
@@ -67,6 +75,7 @@ export type PushEntityInput =
         username: string;
         fullName: string;
         password?: string;
+        role?: string;
         classGroupId?: string | null;
         isActive?: boolean;
         replaceCohort?: boolean;
@@ -80,6 +89,7 @@ export type PushEntityInput =
         name: string;
         shortName?: string | null;
         description?: string | null;
+        isVisible?: boolean;
       };
     }
   | {
@@ -101,10 +111,13 @@ export type PushEntityInput =
       data: {
         id: string;
         moodleQuestionId?: number | null;
+        moodleCourseId?: number | null;
+        subject?: string | null;
         code: string;
         type: string;
         stem: string;
         points: number;
+        tolerance?: number | null;
         explanation?: string | null;
         options: Array<{ text: string; isCorrect?: boolean }>;
       };
@@ -125,6 +138,8 @@ export interface MoodlePullPayload {
     name: string;
     short_name?: string;
     description?: string;
+    is_visible?: boolean | number;
+    visible?: boolean | number;
   }>;
   classes?: Array<{
     id: number;
@@ -159,6 +174,7 @@ export interface MoodlePullPayload {
   }>;
   questions?: Array<{
     id: number;
+    course_id?: number;
     code?: string;
     name?: string;
     subject?: string;
@@ -166,6 +182,7 @@ export interface MoodlePullPayload {
     type: string;
     stem: string;
     points?: number;
+    tolerance?: number | null;
     explanation?: string;
     options?: Array<{
       id: string;

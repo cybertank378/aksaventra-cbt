@@ -511,7 +511,7 @@ export const StaffManagementSection: FC = () => {
       {/* Bulk Role Update Bar */}
       {selectedIds.size > 0 && (
         <Card className="border-[#0097a7]/30 bg-cyan-50/70 p-4 shadow-xs">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <Badge color="teal" variant="filled" size="sm">
                 {selectedIds.size} akun dipilih
@@ -542,13 +542,22 @@ export const StaffManagementSection: FC = () => {
               </Button>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-end gap-2.5">
-              <div className="w-full sm:w-64">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <label
+                htmlFor="bulk-role-select"
+                className="text-xs font-semibold text-slate-700 whitespace-nowrap"
+              >
+                Ubah Peran Ke:
+              </label>
+
+              <div className="w-full sm:w-72">
                 <SelectField
-                  label="Ubah Peran Massal Ke"
+                  id="bulk-role-select"
+                  size="sm"
                   value={bulkRole}
                   onChange={(e) => setBulkRole(e.target.value as UserRole)}
                   disabled={isBulkSaving}
+                  className="rounded-xl pl-3"
                 >
                   <option value="TEACHER">
                     Guru (Teacher) - Teacher + Course creator
@@ -569,12 +578,13 @@ export const StaffManagementSection: FC = () => {
                 <div className="w-full sm:w-40">
                   <TextField
                     id="bulk-room-code"
-                    label="Kode Ruang"
-                    placeholder="LAB-01"
+                    aria-label="Kode Ruang"
+                    placeholder="Kode ruang (LAB-01)"
                     value={bulkRoomCode}
                     onChange={(e) => setBulkRoomCode(e.target.value)}
                     size="sm"
                     disabled={isBulkSaving}
+                    className="rounded-xl px-3"
                     required
                   />
                 </div>
@@ -589,6 +599,7 @@ export const StaffManagementSection: FC = () => {
                 onClick={() => void handleBulkRoleUpdate()}
                 loading={isBulkSaving}
                 disabled={isBulkSaving}
+                className="h-9 rounded-xl px-4 shrink-0"
               >
                 Terapkan Peran
               </Button>

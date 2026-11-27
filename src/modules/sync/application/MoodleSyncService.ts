@@ -110,6 +110,7 @@ export class MoodleSyncService {
     name: string;
     shortName?: string | null;
     description?: string | null;
+    isVisible?: boolean;
   }): Promise<OutboundSyncResult> {
     const res = await this.pushUseCase.execute({
       type: "subject",
@@ -136,10 +137,13 @@ export class MoodleSyncService {
   public async pushQuestionToMoodle(input: {
     id: string;
     moodleQuestionId?: number | null;
+    moodleCourseId?: number | null;
+    subject?: string | null;
     code: string;
     type: string;
     stem: string;
     points: number;
+    tolerance?: number | null;
     explanation?: string | null;
     options: Array<{ text: string; isCorrect?: boolean }>;
   }): Promise<OutboundSyncResult> {

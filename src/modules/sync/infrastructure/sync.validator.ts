@@ -41,7 +41,14 @@ export const syncManageSchema = z.discriminatedUnion("mode", [
   }),
   z.object({
     mode: z.literal("push"),
-    entity: z.enum(["class", "student", "subject", "exam", "question"]),
+    entity: z.enum([
+      "class",
+      "student",
+      "subject",
+      "course",
+      "exam",
+      "question",
+    ]),
     id: z.string().min(1, "ID entitas wajib diisi"),
   }),
 ]);

@@ -18,7 +18,9 @@ export function useSubjectsApi() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/subjects?detailed=true");
+      const res = await fetch("/api/subjects?detailed=true", {
+        cache: "no-store",
+      });
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setSubjects(json.data);
@@ -35,7 +37,9 @@ export function useSubjectsApi() {
   const fetchSubjectById = useCallback(
     async (id: string): Promise<SubjectDetailDTO | null> => {
       try {
-        const res = await fetch(`/api/subjects/${id}`);
+        const res = await fetch(`/api/subjects/${id}`, {
+          cache: "no-store",
+        });
         const json = await res.json();
         if (json.success && json.data) {
           return json.data as SubjectDetailDTO;
@@ -96,7 +100,18 @@ export function useSubjectsApi() {
         const json = await res.json();
         if (json.success && json.data) {
           setSubjects((prev) => prev.map((s) => (s.id === id ? json.data : s)));
-          showSuccessToast("Mata pelajaran berhasil diperbarui");
+          const isVisibilityOnly =
+            input.isVisible !== undefined &&
+            input.name === undefined &&
+            input.shortName === undefined &&
+            input.description === undefined;
+          showSuccessToast(
+            isVisibilityOnly
+              ? input.isVisible
+                ? "Course ditampilkan di CBT & Moodle"
+                : "Course disembunyikan di CBT & Moodle"
+              : "Mata pelajaran berhasil diperbarui",
+          );
           return json.data as SubjectDTO;
         }
         const msg = json.error?.message || "Gagal memperbarui mata pelajaran";

@@ -3,6 +3,7 @@ import { Result } from "@/core/base/Result";
 import type { AppError } from "@/core/errors/AppError";
 import type {
   OutboundSyncResult,
+  PushableSyncEntity,
   PushEntityInput,
 } from "../../domain/dto/SyncDTO";
 import type { SyncRepositoryInterface } from "../../domain/interfaces/SyncRepositoryInterface";
@@ -40,7 +41,7 @@ export class PushEntityToMoodleUseCase
   }
 
   public async pushById(
-    entity: "class" | "student" | "subject" | "exam" | "question",
+    entity: PushableSyncEntity,
     id: string,
   ): Promise<Result<OutboundSyncResult, AppError>> {
     return Result.ok(

@@ -1,7 +1,7 @@
 import type { ApiResponse } from "@/core/types/ApiResponse";
 
 export interface ApiRequestOptions {
-  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   headers?: Record<string, string>;
   body?: unknown;
   timeoutMs?: number;

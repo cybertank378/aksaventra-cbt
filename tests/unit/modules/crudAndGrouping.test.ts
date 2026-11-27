@@ -79,6 +79,7 @@ describe("CRUD & Class Grouping Across Student, Subject, Question, Exam", () => 
         id: "sub-1",
         name: "Matematika",
         shortName: "MAT",
+        isVisible: true,
         questionCount: 5,
         examCount: 1,
         gradeLevels: ["X", "XII"],
@@ -91,6 +92,7 @@ describe("CRUD & Class Grouping Across Student, Subject, Question, Exam", () => 
         id: "sub-2",
         name: "Fisika",
         shortName: "FIS",
+        isVisible: true,
         questionCount: 0,
         examCount: 0,
         gradeLevels: [],
@@ -101,6 +103,7 @@ describe("CRUD & Class Grouping Across Student, Subject, Question, Exam", () => 
         id: "sub-2",
         name: "Fisika Terapan",
         shortName: "FIS-T",
+        isVisible: false,
         questionCount: 0,
         examCount: 0,
         gradeLevels: [],
@@ -115,9 +118,12 @@ describe("CRUD & Class Grouping Across Student, Subject, Question, Exam", () => 
     expect(
       (await service.create({ name: "Fisika", shortName: "FIS" })).name,
     ).toBe("Fisika");
-    expect(
-      (await service.update("sub-2", { name: "Fisika Terapan" }))?.name,
-    ).toBe("Fisika Terapan");
+    const updatedSub = await service.update("sub-2", {
+      name: "Fisika Terapan",
+      isVisible: false,
+    });
+    expect(updatedSub?.name).toBe("Fisika Terapan");
+    expect(updatedSub?.isVisible).toBe(false);
     expect(await service.delete("sub-2")).toBe(true);
   });
 

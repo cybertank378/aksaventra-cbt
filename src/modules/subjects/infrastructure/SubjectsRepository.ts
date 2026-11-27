@@ -90,6 +90,7 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
         name: s.name,
         shortName: s.shortName,
         description: s.description,
+        isVisible: s.isVisible ?? true,
         questionCount: qCountMap.get(key) ?? 0,
         examCount: eCountMap.get(key) ?? 0,
         gradeLevels: Array.from(gradeMap.get(key) ?? []).sort(),
@@ -144,6 +145,7 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
       name: s.name,
       shortName: s.shortName,
       description: s.description,
+      isVisible: s.isVisible ?? true,
       questionCount: questions.length,
       examCount: exams.length,
       gradeLevels: Array.from(gradeSet).sort(),
@@ -161,34 +163,44 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
 
   async create(data: CreateSubjectInputDTO): Promise<SubjectDTO> {
     const name = data.name.trim();
+    const isVisible = data.isVisible ?? true;
     const subject = await prisma.subject.upsert({
       where: { name },
       create: {
         name,
         shortName: data.shortName?.trim() || null,
         description: data.description?.trim() || null,
+        isVisible,
       },
       update: {
         ...(data.shortName ? { shortName: data.shortName.trim() } : {}),
         ...(data.description ? { description: data.description.trim() } : {}),
+        ...(data.isVisible !== undefined ? { isVisible: data.isVisible } : {}),
       },
     });
 
+    let moodleCourseId = subject.moodleCourseId;
     if (process.env.NODE_ENV !== "test") {
-      void moodleSyncService.pushSubjectToMoodle({
+      const syncRes = await moodleSyncService.pushSubjectToMoodle({
         id: subject.id,
+        moodleCourseId: subject.moodleCourseId,
         name: subject.name,
         shortName: subject.shortName,
         description: subject.description,
+        isVisible: subject.isVisible,
       });
+      if (syncRes.moodleId && syncRes.moodleId > 0) {
+        moodleCourseId = syncRes.moodleId;
+      }
     }
 
     return {
       id: subject.id,
-      moodleCourseId: subject.moodleCourseId,
+      moodleCourseId,
       name: subject.name,
       shortName: subject.shortName,
       description: subject.description,
+      isVisible: subject.isVisible ?? true,
       questionCount: 0,
       examCount: 0,
       gradeLevels: [],
@@ -216,6 +228,9 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
           ...(data.description !== undefined
             ? { description: data.description ? data.description.trim() : null }
             : {}),
+          ...(data.isVisible !== undefined
+            ? { isVisible: data.isVisible }
+            : {}),
         },
       });
 
@@ -236,28 +251,37 @@ export class SubjectsRepository implements SubjectsRepositoryInterface {
         ]);
       }
 
+      let syncedMoodleCourseId = updated.moodleCourseId;
       if (process.env.NODE_ENV !== "test") {
-        void moodleSyncService.pushSubjectToMoodle({
+        const syncRes = await moodleSyncService.pushSubjectToMoodle({
           id: updated.id,
           moodleCourseId: updated.moodleCourseId,
           name: updated.name,
           shortName: updated.shortName,
           description: updated.description,
+          isVisible: updated.isVisible,
         });
+        if (syncRes.moodleId && syncRes.moodleId > 0) {
+          syncedMoodleCourseId = syncRes.moodleId;
+        }
       }
 
       const detail = await this.getById(updated.id);
       if (detail) {
         const { questions: _q, exams: _e, ...dto } = detail;
-        return dto;
+        return {
+          ...dto,
+          moodleCourseId: dto.moodleCourseId ?? syncedMoodleCourseId,
+        };
       }
 
       return {
         id: updated.id,
-        moodleCourseId: updated.moodleCourseId,
+        moodleCourseId: syncedMoodleCourseId,
         name: updated.name,
         shortName: updated.shortName,
         description: updated.description,
+        isVisible: updated.isVisible ?? true,
         questionCount: 0,
         examCount: 0,
         gradeLevels: [],

@@ -70,7 +70,14 @@ export const ViewSubjectModal: FC<ViewSubjectModalProps> = ({
               {subject.description || "Tidak ada deskripsi tambahan."}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              color={subject.isVisible ? "teal" : "gold"}
+              size="sm"
+              variant="soft"
+            >
+              {subject.isVisible ? "Tampil di Moodle" : "Tersembunyi di Moodle"}
+            </Badge>
             <Badge color="teal" size="sm">
               <HelpCircle className="w-3.5 h-3.5 mr-1 inline" />
               {subject.questionCount} Soal

@@ -244,14 +244,15 @@ export async function generateExamCardsPdf(
     }
 
     // 4. DATA SISWA
-    const dataStartY = titleY + (settings.academicYear ? 7.6 : 5.4);
+    const dataStartY = titleY + (settings.academicYear ? 7.2 : 5.2);
     const labelX = x + 3.5;
     const colonX = x + 23;
     const valX = x + 24.5;
-    const lineSpacing = 2.4;
+    const lineSpacing = 2.15;
 
     const participantNo =
       card.seatNumber || (card.nisn ? `P${card.nisn}` : "-");
+    const username = card.username || card.nisn || "-";
     const password =
       card.password ||
       (card.verificationCode?.length > 10
@@ -259,7 +260,7 @@ export async function generateExamCardsPdf(
         : card.verificationCode || "-");
 
     doc.setFont("times", "normal");
-    doc.setFontSize(5.4);
+    doc.setFontSize(5.3);
 
     // Row 1: Nomor Peserta
     doc.text("Nomor Peserta", labelX, dataStartY);
@@ -267,32 +268,39 @@ export async function generateExamCardsPdf(
     doc.setFont("times", "bold");
     doc.text(participantNo, valX, dataStartY);
 
-    // Row 2: Password
+    // Row 2: Username
     doc.setFont("times", "normal");
-    doc.text("Password", labelX, dataStartY + lineSpacing);
+    doc.text("Username", labelX, dataStartY + lineSpacing);
     doc.text(":", colonX, dataStartY + lineSpacing);
-    doc.text(password, valX, dataStartY + lineSpacing);
-
-    // Row 3: Nama Siswa
-    doc.text("Nama Siswa", labelX, dataStartY + lineSpacing * 2);
-    doc.text(":", colonX, dataStartY + lineSpacing * 2);
     doc.setFont("times", "bold");
-    doc.text(card.fullName.toUpperCase(), valX, dataStartY + lineSpacing * 2, {
-      maxWidth: cardWidth - valX - 3,
+    doc.text(username, valX, dataStartY + lineSpacing);
+
+    // Row 3: Password
+    doc.setFont("times", "normal");
+    doc.text("Password", labelX, dataStartY + lineSpacing * 2);
+    doc.text(":", colonX, dataStartY + lineSpacing * 2);
+    doc.text(password, valX, dataStartY + lineSpacing * 2);
+
+    // Row 4: Nama Siswa
+    doc.text("Nama Siswa", labelX, dataStartY + lineSpacing * 3);
+    doc.text(":", colonX, dataStartY + lineSpacing * 3);
+    doc.setFont("times", "bold");
+    doc.text(card.fullName.toUpperCase(), valX, dataStartY + lineSpacing * 3, {
+      maxWidth: cardWidth - (valX - x) - 3,
     });
 
-    // Row 4: Kelas / Ruang
+    // Row 5: Kelas / Ruang
     doc.setFont("times", "normal");
-    doc.text("Kelas / Ruang", labelX, dataStartY + lineSpacing * 3);
-    doc.text(":", colonX, dataStartY + lineSpacing * 3);
+    doc.text("Kelas / Ruang", labelX, dataStartY + lineSpacing * 4);
+    doc.text(":", colonX, dataStartY + lineSpacing * 4);
     doc.text(
       `${card.className} / ${card.roomCode}`,
       valX,
-      dataStartY + lineSpacing * 3,
+      dataStartY + lineSpacing * 4,
     );
 
     // 5. TABEL JADWAL UJIAN
-    const tableTitleY = dataStartY + lineSpacing * 3 + 2.8;
+    const tableTitleY = dataStartY + lineSpacing * 4 + 2.4;
     doc.setFont("times", "bold");
     doc.setFontSize(5.4);
     doc.text(
@@ -344,8 +352,8 @@ export async function generateExamCardsPdf(
 
     // Table Data Rows (5 days, 2 subrows each)
     let currentY = tableTop + headerHeight;
-    const subRowH = 2.3;
-    const rowH = subRowH * 2; // 4.6 mm per day
+    const subRowH = 2.15;
+    const rowH = subRowH * 2; // 4.3 mm per day
 
     for (let r = 0; r < schedule.length; r++) {
       const item = schedule[r];
