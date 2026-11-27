@@ -40,6 +40,7 @@ export function useUsersApi() {
       try {
         const params = new URLSearchParams();
         if (query.role) params.set("role", query.role);
+        if (query.excludeRole) params.set("excludeRole", query.excludeRole);
         if (query.roomCode) params.set("roomCode", query.roomCode);
         if (query.search) params.set("search", query.search);
         if (query.page) params.set("page", String(query.page));
