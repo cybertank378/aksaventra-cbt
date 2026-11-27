@@ -2,7 +2,25 @@ import { prisma as defaultPrisma, type PrismaClient } from "@/libs/prisma";
 import type { UserRole } from "@/security/rbacConfig";
 import type { ListUsersQuery } from "../domain/dto/UserDTO";
 import { UserEntity } from "../domain/entities/UserEntity";
-import type { UsersRepositoryInterface } from "../domain/interfaces/UsersRepositoryInterface";
+import type {
+  BulkUpdateUserRoleRecordData,
+  CreateStaffUserRecordData,
+  UpdateStaffUserRecordData,
+  UsersRepositoryInterface,
+} from "../domain/interfaces/UsersRepositoryInterface";
+
+const USER_PUBLIC_SELECT = {
+  id: true,
+  moodleUserId: true,
+  username: true,
+  fullName: true,
+  role: true,
+  className: true,
+  roomCode: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 export class UsersRepository implements UsersRepositoryInterface {
   constructor(private readonly db: PrismaClient = defaultPrisma) {}
@@ -36,6 +54,7 @@ export class UsersRepository implements UsersRepositoryInterface {
   public async findById(id: string): Promise<UserEntity | null> {
     const user = await this.db.user.findUnique({
       where: { id },
+      select: USER_PUBLIC_SELECT,
     });
     return user ? this.mapToEntity(user) : null;
   }
@@ -43,6 +62,7 @@ export class UsersRepository implements UsersRepositoryInterface {
   public async findByUsername(username: string): Promise<UserEntity | null> {
     const user = await this.db.user.findUnique({
       where: { username },
+      select: USER_PUBLIC_SELECT,
     });
     return user ? this.mapToEntity(user) : null;
   }
@@ -52,6 +72,7 @@ export class UsersRepository implements UsersRepositoryInterface {
   ): Promise<UserEntity | null> {
     const user = await this.db.user.findUnique({
       where: { moodleUserId },
+      select: USER_PUBLIC_SELECT,
     });
     return user ? this.mapToEntity(user) : null;
   }
@@ -59,6 +80,19 @@ export class UsersRepository implements UsersRepositoryInterface {
   public async findByRole(role: UserRole): Promise<UserEntity[]> {
     const users = await this.db.user.findMany({
       where: { role },
+      select: USER_PUBLIC_SELECT,
+      orderBy: { fullName: "asc" },
+    });
+    return users.map((u: Parameters<typeof this.mapToEntity>[0]) =>
+      this.mapToEntity(u),
+    );
+  }
+
+  public async findManyByIds(ids: string[]): Promise<UserEntity[]> {
+    if (ids.length === 0) return [];
+    const users = await this.db.user.findMany({
+      where: { id: { in: ids } },
+      select: USER_PUBLIC_SELECT,
       orderBy: { fullName: "asc" },
     });
     return users.map((u: Parameters<typeof this.mapToEntity>[0]) =>
@@ -97,6 +131,7 @@ export class UsersRepository implements UsersRepositoryInterface {
     const [users, total] = await Promise.all([
       this.db.user.findMany({
         where: whereClause,
+        select: USER_PUBLIC_SELECT,
         skip,
         take: limit,
         orderBy: { fullName: "asc" },
@@ -110,6 +145,63 @@ export class UsersRepository implements UsersRepositoryInterface {
       ),
       total,
     };
+  }
+
+  public async createStaffUser(
+    data: CreateStaffUserRecordData,
+  ): Promise<UserEntity> {
+    const created = await this.db.user.create({
+      data: {
+        username: data.username,
+        fullName: data.fullName,
+        passwordHash: data.passwordHash,
+        role: data.role,
+        roomCode: data.roomCode,
+        isActive: data.isActive,
+      },
+      select: USER_PUBLIC_SELECT,
+    });
+    return this.mapToEntity(created);
+  }
+
+  public async updateStaffUser(
+    id: string,
+    data: UpdateStaffUserRecordData,
+  ): Promise<UserEntity> {
+    const updated = await this.db.user.update({
+      where: { id },
+      data: {
+        ...(data.fullName !== undefined ? { fullName: data.fullName } : {}),
+        ...(data.passwordHash ? { passwordHash: data.passwordHash } : {}),
+        ...(data.role !== undefined ? { role: data.role } : {}),
+        roomCode: data.roomCode,
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+      },
+      select: USER_PUBLIC_SELECT,
+    });
+    return this.mapToEntity(updated);
+  }
+
+  public async deleteById(id: string): Promise<void> {
+    await this.db.user.delete({ where: { id } });
+  }
+
+  public async bulkUpdateRoles(
+    ids: string[],
+    data: BulkUpdateUserRoleRecordData,
+  ): Promise<UserEntity[]> {
+    if (ids.length === 0) return [];
+
+    await this.db.user.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        role: data.role,
+        roomCode: data.roomCode,
+        ...(data.clearClass ? { classGroupId: null, className: null } : {}),
+      },
+    });
+
+    return await this.findManyByIds(ids);
   }
 
   public async save(entity: UserEntity): Promise<UserEntity> {
@@ -132,6 +224,7 @@ export class UsersRepository implements UsersRepositoryInterface {
         roomCode: entity.roomCode,
         isActive: entity.isActive,
       },
+      select: USER_PUBLIC_SELECT,
     });
 
     return this.mapToEntity(saved);
