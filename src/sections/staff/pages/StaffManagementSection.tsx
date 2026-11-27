@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CheckSquare,
   Edit3,
   Plus,
   RefreshCw,
@@ -9,13 +10,16 @@ import {
   Trash2,
   UserCheck,
   UserX,
+  X,
 } from "lucide-react";
 import { type FC, useCallback, useEffect, useMemo, useState } from "react";
 import type { UserResponseDTO } from "@/modules/users/domain/dto/UserDTO";
 import { useUsersApi } from "@/modules/users/presentation/useUsersApi";
+import type { UserRole } from "@/security/rbacConfig";
 import Badge, { type BadgeColor } from "@/shared-ui/component/Badge";
 import Button from "@/shared-ui/component/Button";
 import Card from "@/shared-ui/component/Card";
+import Checkbox from "@/shared-ui/component/Checkbox";
 import Modal from "@/shared-ui/component/Modal";
 import Pagination from "@/shared-ui/component/Pagination";
 import SelectField from "@/shared-ui/component/SelectField";
@@ -63,12 +67,18 @@ export const StaffManagementSection: FC = () => {
     createStaffUser,
     updateStaffUser,
     deleteStaffUser,
+    bulkUpdateUserRoles,
   } = useUsersApi();
 
   const [roleFilter, setRoleFilter] = useState<StaffRoleFilter>("ALL");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkRole, setBulkRole] = useState<UserRole>("TEACHER");
+  const [bulkRoomCode, setBulkRoomCode] = useState("LAB-01");
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserResponseDTO | null>(null);
@@ -81,7 +91,7 @@ export const StaffManagementSection: FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const loadStaff = useCallback(async () => {
-    await fetchUsers({ excludeRole: "STUDENT", limit: 500 }).catch(
+    await fetchUsers({ excludeRole: "STUDENT", limit: 1000 }).catch(
       () => undefined,
     );
   }, [fetchUsers]);
@@ -89,6 +99,31 @@ export const StaffManagementSection: FC = () => {
   useEffect(() => {
     void loadStaff();
   }, [loadStaff]);
+
+  useEffect(() => {
+    const handleSynced = () => {
+      void loadStaff();
+    };
+    window.addEventListener("aksaventra:synced", handleSynced);
+    return () => {
+      window.removeEventListener("aksaventra:synced", handleSynced);
+    };
+  }, [loadStaff]);
+
+  const roleCounts = useMemo(() => {
+    let all = 0;
+    let proctor = 0;
+    let teacher = 0;
+    let admin = 0;
+    for (const u of users) {
+      if (u.role === "STUDENT") continue;
+      all++;
+      if (u.role === "PROCTOR") proctor++;
+      else if (u.role === "TEACHER") teacher++;
+      else if (u.role === "ADMIN") admin++;
+    }
+    return { ALL: all, PROCTOR: proctor, TEACHER: teacher, ADMIN: admin };
+  }, [users]);
 
   const staffUsers = useMemo(() => {
     return users.filter((u) => {
@@ -111,6 +146,111 @@ export const StaffManagementSection: FC = () => {
     const start = (safePage - 1) * itemsPerPage;
     return staffUsers.slice(start, start + itemsPerPage);
   }, [staffUsers, safePage]);
+
+  const selectableFilteredIds = useMemo(
+    () =>
+      staffUsers
+        .filter((u) => u.username.trim().toLowerCase() !== "admin")
+        .map((u) => u.id),
+    [staffUsers],
+  );
+
+  const selectablePageIds = useMemo(
+    () =>
+      paginatedStaff
+        .filter((u) => u.username.trim().toLowerCase() !== "admin")
+        .map((u) => u.id),
+    [paginatedStaff],
+  );
+
+  const allPageSelected =
+    selectablePageIds.length > 0 &&
+    selectablePageIds.every((id) => selectedIds.has(id));
+  const somePageSelected =
+    selectablePageIds.some((id) => selectedIds.has(id)) && !allPageSelected;
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectPage = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        for (const id of selectablePageIds) {
+          next.delete(id);
+        }
+      } else {
+        for (const id of selectablePageIds) {
+          next.add(id);
+        }
+      }
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedIds(new Set(selectableFilteredIds));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkRoleUpdate = async () => {
+    const targetIds = Array.from(selectedIds);
+    if (targetIds.length === 0) return;
+
+    if (bulkRole === "PROCTOR" && !bulkRoomCode.trim()) {
+      showErrorToast(
+        "Kode ruang ujian wajib diisi saat mengubah peran massal menjadi Pengawas (Proctor).",
+      );
+      return;
+    }
+
+    const roleLabels: Record<UserRole, string> = {
+      ADMIN: "Admin",
+      TEACHER: "Guru (Teacher)",
+      PROCTOR: "Pengawas (Proctor)",
+      STUDENT: "Siswa (Student)",
+    };
+
+    setIsBulkSaving(true);
+    try {
+      const res = await bulkUpdateUserRoles({
+        userIds: targetIds,
+        role: bulkRole,
+        roomCode:
+          bulkRole === "PROCTOR" ? bulkRoomCode.trim().toUpperCase() : null,
+      });
+      setSelectedIds(new Set());
+      const skippedNote =
+        res.skippedCount > 0
+          ? ` (${res.skippedCount} akun admin dilindungi dilewati)`
+          : "";
+      showSuccessToast(
+        `${res.updatedCount} akun berhasil diubah ke ${roleLabels[bulkRole]} (sinkron Moodle: ${res.moodleSyncedCount}/${res.updatedCount})${skippedNote}.`,
+      );
+      await loadStaff();
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error
+          ? err.message
+          : "Gagal memperbarui peran akun secara massal.",
+      );
+      await loadStaff();
+    } finally {
+      setIsBulkSaving(false);
+    }
+  };
 
   const openCreateModal = (defaultRole: StaffRole = "PROCTOR") => {
     setEditingUser(null);
@@ -179,10 +319,12 @@ export const StaffManagementSection: FC = () => {
         showSuccessToast(`Akun ${formFullName.trim()} berhasil ditambahkan.`);
       }
       setModalOpen(false);
+      await loadStaff();
     } catch (err) {
       showErrorToast(
         err instanceof Error ? err.message : "Gagal menyimpan data akun.",
       );
+      await loadStaff();
     } finally {
       setIsSaving(false);
     }
@@ -194,6 +336,7 @@ export const StaffManagementSection: FC = () => {
       showSuccessToast(
         `Akun ${u.fullName} kini ${!u.isActive ? "aktif" : "dinonaktifkan"}.`,
       );
+      await loadStaff();
     } catch (err) {
       showErrorToast(
         err instanceof Error ? err.message : "Gagal mengubah status akun.",
@@ -205,7 +348,14 @@ export const StaffManagementSection: FC = () => {
     if (!confirm(`Hapus akun ${u.fullName} (${u.username})?`)) return;
     try {
       await deleteStaffUser(u.id);
+      setSelectedIds((prev) => {
+        if (!prev.has(u.id)) return prev;
+        const next = new Set(prev);
+        next.delete(u.id);
+        return next;
+      });
       showSuccessToast(`Akun ${u.fullName} berhasil dihapus.`);
+      await loadStaff();
     } catch (err) {
       showErrorToast(
         err instanceof Error ? err.message : "Gagal menghapus akun.",
@@ -304,7 +454,7 @@ export const StaffManagementSection: FC = () => {
               }}
               className="rounded-xl"
             >
-              {tab.label}
+              {tab.label} ({roleCounts[tab.id]})
             </Button>
           ))}
         </div>
@@ -329,10 +479,107 @@ export const StaffManagementSection: FC = () => {
         </div>
       )}
 
+      {/* Bulk Role Update Bar */}
+      {selectedIds.size > 0 && (
+        <Card className="border-[#0097a7]/30 bg-cyan-50/70 p-4 shadow-xs">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge color="teal" variant="filled" size="sm">
+                {selectedIds.size} akun dipilih
+              </Badge>
+              {selectableFilteredIds.length > selectedIds.size && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  color="teal"
+                  size="xs"
+                  leftIcon={CheckSquare}
+                  onClick={selectAllFiltered}
+                  disabled={isBulkSaving}
+                >
+                  Pilih semua hasil filter ({selectableFilteredIds.length})
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                color="secondary"
+                size="xs"
+                leftIcon={X}
+                onClick={clearSelection}
+                disabled={isBulkSaving}
+              >
+                Batal pilih
+              </Button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-end gap-2.5">
+              <div className="w-full sm:w-64">
+                <SelectField
+                  label="Ubah Peran Massal Ke"
+                  value={bulkRole}
+                  onChange={(e) => setBulkRole(e.target.value as UserRole)}
+                  disabled={isBulkSaving}
+                >
+                  <option value="TEACHER">
+                    Guru (Teacher) - Teacher + Course creator
+                  </option>
+                  <option value="PROCTOR">
+                    Pengawas (Proctor) - Non-editing teacher
+                  </option>
+                  <option value="ADMIN">
+                    Admin - Site Admin / System Manager
+                  </option>
+                  <option value="STUDENT">
+                    Siswa (Student) - Hapus peran staf
+                  </option>
+                </SelectField>
+              </div>
+
+              {bulkRole === "PROCTOR" && (
+                <div className="w-full sm:w-40">
+                  <TextField
+                    id="bulk-room-code"
+                    label="Kode Ruang"
+                    placeholder="LAB-01"
+                    value={bulkRoomCode}
+                    onChange={(e) => setBulkRoomCode(e.target.value)}
+                    size="sm"
+                    disabled={isBulkSaving}
+                    required
+                  />
+                </div>
+              )}
+
+              <Button
+                type="button"
+                variant="filled"
+                color="primary"
+                size="sm"
+                leftIcon={ShieldCheck}
+                onClick={() => void handleBulkRoleUpdate()}
+                loading={isBulkSaving}
+                disabled={isBulkSaving}
+              >
+                Terapkan Peran
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Staff Table */}
       <Table>
         <TableHead>
           <TableRow>
+            <TableHeaderCell className="w-12">
+              <Checkbox
+                checked={allPageSelected}
+                indeterminate={somePageSelected}
+                onChange={toggleSelectPage}
+                disabled={selectablePageIds.length === 0 || isBulkSaving}
+              />
+            </TableHeaderCell>
             <TableHeaderCell>Nama Lengkap</TableHeaderCell>
             <TableHeaderCell>Username</TableHeaderCell>
             <TableHeaderCell>Peran &amp; Mapping Moodle</TableHeaderCell>
@@ -345,7 +592,7 @@ export const StaffManagementSection: FC = () => {
           {isLoading && paginatedStaff.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={6}
+                colSpan={7}
                 className="py-10 text-center text-xs text-slate-400"
               >
                 Memuat daftar pengawas dan guru...
@@ -354,7 +601,7 @@ export const StaffManagementSection: FC = () => {
           ) : paginatedStaff.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={6}
+                colSpan={7}
                 className="py-10 text-center text-xs text-slate-500"
               >
                 Belum ada data pengawas atau guru yang cocok dengan filter.
@@ -362,13 +609,26 @@ export const StaffManagementSection: FC = () => {
             </TableRow>
           ) : (
             paginatedStaff.map((u) => {
+              const isPrimaryAdmin =
+                u.username.trim().toLowerCase() === "admin";
+              const isSelected = selectedIds.has(u.id);
               const meta = ROLE_META[(u.role as StaffRole) || "PROCTOR"] ?? {
                 label: u.role,
                 color: "neutral" as BadgeColor,
                 moodleMapping: "-",
               };
               return (
-                <TableRow key={u.id}>
+                <TableRow
+                  key={u.id}
+                  className={isSelected ? "bg-cyan-50/50" : undefined}
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={isSelected}
+                      disabled={isPrimaryAdmin || isBulkSaving}
+                      onChange={() => toggleSelectOne(u.id)}
+                    />
+                  </TableCell>
                   <TableCell className="font-bold text-slate-900">
                     {u.fullName}
                   </TableCell>

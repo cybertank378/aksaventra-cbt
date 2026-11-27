@@ -19,10 +19,15 @@ describe("UsersService & UseCases", () => {
     findByUsername: vi.fn(),
     findByMoodleId: vi.fn(),
     findByRole: vi.fn(),
+    findManyByIds: vi.fn().mockResolvedValue([mockTeacher]),
     listUsers: vi.fn().mockResolvedValue({
       users: [mockTeacher],
       total: 1,
     }),
+    createStaffUser: vi.fn().mockResolvedValue(mockTeacher),
+    updateStaffUser: vi.fn().mockResolvedValue(mockTeacher),
+    deleteById: vi.fn().mockResolvedValue(undefined),
+    bulkUpdateRoles: vi.fn().mockResolvedValue([mockTeacher]),
     save: vi.fn(),
     ...overrides,
   });

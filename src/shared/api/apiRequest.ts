@@ -54,6 +54,7 @@ export async function apiRequest<T>(
       method,
       headers: finalHeaders,
       body: payloadBody,
+      cache: method === "GET" ? "no-store" : undefined,
       signal: controller.signal,
     });
 

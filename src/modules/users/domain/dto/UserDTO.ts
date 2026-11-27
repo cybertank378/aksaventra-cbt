@@ -45,3 +45,16 @@ export interface UpdateStaffUserInputDTO {
   roomCode?: string | null;
   isActive?: boolean;
 }
+
+export interface BulkUpdateUserRoleInputDTO {
+  userIds: string[];
+  role: UserRole;
+  roomCode?: string | null;
+}
+
+export interface BulkUpdateUserRoleOutputDTO {
+  updatedCount: number;
+  skippedCount: number;
+  moodleSyncedCount: number;
+  users: UserResponseDTO[];
+}
