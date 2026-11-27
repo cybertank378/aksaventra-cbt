@@ -42,19 +42,22 @@ export class AuthRepository implements AuthRepositoryInterface {
 
     // 2. Check Moodle siteadmins & mdl_role_assignments if Moodle DB is directly queryable
     try {
-      const siteAdmins = (await this.db.$queryRawUnsafe(
-        "SELECT value FROM moodle.mdl_config WHERE name = 'siteadmins' LIMIT 1",
-      )) as Array<{ value: string }>;
+      const siteAdmins = (await this.db.$queryRaw`
+        SELECT value FROM moodle.mdl_config WHERE name = 'siteadmins' LIMIT 1
+      `) as Array<{ value: string }>;
       const adminIds =
         siteAdmins?.[0]?.value?.split(",")?.map((s) => s.trim()) || [];
       if (adminIds.includes(String(moodleUserId))) {
         return "ADMIN";
       }
 
-      const roleRows = (await this.db.$queryRawUnsafe(
-        "SELECT r.shortname, ctx.contextlevel FROM moodle.mdl_role_assignments ra JOIN moodle.mdl_role r ON r.id = ra.roleid JOIN moodle.mdl_context ctx ON ctx.id = ra.contextid WHERE ra.userid = ?",
-        moodleUserId,
-      )) as Array<{ shortname: string; contextlevel?: number }>;
+      const roleRows = (await this.db.$queryRaw`
+        SELECT r.shortname, ctx.contextlevel
+          FROM moodle.mdl_role_assignments ra
+          JOIN moodle.mdl_role r ON r.id = ra.roleid
+          JOIN moodle.mdl_context ctx ON ctx.id = ra.contextid
+         WHERE ra.userid = ${moodleUserId}
+      `) as Array<{ shortname: string; contextlevel?: number }>;
 
       let hasTeacher = false;
       let hasSystemManager = false;
@@ -123,10 +126,13 @@ export class AuthRepository implements AuthRepositoryInterface {
 
     // Fallback: Query Moodle database directly if user not yet synced in local DB
     try {
-      const moodleUsers = (await this.db.$queryRawUnsafe(
-        "SELECT id, username, firstname, lastname, email, password, auth FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
-        trimmed.toLowerCase(),
-      )) as Array<{
+      const lowerUsername = trimmed.toLowerCase();
+      const moodleUsers = (await this.db.$queryRaw`
+        SELECT id, username, firstname, lastname, email, password, auth
+          FROM moodle.mdl_user
+         WHERE username = ${lowerUsername} AND deleted = 0
+         LIMIT 1
+      `) as Array<{
         id: bigint | number;
         username: string;
         firstname: string;
@@ -660,10 +666,12 @@ export class AuthRepository implements AuthRepositoryInterface {
             data?.errorcode === "nowsaccess"
           ) {
             try {
-              const moodleUsers = (await this.db.$queryRawUnsafe(
-                "SELECT id, username, firstname, lastname FROM moodle.mdl_user WHERE username = ? AND deleted = 0 LIMIT 1",
-                username,
-              )) as Array<{
+              const moodleUsers = (await this.db.$queryRaw`
+                SELECT id, username, firstname, lastname
+                  FROM moodle.mdl_user
+                 WHERE username = ${username} AND deleted = 0
+                 LIMIT 1
+              `) as Array<{
                 id: bigint | number;
                 username: string;
                 firstname: string;
@@ -815,10 +823,12 @@ export class AuthRepository implements AuthRepositoryInterface {
     let activeToken = "CBT123";
 
     try {
-      const moodleCbt = (await this.db.$queryRawUnsafe(
-        "SELECT id, name, timelimit, active_token FROM moodle.mdl_cbt WHERE id = ? LIMIT 1",
-        moodleCbtId,
-      )) as Array<{
+      const moodleCbt = (await this.db.$queryRaw`
+        SELECT id, name, timelimit, active_token
+          FROM moodle.mdl_cbt
+         WHERE id = ${moodleCbtId}
+         LIMIT 1
+      `) as Array<{
         id: bigint | number;
         name: string;
         timelimit: number;

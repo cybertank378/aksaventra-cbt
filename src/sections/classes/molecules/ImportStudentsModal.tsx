@@ -227,21 +227,6 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
               <Button
                 type="button"
                 variant="outline"
-                color="teal"
-                size="sm"
-                leftIcon={Download}
-                onClick={() =>
-                  handleProcessDownload(
-                    "/templates/sample_import_siswa.xls",
-                    "sample_import_siswa.xls",
-                  )
-                }
-              >
-                Excel (.xls)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
                 color="secondary"
                 size="sm"
                 leftIcon={Download}
@@ -275,7 +260,7 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
             <input
               id="student-file-upload"
               type="file"
-              accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+              accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -290,8 +275,7 @@ export const ImportStudentsModal: FC<ImportStudentsModalProps> = ({
                 Klik untuk memilih berkas atau seret ke sini
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
-                Mendukung berkas Excel (.xlsx / .xls) dan CSV berpemisah
-                titik-koma (;)
+                Mendukung berkas Excel (.xlsx) dan CSV berpemisah titik-koma (;)
               </p>
             </label>
           </div>

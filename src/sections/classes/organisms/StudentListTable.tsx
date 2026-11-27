@@ -127,8 +127,8 @@ export const StudentListTable: FC = () => {
       const suffix = className ? ` ${className}` : "";
       const firstname =
         suffix &&
-        trimmed.toLowerCase().endsWith(suffix.toLowerCase()) &&
-        trimmed.length > suffix.length
+          trimmed.toLowerCase().endsWith(suffix.toLowerCase()) &&
+          trimmed.length > suffix.length
           ? trimmed.slice(0, trimmed.length - suffix.length).trim()
           : trimmed;
       return [
@@ -273,21 +273,6 @@ export const StudentListTable: FC = () => {
             }
           >
             Template (.xlsx)
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            color="teal"
-            size="sm"
-            leftIcon={Download}
-            onClick={() =>
-              handleProcessDownload(
-                "/templates/sample_import_siswa.xls",
-                "sample_import_siswa.xls",
-              )
-            }
-          >
-            .xls
           </Button>
 
           <Button

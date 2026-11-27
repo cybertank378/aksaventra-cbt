@@ -2,6 +2,7 @@
 
 import { Check, Copy, Download, LineChart, Sparkles, X } from "lucide-react";
 import { type FC, useMemo, useState } from "react";
+import { escapeXml, sanitizeSvg } from "@/libs/svgSanitizer";
 import Button from "@/shared-ui/component/Button";
 import Modal from "@/shared-ui/component/Modal";
 import SelectField from "@/shared-ui/component/SelectField";
@@ -34,7 +35,9 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
   const [paramA, setParamA] = useState<number>(1);
   const [paramB, setParamB] = useState<number>(-4);
   const [paramC, setParamC] = useState<number>(3);
-  const [parabolaTitle, setParabolaTitle] = useState<string>("Grafik y = x² - 4x + 3");
+  const [parabolaTitle, setParabolaTitle] = useState<string>(
+    "Grafik y = x² - 4x + 3",
+  );
 
   // Linear state: y = m*x + c
   const [paramM, setParamM] = useState<number>(2);
@@ -59,30 +62,43 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
 
   // Generate SVG string based on selected diagram and parameters
   const svgContent = useMemo(() => {
-    if (diagramType === "parabola") {
-      // 400x300 viewBox, center at (200, 180), scale 25px per unit
-      const cx = 200;
-      const cy = 180;
-      const scale = 25;
+    const safeParabolaTitle = escapeXml(parabolaTitle);
+    const safeLinearTitle = escapeXml(linearTitle);
+    const safeTriangleA = escapeXml(triangleA);
+    const safeTriangleB = escapeXml(triangleB);
+    const safeTriangleC = escapeXml(triangleC);
+    const safeSideA = escapeXml(sideA);
+    const safeSideB = escapeXml(sideB);
+    const safeSideC = escapeXml(sideC);
+    const safeSetALabel = escapeXml(setALabel);
+    const safeSetBLabel = escapeXml(setBLabel);
+    const safeVennUnionLabel = escapeXml(vennUnionLabel);
 
-      const points: string[] = [];
-      for (let x = -5; x <= 6; x += 0.2) {
-        const y = paramA * x * x + paramB * x + paramC;
-        const px = cx + x * scale;
-        const py = cy - y * scale;
-        if (py >= 20 && py <= 280) {
-          points.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+    const buildRawSvg = (): string => {
+      if (diagramType === "parabola") {
+        // 400x300 viewBox, center at (200, 180), scale 25px per unit
+        const cx = 200;
+        const cy = 180;
+        const scale = 25;
+
+        const points: string[] = [];
+        for (let x = -5; x <= 6; x += 0.2) {
+          const y = paramA * x * x + paramB * x + paramC;
+          const px = cx + x * scale;
+          const py = cy - y * scale;
+          if (py >= 20 && py <= 280) {
+            points.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+          }
         }
-      }
-      const polyline = points.join(" ");
+        const polyline = points.join(" ");
 
-      // Vertex
-      const vx = -paramB / (2 * (paramA || 0.001));
-      const vy = paramA * vx * vx + paramB * vx + paramC;
-      const vpx = cx + vx * scale;
-      const vpy = cy - vy * scale;
+        // Vertex
+        const vx = -paramB / (2 * (paramA || 0.001));
+        const vy = paramA * vx * vx + paramB * vx + paramC;
+        const vpx = cx + vx * scale;
+        const vpy = cy - vy * scale;
 
-      return `<svg viewBox="0 0 400 300" width="100%" height="240" xmlns="http://www.w3.org/2000/svg" class="math-curve-parabola mx-auto my-2 rounded-xl bg-white border border-slate-200">
+        return `<svg viewBox="0 0 400 300" width="100%" height="240" xmlns="http://www.w3.org/2000/svg" class="math-curve-parabola mx-auto my-2 rounded-xl bg-white border border-slate-200">
   <!-- Grid -->
   <defs>
     <pattern id="grid" width="25" height="25" patternUnits="userSpaceOnUse">
@@ -105,32 +121,36 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
   <polyline points="${polyline}" fill="none" stroke="#0097a7" stroke-width="2.6" stroke-linecap="round" />
 
   <!-- Vertex Point -->
-  ${vpy >= 20 && vpy <= 280 ? `
+  ${
+    vpy >= 20 && vpy <= 280
+      ? `
   <circle cx="${vpx}" cy="${vpy}" r="4.5" fill="#eab308" stroke="#0d2b5c" stroke-width="1.5" />
   <text x="${vpx + 8}" y="${vpy - 6}" font-size="11" font-weight="bold" fill="#0d2b5c">P(${vx.toFixed(1)}, ${vy.toFixed(1)})</text>
-  ` : ""}
+  `
+      : ""
+  }
 
   <!-- Label / Title -->
-  <text x="20" y="28" font-size="12" font-weight="bold" font-family="sans-serif" fill="#0d2b5c">${parabolaTitle}</text>
+  <text x="20" y="28" font-size="12" font-weight="bold" font-family="sans-serif" fill="#0d2b5c">${safeParabolaTitle}</text>
 </svg>`;
-    }
+      }
 
-    if (diagramType === "linear") {
-      const cx = 200;
-      const cy = 150;
-      const scale = 25;
+      if (diagramType === "linear") {
+        const cx = 200;
+        const cy = 150;
+        const scale = 25;
 
-      const x1 = -6;
-      const y1 = paramM * x1 + paramLinearC;
-      const x2 = 6;
-      const y2 = paramM * x2 + paramLinearC;
+        const x1 = -6;
+        const y1 = paramM * x1 + paramLinearC;
+        const x2 = 6;
+        const y2 = paramM * x2 + paramLinearC;
 
-      const px1 = cx + x1 * scale;
-      const py1 = cy - y1 * scale;
-      const px2 = cx + x2 * scale;
-      const py2 = cy - y2 * scale;
+        const px1 = cx + x1 * scale;
+        const py1 = cy - y1 * scale;
+        const px2 = cx + x2 * scale;
+        const py2 = cy - y2 * scale;
 
-      return `<svg viewBox="0 0 400 300" width="100%" height="240" xmlns="http://www.w3.org/2000/svg" class="math-curve-linear mx-auto my-2 rounded-xl bg-white border border-slate-200">
+        return `<svg viewBox="0 0 400 300" width="100%" height="240" xmlns="http://www.w3.org/2000/svg" class="math-curve-linear mx-auto my-2 rounded-xl bg-white border border-slate-200">
   <defs>
     <pattern id="grid-lin" width="25" height="25" patternUnits="userSpaceOnUse">
       <path d="M 25 0 L 0 0 0 25" fill="none" stroke="#e2e8f0" stroke-width="0.8"/>
@@ -151,21 +171,21 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
   <!-- Linear Line -->
   <line x1="${px1}" y1="${py1}" x2="${px2}" y2="${py2}" stroke="#0284c7" stroke-width="2.6" stroke-linecap="round" />
   
-  <text x="20" y="28" font-size="12" font-weight="bold" font-family="sans-serif" fill="#0d2b5c">${linearTitle}</text>
+  <text x="20" y="28" font-size="12" font-weight="bold" font-family="sans-serif" fill="#0d2b5c">${safeLinearTitle}</text>
 </svg>`;
-    }
-
-    if (diagramType === "sine") {
-      const cx = 40;
-      const cy = 150;
-      const points: string[] = [];
-      for (let px = 40; px <= 360; px += 4) {
-        const rad = ((px - 40) / 160) * Math.PI;
-        const py = cy - 70 * Math.sin(rad);
-        points.push(`${px.toFixed(1)},${py.toFixed(1)}`);
       }
 
-      return `<svg viewBox="0 0 400 300" width="100%" height="240" xmlns="http://www.w3.org/2000/svg" class="math-curve-sine mx-auto my-2 rounded-xl bg-white border border-slate-200">
+      if (diagramType === "sine") {
+        const cx = 40;
+        const cy = 150;
+        const points: string[] = [];
+        for (let px = 40; px <= 360; px += 4) {
+          const rad = ((px - 40) / 160) * Math.PI;
+          const py = cy - 70 * Math.sin(rad);
+          points.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+        }
+
+        return `<svg viewBox="0 0 400 300" width="100%" height="240" xmlns="http://www.w3.org/2000/svg" class="math-curve-sine mx-auto my-2 rounded-xl bg-white border border-slate-200">
   <line x1="20" y1="${cy}" x2="380" y2="${cy}" stroke="#64748b" stroke-width="1.8" />
   <polygon points="380,${cy - 4} 390,${cy} 380,${cy + 4}" fill="#64748b" />
   <text x="385" y="${cy - 8}" font-size="12" font-weight="bold" fill="#334155">x</text>
@@ -186,10 +206,10 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
 
   <text x="20" y="28" font-size="12" font-weight="bold" fill="#0d2b5c">Kurva y = sin(x)</text>
 </svg>`;
-    }
+      }
 
-    if (diagramType === "triangle") {
-      return `<svg viewBox="0 0 400 300" width="100%" height="240" xmlns="http://www.w3.org/2000/svg" class="math-diagram-triangle mx-auto my-2 rounded-xl bg-white border border-slate-200">
+      if (diagramType === "triangle") {
+        return `<svg viewBox="0 0 400 300" width="100%" height="240" xmlns="http://www.w3.org/2000/svg" class="math-diagram-triangle mx-auto my-2 rounded-xl bg-white border border-slate-200">
   <!-- Triangle Polygon -->
   <polygon points="80,240 320,240 80,60" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.5" stroke-linejoin="round" />
   
@@ -198,44 +218,44 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
 
   <!-- Vertices Labels -->
   <circle cx="80" cy="240" r="4" fill="#0d2b5c" />
-  <text x="60" y="255" font-size="13" font-weight="bold" fill="#0d2b5c">${triangleA}</text>
+  <text x="60" y="255" font-size="13" font-weight="bold" fill="#0d2b5c">${safeTriangleA}</text>
 
   <circle cx="320" cy="240" r="4" fill="#0d2b5c" />
-  <text x="328" y="255" font-size="13" font-weight="bold" fill="#0d2b5c">${triangleB}</text>
+  <text x="328" y="255" font-size="13" font-weight="bold" fill="#0d2b5c">${safeTriangleB}</text>
 
   <circle cx="80" cy="60" r="4" fill="#0d2b5c" />
-  <text x="60" y="55" font-size="13" font-weight="bold" fill="#0d2b5c">${triangleC}</text>
+  <text x="60" y="55" font-size="13" font-weight="bold" fill="#0d2b5c">${safeTriangleC}</text>
 
   <!-- Side Labels -->
-  <text x="190" y="260" font-size="12" font-weight="bold" fill="#475569">${sideA}</text>
-  <text x="45" y="155" font-size="12" font-weight="bold" fill="#475569">${sideB}</text>
-  <text x="210" y="140" font-size="12" font-weight="bold" fill="#16a34a">${sideC}</text>
+  <text x="190" y="260" font-size="12" font-weight="bold" fill="#475569">${safeSideA}</text>
+  <text x="45" y="155" font-size="12" font-weight="bold" fill="#475569">${safeSideB}</text>
+  <text x="210" y="140" font-size="12" font-weight="bold" fill="#16a34a">${safeSideC}</text>
 
   <text x="20" y="28" font-size="12" font-weight="bold" fill="#0d2b5c">Segitiga Siku-Siku ABC</text>
 </svg>`;
-    }
+      }
 
-    if (diagramType === "venn") {
-      return `<svg viewBox="0 0 400 260" width="100%" height="220" xmlns="http://www.w3.org/2000/svg" class="math-diagram-venn mx-auto my-2 rounded-xl bg-white border border-slate-200">
+      if (diagramType === "venn") {
+        return `<svg viewBox="0 0 400 260" width="100%" height="220" xmlns="http://www.w3.org/2000/svg" class="math-diagram-venn mx-auto my-2 rounded-xl bg-white border border-slate-200">
   <!-- Universe Rect -->
   <rect x="30" y="25" width="340" height="210" rx="16" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" />
   <text x="45" y="48" font-size="13" font-weight="bold" fill="#0d2b5c">S (Semesta)</text>
 
   <!-- Circle A -->
   <circle cx="160" cy="135" r="70" fill="#0097a7" fill-opacity="0.25" stroke="#0097a7" stroke-width="2.2" />
-  <text x="120" y="140" font-size="12" font-weight="bold" fill="#0097a7">${setALabel}</text>
+  <text x="120" y="140" font-size="12" font-weight="bold" fill="#0097a7">${safeSetALabel}</text>
 
   <!-- Circle B -->
   <circle cx="240" cy="135" r="70" fill="#eab308" fill-opacity="0.25" stroke="#ca8a04" stroke-width="2.2" />
-  <text x="250" y="140" font-size="12" font-weight="bold" fill="#854d0e">${setBLabel}</text>
+  <text x="250" y="140" font-size="12" font-weight="bold" fill="#854d0e">${safeSetBLabel}</text>
 
   <!-- Intersection Label -->
-  <text x="185" y="140" font-size="11" font-weight="bold" fill="#0d2b5c">${vennUnionLabel}</text>
+  <text x="185" y="140" font-size="11" font-weight="bold" fill="#0d2b5c">${safeVennUnionLabel}</text>
 </svg>`;
-    }
+      }
 
-    // Default Circle
-    return `<svg viewBox="0 0 400 260" width="100%" height="220" xmlns="http://www.w3.org/2000/svg" class="math-diagram-circle mx-auto my-2 rounded-xl bg-white border border-slate-200">
+      // Default Circle
+      return `<svg viewBox="0 0 400 260" width="100%" height="220" xmlns="http://www.w3.org/2000/svg" class="math-diagram-circle mx-auto my-2 rounded-xl bg-white border border-slate-200">
   <circle cx="200" cy="130" r="80" fill="#f0f9ff" stroke="#0284c7" stroke-width="2.2" />
   <circle cx="200" cy="130" r="4" fill="#0d2b5c" />
   <text x="195" y="120" font-size="12" font-weight="bold" fill="#0d2b5c">O</text>
@@ -243,6 +263,9 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
   <text x="235" y="105" font-size="12" font-weight="bold" fill="#0284c7">r</text>
   <text x="20" y="28" font-size="12" font-weight="bold" fill="#0d2b5c">Lingkaran dengan Pusat O</text>
 </svg>`;
+    };
+
+    return sanitizeSvg(buildRawSvg());
   }, [
     diagramType,
     paramA,
@@ -315,10 +338,14 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
             onChange={(e) => setDiagramType(e.target.value as MathDiagramType)}
             size="sm"
           >
-            <option value="parabola">Kurva Parabola (Fungsi Kuadrat y = ax² + bx + c)</option>
+            <option value="parabola">
+              Kurva Parabola (Fungsi Kuadrat y = ax² + bx + c)
+            </option>
             <option value="linear">Garis Lurus / Linear (y = mx + c)</option>
             <option value="sine">Kurva Trigonometri Gelombang Sinus</option>
-            <option value="triangle">Diagram Geometri Segitiga Siku-siku</option>
+            <option value="triangle">
+              Diagram Geometri Segitiga Siku-siku
+            </option>
             <option value="circle">Diagram Lingkaran & Jari-jari</option>
             <option value="venn">Diagram Venn Himpunan Beririsan</option>
           </SelectField>
@@ -459,7 +486,9 @@ export const MathDiagramModal: FC<MathDiagramModalProps> = ({
               <LineChart className="w-4 h-4 text-[#0097a7]" />
               <span>Pratinjau Hasil Kurva / Diagram Vektor:</span>
             </div>
-            <span className="text-[11px] text-slate-400">Vektor SVG Responsif</span>
+            <span className="text-[11px] text-slate-400">
+              Vektor SVG Responsif
+            </span>
           </div>
 
           <div

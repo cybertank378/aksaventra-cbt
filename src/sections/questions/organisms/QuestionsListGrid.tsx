@@ -185,22 +185,6 @@ export const QuestionsListGrid: FC = () => {
           >
             Template Excel (.xlsx)
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            color="secondary"
-            size="sm"
-            leftIcon={Download}
-            onClick={() =>
-              handleProcessDownload(
-                "/templates/sample_import_soal.xls",
-                "sample_import_soal.xls",
-              )
-            }
-            title="Unduh Template Format Excel (.xls)"
-          >
-            .xls
-          </Button>
 
           <Button
             type="button"
@@ -336,113 +320,113 @@ export const QuestionsListGrid: FC = () => {
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {paginatedQuestions.map((q) => (
-            <Card
-              key={q.id}
-              className="flex flex-col justify-between p-5 hover:shadow-md transition-shadow"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(q.id)}
-                      onChange={() => toggleSelectQuestion(q.id)}
-                      aria-label={`Pilih soal ${q.code}`}
-                      className="h-4 w-4 rounded border-slate-300 text-[#0097a7]"
-                    />
-                    <Badge
-                      color="neutral"
-                      size="sm"
-                      className="font-mono font-extrabold text-[#0d2b5c]"
-                    >
-                      {q.code}
-                    </Badge>
-                    <QuestionTypeBadge type={q.type} />
-                    {(q.imageUrl ||
-                      q.stem.includes("<svg") ||
-                      q.stem.includes("<img")) && (
+              <Card
+                key={q.id}
+                className="flex flex-col justify-between p-5 hover:shadow-md transition-shadow"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(q.id)}
+                        onChange={() => toggleSelectQuestion(q.id)}
+                        aria-label={`Pilih soal ${q.code}`}
+                        className="h-4 w-4 rounded border-slate-300 text-[#0097a7]"
+                      />
                       <Badge
-                        color="teal"
+                        color="neutral"
                         size="sm"
-                        className="flex items-center gap-1 font-bold"
+                        className="font-mono font-extrabold text-[#0d2b5c]"
                       >
-                        <ImageIcon className="w-3 h-3 text-[#0097a7]" />
-                        Diagram / Kurva
+                        {q.code}
                       </Badge>
-                    )}
+                      <QuestionTypeBadge type={q.type} />
+                      {(q.imageUrl ||
+                        q.stem.includes("<svg") ||
+                        q.stem.includes("<img")) && (
+                        <Badge
+                          color="teal"
+                          size="sm"
+                          className="flex items-center gap-1 font-bold"
+                        >
+                          <ImageIcon className="w-3 h-3 text-[#0097a7]" />
+                          Diagram / Kurva
+                        </Badge>
+                      )}
+                    </div>
+                    <Badge color="neutral" size="sm" className="text-slate-500">
+                      {q.subject} • Kelas {q.gradeLevel}
+                    </Badge>
                   </div>
-                  <Badge color="neutral" size="sm" className="text-slate-500">
-                    {q.subject} • Kelas {q.gradeLevel}
-                  </Badge>
+
+                  {q.imageUrl && (
+                    <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 max-h-32 flex items-center justify-center p-1.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={q.imageUrl}
+                        alt={`Diagram soal ${q.code}`}
+                        className="max-h-28 object-contain rounded-lg"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+
+                  <MathRenderer
+                    content={q.stem}
+                    className={`text-xs font-medium text-slate-800 leading-relaxed ${
+                      q.stem.includes("<img") || q.stem.includes("<svg")
+                        ? "max-h-56 overflow-y-auto pr-1 [&_img]:max-h-44 [&_img]:rounded-lg [&_img]:my-1"
+                        : "line-clamp-3"
+                    }`}
+                  />
+
+                  {q.options && q.options.length > 0 && (
+                    <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <span>{q.options.length} Opsi Pilihan</span>
+                      <span className="font-bold text-[#0097a7] flex items-center gap-1">
+                        <Award className="w-3.5 h-3.5" />
+                        {q.points} Poin
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                {q.imageUrl && (
-                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 max-h-32 flex items-center justify-center p-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={q.imageUrl}
-                      alt={`Diagram soal ${q.code}`}
-                      className="max-h-28 object-contain rounded-lg"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
-
-                <MathRenderer
-                  content={q.stem}
-                  className={`text-xs font-medium text-slate-800 leading-relaxed ${
-                    q.stem.includes("<img") || q.stem.includes("<svg")
-                      ? "max-h-56 overflow-y-auto pr-1 [&_img]:max-h-44 [&_img]:rounded-lg [&_img]:my-1"
-                      : "line-clamp-3"
-                  }`}
-                />
-
-                {q.options && q.options.length > 0 && (
-                  <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span>{q.options.length} Opsi Pilihan</span>
-                    <span className="font-bold text-[#0097a7] flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5" />
-                      {q.points} Poin
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-slate-100">
-                <Button
-                  type="button"
-                  variant="outline"
-                  color="secondary"
-                  size="sm"
-                  leftIcon={Eye}
-                  onClick={() => handleView(q)}
-                  title="Lihat Detail Butir Soal"
-                >
-                  Lihat
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  color="primary"
-                  size="sm"
-                  leftIcon={Edit3}
-                  onClick={() => handleEdit(q)}
-                  title="Edit Butir Soal"
-                >
-                  Edit
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  color="error"
-                  size="sm"
-                  leftIcon={Trash2}
-                  onClick={() => handleDelete(q.id, q.code)}
-                  title="Hapus Soal"
-                />
-              </div>
-            </Card>
-          ))}
+                <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="secondary"
+                    size="sm"
+                    leftIcon={Eye}
+                    onClick={() => handleView(q)}
+                    title="Lihat Detail Butir Soal"
+                  >
+                    Lihat
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="primary"
+                    size="sm"
+                    leftIcon={Edit3}
+                    onClick={() => handleEdit(q)}
+                    title="Edit Butir Soal"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    color="error"
+                    size="sm"
+                    leftIcon={Trash2}
+                    onClick={() => handleDelete(q.id, q.code)}
+                    title="Hapus Soal"
+                  />
+                </div>
+              </Card>
+            ))}
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-2.5 shadow-2xs">

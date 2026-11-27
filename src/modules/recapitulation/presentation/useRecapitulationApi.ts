@@ -104,7 +104,7 @@ export function useRecapitulationApi(examId?: string) {
   }, [data]);
 
   const exportToExcel = useCallback(
-    (format: "xlsx" | "xls" = "xlsx") => {
+    async (format: "xlsx" | "xls" = "xlsx") => {
       if (!data || data.records.length === 0) return;
 
       setIsExporting(true);
@@ -153,7 +153,7 @@ export function useRecapitulationApi(examId?: string) {
           ];
         });
 
-        downloadExcelBlob(headers, rows, filename, "Rekap Nilai", format);
+        await downloadExcelBlob(headers, rows, filename, "Rekap Nilai", format);
       } finally {
         setIsExporting(false);
       }
