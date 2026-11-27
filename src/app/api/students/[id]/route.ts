@@ -2,11 +2,11 @@ import type { NextRequest } from "next/server";
 import { classesController } from "../../classes/_factory";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await context.params;
-  return await classesController.getStudentById(id);
+  return await classesController.getStudentById(id, request);
 }
 
 export async function PATCH(
@@ -18,9 +18,9 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await context.params;
-  return await classesController.deleteStudent(id);
+  return await classesController.deleteStudent(id, request);
 }

@@ -1,10 +1,10 @@
 import type { NextRequest } from "next/server";
 import { examController } from "./_factory";
 
-export async function GET() {
-  return await examController.listExams();
+export async function GET(request: NextRequest): Promise<Response> {
+  return await examController.listExams(request);
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<Response> {
   return await examController.createExam(request);
 }

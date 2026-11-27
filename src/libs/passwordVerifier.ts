@@ -175,11 +175,7 @@ function streamToWord(
   return { word, nextOff: o };
 }
 
-function eksKey(
-  data: Uint8Array,
-  P: Uint32Array,
-  S: Uint32Array,
-): void {
+function eksKey(data: Uint8Array, P: Uint32Array, S: Uint32Array): void {
   let off = 0;
   for (let i = 0; i < 18; i++) {
     const r = streamToWord(data, off);
@@ -248,7 +244,7 @@ export function verifyBcryptHash(
   plainTextPassword: string,
 ): boolean {
   const match = storedHash.match(
-    /^\$2([abxy])\$(\d{2})\$([.\/A-Za-z0-9]{22})([.\/A-Za-z0-9]{31})$/,
+    /^\$2([abxy])\$(\d{2})\$([./A-Za-z0-9]{22})([./A-Za-z0-9]{31})$/,
   );
   if (!match) {
     return false;
@@ -489,9 +485,16 @@ export async function verifyStoredPasswordHash(
     return { valid, needsArgon2Upgrade: valid };
   }
 
-  if (/^[0-9a-f]{32}$/i.test(storedHash)) {
-    const md5 = createHash("md5").update(plainTextPassword, "utf8").digest("hex");
-    const valid = md5.toLowerCase() === storedHash.toLowerCase();
+  if (
+    /^[0-9a-f]{32}$/i.test(storedHash) &&
+    process.env.ALLOW_LEGACY_MD5_MIGRATION === "true"
+  ) {
+    const md5 = createHash("md5")
+      .update(plainTextPassword, "utf8")
+      .digest("hex");
+    const a = Buffer.from(md5.toLowerCase(), "utf8");
+    const b = Buffer.from(storedHash.toLowerCase(), "utf8");
+    const valid = a.length === b.length && timingSafeEqual(a, b);
     return { valid, needsArgon2Upgrade: valid };
   }
 

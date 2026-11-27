@@ -101,15 +101,13 @@ export class AuthController extends BaseController {
 
       return response;
     } catch (err) {
+      console.error("[AuthController.login]", err);
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "INTERNAL_SERVER_ERROR",
-            message:
-              err instanceof Error
-                ? err.message
-                : "Terjadi kesalahan internal server",
+            message: "Terjadi kesalahan internal server",
           },
         },
         { status: 500 },
@@ -260,15 +258,13 @@ export class AuthController extends BaseController {
 
       return response;
     } catch (err) {
+      console.error("[AuthController.moodleLaunch]", err);
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "INTERNAL_SERVER_ERROR",
-            message:
-              err instanceof Error
-                ? err.message
-                : "Terjadi kesalahan internal server",
+            message: "Terjadi kesalahan internal server",
           },
         },
         { status: 500 },

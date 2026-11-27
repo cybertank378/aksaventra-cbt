@@ -2,6 +2,7 @@ import type { NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/domain/Result";
 import { handleZodError } from "@/core/errors/handleZodError";
+import { requireRequestRole } from "@/security/serverAuth";
 import type { QuestionsService } from "../application/service/QuestionsService";
 import {
   bulkGroupQuestionsSchema,
@@ -10,6 +11,8 @@ import {
   updateQuestionSchema,
 } from "./questions.validator";
 
+const QUESTION_MANAGER_ROLES = ["ADMIN", "TEACHER"] as const;
+
 export class QuestionsController extends BaseController {
   constructor(private readonly questionsService: QuestionsService) {
     super();
@@ -17,6 +20,14 @@ export class QuestionsController extends BaseController {
 
   public async getQuestions(request: NextRequest): Promise<NextResponse> {
     try {
+      const { errorResponse } = await requireRequestRole(
+        request,
+        QUESTION_MANAGER_ROLES,
+      );
+      if (errorResponse) {
+        return errorResponse;
+      }
+
       const { searchParams } = new URL(request.url);
       const query = {
         subject: searchParams.get("subject") || undefined,
@@ -40,8 +51,19 @@ export class QuestionsController extends BaseController {
     }
   }
 
-  public async getQuestionById(id: string): Promise<NextResponse> {
+  public async getQuestionById(
+    id: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
     try {
+      const { errorResponse } = await requireRequestRole(
+        request,
+        QUESTION_MANAGER_ROLES,
+      );
+      if (errorResponse) {
+        return errorResponse;
+      }
+
       const result = await this.questionsService.getQuestionById(id);
       return this.handleResult(result, 200);
     } catch (err) {
@@ -51,6 +73,14 @@ export class QuestionsController extends BaseController {
 
   public async createQuestion(request: NextRequest): Promise<NextResponse> {
     try {
+      const { errorResponse } = await requireRequestRole(
+        request,
+        QUESTION_MANAGER_ROLES,
+      );
+      if (errorResponse) {
+        return errorResponse;
+      }
+
       const body = await request.json();
       const parseResult = createQuestionSchema.safeParse(body);
 
@@ -75,6 +105,14 @@ export class QuestionsController extends BaseController {
     request: NextRequest,
   ): Promise<NextResponse> {
     try {
+      const { errorResponse } = await requireRequestRole(
+        request,
+        QUESTION_MANAGER_ROLES,
+      );
+      if (errorResponse) {
+        return errorResponse;
+      }
+
       const body = await request.json();
       const parseResult = updateQuestionSchema.safeParse(body);
 
@@ -95,8 +133,19 @@ export class QuestionsController extends BaseController {
     }
   }
 
-  public async deleteQuestion(id: string): Promise<NextResponse> {
+  public async deleteQuestion(
+    id: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
     try {
+      const { errorResponse } = await requireRequestRole(
+        request,
+        QUESTION_MANAGER_ROLES,
+      );
+      if (errorResponse) {
+        return errorResponse;
+      }
+
       const result = await this.questionsService.deleteQuestion(id);
       return this.handleResult(result, 200);
     } catch (err) {
@@ -106,6 +155,14 @@ export class QuestionsController extends BaseController {
 
   public async bulkGroupQuestions(request: NextRequest): Promise<NextResponse> {
     try {
+      const { errorResponse } = await requireRequestRole(
+        request,
+        QUESTION_MANAGER_ROLES,
+      );
+      if (errorResponse) {
+        return errorResponse;
+      }
+
       const body = await request.json();
       const parseResult = bulkGroupQuestionsSchema.safeParse(body);
       if (!parseResult.success) {

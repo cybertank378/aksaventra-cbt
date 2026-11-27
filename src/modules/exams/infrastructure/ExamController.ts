@@ -2,22 +2,24 @@ import { type NextRequest, NextResponse } from "next/server";
 import { BaseController } from "@/core/base/BaseController";
 import { Result } from "@/core/base/Result";
 import { handleZodError } from "@/core/errors/handleZodError";
+import {
+  requireRequestRole,
+  verifyRequestSession,
+} from "@/security/serverAuth";
 import type { ExamService } from "../application/service/ExamService";
 import { createExamSchema, updateExamSchema } from "./exam.validator";
+
+const EXAM_MANAGER_ROLES = ["ADMIN", "TEACHER"] as const;
+const EXAM_STAFF_ROLES = ["ADMIN", "TEACHER", "PROCTOR"] as const;
 
 export class ExamController extends BaseController {
   constructor(private readonly examService: ExamService) {
     super();
   }
 
-  private isExamManager(request?: NextRequest): boolean {
-    const role = request?.headers.get("x-user-role")?.toUpperCase();
-    return !role || role === "ADMIN" || role === "TEACHER";
-  }
-
   public async listStudentExams(request: NextRequest): Promise<NextResponse> {
-    const userId = request.headers.get("x-user-id");
-    if (!userId) {
+    const session = await verifyRequestSession(request);
+    if (!session) {
       return NextResponse.json(
         {
           success: false,
@@ -30,11 +32,28 @@ export class ExamController extends BaseController {
       );
     }
 
-    const result = await this.examService.listStudentExams(userId);
+    const result = await this.examService.listStudentExams(session.userId);
     return this.handleResult(result, 200);
   }
 
-  public async getSnapshot(examId: string): Promise<NextResponse> {
+  public async getSnapshot(
+    examId: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
+    const session = await verifyRequestSession(request);
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Sesi pengguna tidak ditemukan. Silakan login kembali.",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
     if (!examId || examId.trim() === "") {
       return NextResponse.json(
         {
@@ -52,7 +71,24 @@ export class ExamController extends BaseController {
     return this.handleResult(result, 200);
   }
 
-  public async getById(examId: string): Promise<NextResponse> {
+  public async getById(
+    examId: string,
+    request: NextRequest,
+  ): Promise<NextResponse> {
+    const session = await verifyRequestSession(request);
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Sesi pengguna tidak ditemukan. Silakan login kembali.",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
     const result = await this.examService.getExamById(examId);
     if (result.isFailure) {
       return this.handleResult(result);
@@ -64,7 +100,15 @@ export class ExamController extends BaseController {
     });
   }
 
-  public async listExams(): Promise<NextResponse> {
+  public async listExams(request: NextRequest): Promise<NextResponse> {
+    const { errorResponse } = await requireRequestRole(
+      request,
+      EXAM_STAFF_ROLES,
+    );
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     const result = await this.examService.listExams();
     if (result.isFailure) {
       return this.handleResult(result);
@@ -77,6 +121,14 @@ export class ExamController extends BaseController {
   }
 
   public async createExam(request: NextRequest): Promise<NextResponse> {
+    const { errorResponse } = await requireRequestRole(
+      request,
+      EXAM_MANAGER_ROLES,
+    );
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     try {
       const body = await request.json();
       const parseResult = createExamSchema.safeParse(body);
@@ -107,19 +159,14 @@ export class ExamController extends BaseController {
     id: string,
     request: NextRequest,
   ): Promise<NextResponse> {
-    if (!this.isExamManager(request)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "FORBIDDEN",
-            message:
-              "Hanya ADMIN atau TEACHER yang dapat mengubah jadwal ujian.",
-          },
-        },
-        { status: 403 },
-      );
+    const { errorResponse } = await requireRequestRole(
+      request,
+      EXAM_MANAGER_ROLES,
+    );
+    if (errorResponse) {
+      return errorResponse;
     }
+
     try {
       const body = await request.json();
       const parseResult = updateExamSchema.safeParse(body);
@@ -154,6 +201,14 @@ export class ExamController extends BaseController {
     examId: string,
     request: NextRequest,
   ): Promise<NextResponse> {
+    const { errorResponse } = await requireRequestRole(
+      request,
+      EXAM_MANAGER_ROLES,
+    );
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     try {
       const body = await request.json();
       const result = await this.examService.assignGroupsToExam({
@@ -168,7 +223,20 @@ export class ExamController extends BaseController {
     }
   }
 
-  public async getRoster(examId: string): Promise<NextResponse> {
+  public async getRoster(
+    examId: string,
+    request?: NextRequest,
+  ): Promise<NextResponse> {
+    if (request) {
+      const { errorResponse } = await requireRequestRole(
+        request,
+        EXAM_STAFF_ROLES,
+      );
+      if (errorResponse) {
+        return errorResponse;
+      }
+    }
+
     try {
       const result = await this.examService.getRoster(examId);
       return this.handleResult(result, 200);
@@ -178,6 +246,14 @@ export class ExamController extends BaseController {
   }
 
   public async updateSeat(request: NextRequest): Promise<NextResponse> {
+    const { errorResponse } = await requireRequestRole(
+      request,
+      EXAM_MANAGER_ROLES,
+    );
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     try {
       const body = await request.json();
       const result = await this.examService.updateSeat({
@@ -196,6 +272,14 @@ export class ExamController extends BaseController {
     id: string,
     request: NextRequest,
   ): Promise<NextResponse> {
+    const { errorResponse } = await requireRequestRole(
+      request,
+      EXAM_MANAGER_ROLES,
+    );
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     try {
       const body = await request.json();
       const result = await this.examService.updateSchedule(id, body);
@@ -207,20 +291,16 @@ export class ExamController extends BaseController {
 
   public async deleteExam(
     id: string,
-    request?: NextRequest,
+    request: NextRequest,
   ): Promise<NextResponse> {
-    if (!this.isExamManager(request)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: "FORBIDDEN",
-            message: "Hanya ADMIN atau TEACHER yang dapat menghapus ujian.",
-          },
-        },
-        { status: 403 },
-      );
+    const { errorResponse } = await requireRequestRole(
+      request,
+      EXAM_MANAGER_ROLES,
+    );
+    if (errorResponse) {
+      return errorResponse;
     }
+
     try {
       const result = await this.examService.deleteExam(id);
       return this.handleResult(result, 200);
