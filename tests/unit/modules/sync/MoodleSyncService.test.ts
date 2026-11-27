@@ -310,4 +310,70 @@ describe("MoodleSyncService Bidirectional Sync", () => {
       }),
     });
   });
+
+  it("syncStudentsFromMoodle corrects previously mis-mapped ADMIN teacher back to TEACHER while preserving primary admin", async () => {
+    const db = createMockDb();
+    db.user.findFirst
+      .mockResolvedValueOnce({
+        id: "usr-teacher-1",
+        moodleUserId: 15,
+        username: "197103092017081001",
+        fullName: "Agus Wurjantoro mtk",
+        role: "ADMIN",
+        passwordHash: "$2y$10$hash",
+        classGroupId: null,
+        className: null,
+        isActive: true,
+      })
+      .mockResolvedValueOnce({
+        id: "usr-admin-1",
+        moodleUserId: 2,
+        username: "admin",
+        fullName: "Admin Fahdking",
+        role: "ADMIN",
+        passwordHash: "$argon2id$hash",
+        classGroupId: null,
+        className: null,
+        isActive: true,
+      });
+
+    const callMoodle = vi.fn().mockResolvedValue({
+      success: true,
+      message: "ok",
+      data_json: JSON.stringify({
+        students: [
+          {
+            user_id: 15,
+            username: "197103092017081001",
+            full_name: "Agus Wurjantoro mtk",
+            role: "TEACHER",
+            moodle_roles: "coursecreator,manager",
+          },
+          {
+            user_id: 2,
+            username: "admin",
+            full_name: "Admin Fahdking",
+            role: "TEACHER",
+          },
+        ],
+      }),
+    });
+
+    const service = new MoodleSyncService(
+      db as unknown as PrismaClient,
+      callMoodle,
+    );
+    const count = await service.syncStudentsFromMoodle();
+
+    expect(count).toBe(2);
+    expect(db.user.update).toHaveBeenCalledTimes(1);
+    expect(db.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "usr-teacher-1" },
+        data: expect.objectContaining({
+          role: "TEACHER",
+        }),
+      }),
+    );
+  });
 });

@@ -30,6 +30,8 @@ export class UsersController extends BaseController {
   public async listUsers(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = request.nextUrl;
     const role = (searchParams.get("role") as UserRole) || undefined;
+    const excludeRole =
+      (searchParams.get("excludeRole") as UserRole) || undefined;
     const roomCode = searchParams.get("roomCode") || undefined;
     const search = searchParams.get("search") || undefined;
     const pageParam = searchParams.get("page");
@@ -39,6 +41,7 @@ export class UsersController extends BaseController {
 
     const result = await this.usersService.listUsers({
       role,
+      excludeRole,
       roomCode,
       search,
       page,
